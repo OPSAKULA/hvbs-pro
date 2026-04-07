@@ -410,17 +410,21 @@ window.addEventListener('resize', () => { camera.aspect = window.innerWidth/wind
 </script>
 
 <script>
-const BACKEND = "https://dashboard.render.com/web/srv-d7an4j94tr6s73c5copg/deploys/dep-d7an4jp4tr6s73c5cp1g?r=2026-04-07%4021%3A07%3A31%7E2026-04-07%4021%3A10%3A13";
+// ✅ CORRECT BACKEND URL (Render live service)
+const BACKEND = "https://hvbs-pro.onrender.com";
 
-// ========== TOKEN SCANNER ==========
+// ========== TOKEN SCANNER (with timeout for cold starts) ==========
 async function scanToken() {
   const addr = document.getElementById("tokenAddress").value.trim();
   if (!addr) return alert("Enter a Solana token address");
   const card = document.getElementById("resultCard");
   card.style.display = "block";
-  card.innerHTML = `<div style="text-align:center; padding:2rem;"><div style="font-size:2rem;">⏳</div><div style="margin-top:0.5rem; color:#94a3b8;">Scanning token... fetching holders, buyers/sellers, platform data...</div></div>`;
+  card.innerHTML = `<div style="text-align:center; padding:2rem;"><div style="font-size:2rem;">⏳</div><div style="margin-top:0.5rem; color:#94a3b8;">Scanning token... (cold start may take 50s)</div></div>`;
   try {
-    const res = await fetch(`${BACKEND}/api/token/${addr}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 70000); // 70 seconds timeout
+    const res = await fetch(`${BACKEND}/api/token/${addr}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
 
@@ -513,7 +517,7 @@ async function scanToken() {
           <td>
             <span style="font-size:0.78rem; font-weight:600; color:#a78bfa;">${h.percentage !== 'N/A' ? h.percentage+'%' : 'N/A'}</span>
             ${pct > 0 ? `<div class="pct-bar"><div class="pct-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>` : ''}
-           </td>
+            </td>
         </tr>`;
       });
       holdersHtml += `</table>`;
@@ -552,7 +556,7 @@ async function scanToken() {
     `;
     window.currentToken = data.tokenAddress;
   } catch (err) {
-    card.innerHTML = `<div style="color:#ef4444; text-align:center; padding:1rem;">❌ Error: ${err.message}<br><span style="font-size:0.8rem; color:#94a3b8;">Make sure backend is running on port 3000.</span></div>`;
+    card.innerHTML = `<div style="color:#ef4444; text-align:center; padding:1rem;">❌ Error: ${err.message}<br><span style="font-size:0.8rem; color:#94a3b8;">Backend cold start may take 50s. Try again after a minute.</span></div>`;
   }
 }
 
@@ -601,9 +605,6 @@ async function renderWatchlist() {
     container.appendChild(li);
   }
 }
-
-// ========== TELEGRAM SOUND (original) - REMOVED because section is gone ==========
-// No event listeners for uploadSoundBtn or stopSoundBtn – they are removed.
 
 // ========== PRICE ALERT WIZARD ==========
 let priceAlerts = [];
