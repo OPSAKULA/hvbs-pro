@@ -696,24 +696,31 @@ if (bot) {
     await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true });
   });
 
-  // 🆕 /setalert command – send voice message (ogg) for custom notification sound
+  // 🆕 MODIFIED: /setalert command – instructions + downloadable beep.mp3
   bot.onText(/\/setalert/, (msg) => {
     const chatId = msg.chat.id;
-    const voicePath = './beep.ogg';   // use .ogg file for voice message
-    if (!fs.existsSync(voicePath)) {
-      bot.sendMessage(chatId, "❌ Voice file not found. Please ensure beep.ogg exists in the server folder.");
-      return;
+    const audioPath = './beep.mp3';
+    const exists = fs.existsSync(audioPath);
+    
+    let message = "🔊 *How to set custom notification sound for this bot:*\n\n" +
+                  "1️⃣ Open this chat\n" +
+                  "2️⃣ Tap on the bot's name at the top\n" +
+                  "3️⃣ Go to *Notifications* → *Sound*\n" +
+                  "4️⃣ Choose any sound you like (or use the downloaded file below)\n\n" +
+                  "📌 *Tip:* You can download the sound file below and save it to your phone's 'Notifications' folder, then it will appear in the sound list.\n\n" +
+                  "⚙️ You can change or remove it anytime from the same settings.\n\n" +
+                  "✅ After setting, you will hear that sound for all future price alerts from this bot!";
+    
+    if (exists) {
+      bot.sendDocument(chatId, audioPath, {
+        caption: "🔊 *Sample beep sound – download and save to your device*",
+        parse_mode: "Markdown"
+      }).catch(err => console.error("Document send error:", err));
+    } else {
+      message += "\n\n⚠️ *Note:* No sound file available for download. Please use your phone's default sounds.";
     }
-    bot.sendVoice(chatId, voicePath, {
-      caption: "🔊 *Tap this voice message* to set it as your custom notification sound for this bot.\n\n" +
-               "📱 *How to set:*\n" +
-               "1️⃣ Tap the voice message above\n" +
-               "2️⃣ Tap the ⋮ (three dots) menu\n" +
-               "3️⃣ Select 'Set as notification sound'\n\n" +
-               "⚙️ You can change or remove it anytime from Telegram's notification settings.\n\n" +
-               "✅ After setting, you will hear this sound for all future price alerts from this bot!",
-      parse_mode: "Markdown"
-    }).catch(err => console.error("Voice send error:", err));
+    
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   });
 
   // Callback query handler (for stop sound button)
