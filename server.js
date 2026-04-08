@@ -128,36 +128,77 @@ function playSound(chatId) {
   }
 }
 
-// ✅ Helper: Alert ke saath Telegram par audio bhejo (device par sound bajega)
+// ✅ FIXED: Alert ke saath Telegram par VOICE MESSAGE bhejo (OGG Opus = auto-play hota hai)
 function sendAlertSound(chatId) {
   if (!bot) return;
 
-  // Pehle user-specific sound check karo
+  // Priority 1: User-specific OGG voice file check karo
   const soundDir = "./sounds";
-  const exts = [".mp3", ".wav", ".m4a", ".ogg"];
-  let soundFile = null;
-  for (let ext of exts) {
-    const testPath = path.join(soundDir, `${chatId}${ext}`);
-    if (fs.existsSync(testPath)) { soundFile = testPath; break; }
+  const userOgg = path.join(soundDir, `${chatId}.ogg`);
+  const userMp3 = path.join(soundDir, `${chatId}.mp3`);
+  const userWav = path.join(soundDir, `${chatId}.wav`);
+  const userM4a = path.join(soundDir, `${chatId}.m4a`);
+
+  // Priority 2: Global default beep files
+  const defaultOgg = "./beep.ogg";
+  const defaultMp3 = "./beep.mp3";
+
+  // ✅ sendVoice() use karo — OGG Opus file auto-play hoti hai Telegram mein
+  // sendAudio() = manual play, sendVoice() = auto-play with notification sound
+
+  if (fs.existsSync(userOgg)) {
+    // User ka custom OGG voice file
+    bot.sendVoice(chatId, fs.createReadStream(userOgg), {
+      caption: "🔊 Price Alert!"
+    }).catch(e => {
+      console.log("User voice send error:", e.message);
+      _sendFallbackAudio(chatId, defaultOgg, defaultMp3);
+    });
+  } else if (fs.existsSync(defaultOgg)) {
+    // ✅ Default beep.ogg — ye auto-play hogi
+    bot.sendVoice(chatId, fs.createReadStream(defaultOgg), {
+      caption: "🔊 Price Alert!"
+    }).catch(e => {
+      console.log("Default voice send error:", e.message);
+      // Fallback to MP3 audio
+      if (fs.existsSync(defaultMp3)) {
+        bot.sendAudio(chatId, fs.createReadStream(defaultMp3), {
+          caption: "🔊 Price Alert Sound"
+        }).catch(err => console.log("Audio fallback error:", err.message));
+      }
+    });
+  } else if (fs.existsSync(userMp3)) {
+    bot.sendAudio(chatId, fs.createReadStream(userMp3), {
+      caption: "🔊 Price Alert Sound"
+    }).catch(e => console.log("User mp3 send error:", e.message));
+  } else if (fs.existsSync(defaultMp3)) {
+    bot.sendAudio(chatId, fs.createReadStream(defaultMp3), {
+      caption: "🔊 Price Alert Sound"
+    }).catch(e => console.log("Default mp3 send error:", e.message));
+  } else if (fs.existsSync(userWav) || fs.existsSync(userM4a)) {
+    const f = fs.existsSync(userWav) ? userWav : userM4a;
+    bot.sendAudio(chatId, fs.createReadStream(f), {
+      caption: "🔊 Price Alert Sound"
+    }).catch(e => console.log("Alt audio send error:", e.message));
+  } else {
+    console.log("⚠️ No sound file found. beep.ogg ya beep.mp3 project folder mein rakhein.");
   }
 
-  // Fallback: default beep files
-  if (!soundFile && fs.existsSync("./beep.ogg")) soundFile = "./beep.ogg";
-  if (!soundFile && fs.existsSync("./beep.mp3")) soundFile = "./beep.mp3";
-
-  if (soundFile) {
-    const ext = path.extname(soundFile).toLowerCase();
-    if (ext === ".ogg") {
-      bot.sendVoice(chatId, soundFile, { caption: "🔊 Price Alert Sound" })
-        .catch(e => console.log("Voice send error:", e.message));
-    } else {
-      bot.sendAudio(chatId, soundFile, { caption: "🔊 Price Alert Sound" })
-        .catch(e => console.log("Audio send error:", e.message));
-    }
-  }
-
-  // Server-side beep bhi (optional)
+  // Server-side beep bhi (optional, server par bajega)
   playSound(chatId);
+}
+
+// Internal helper for fallback
+function _sendFallbackAudio(chatId, oggPath, mp3Path) {
+  if (fs.existsSync(oggPath)) {
+    bot.sendVoice(chatId, fs.createReadStream(oggPath), {
+      caption: "🔊 Price Alert!"
+    }).catch(e => console.log("Fallback voice error:", e.message));
+  } else if (fs.existsSync(mp3Path)) {
+    bot.sendAudio(chatId, fs.createReadStream(mp3Path), {
+      caption: "🔊 Price Alert Sound"
+    }).catch(e => console.log("Fallback audio error:", e.message));
+  }
 }
 
 // ========== MARKET DATA ==========
@@ -428,13 +469,13 @@ async function checkAllAlerts() {
             }
           };
 
-          // ✅ Text alert bhejo
+          // ✅ Pehle text alert bhejo
           bot.sendMessage(chatId,
             `🚨 *PRICE ALERT!*\nToken: \`${addr.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`,
             options
           );
 
-          // ✅ Audio file bhejo — device par sound bajega
+          // ✅ Phir VOICE MESSAGE bhejo — OGG Opus = auto-play hoga Telegram mein
           sendAlertSound(chatId);
 
           delete alerts[chatId][addr];
@@ -521,7 +562,7 @@ app.post("/api/alert-by-username", async (req, res) => {
 app.post("/api/upload-sound/:chatId", upload.single("sound"), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, error: "No file" });
   const chatId = req.params.chatId;
-  const exts = [".mp3", ".wav", ".m4a"];
+  const exts = [".mp3", ".wav", ".m4a", ".ogg"];
   for (let ext of exts) {
     const oldPath = path.join("./sounds", `${chatId}${ext}`);
     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
@@ -532,7 +573,7 @@ app.post("/api/upload-sound/:chatId", upload.single("sound"), (req, res) => {
 app.get("/api/sound-status/:chatId", (req, res) => {
   const chatId = req.params.chatId;
   let hasCustom = false;
-  for (let ext of [".mp3", ".wav", ".m4a"]) {
+  for (let ext of [".mp3", ".wav", ".m4a", ".ogg"]) {
     if (fs.existsSync(path.join("./sounds", `${chatId}${ext}`))) { hasCustom = true; break; }
   }
   res.json({ hasCustom, isPlaying: !!activeSounds[chatId] });
@@ -580,11 +621,11 @@ if (bot) {
     bot.sendMessage(msg.chat.id, `📖 *Help*\n• /search pippin\n• /alerts So111... 0.02 above\n• /forcecheck\n• /testbeep\n• /mute – turn off alerts\n• /unmute – turn on alerts\n• /stopsound\n• /setalert – set custom notification sound`, { parse_mode: "Markdown" });
   });
 
+  // ✅ FIXED: /testbeep bhi voice message bhejta hai
   bot.onText(/\/testbeep/, (msg) => {
     const chatId = msg.chat.id;
-    // ✅ Test mein bhi Telegram par audio bhejo
+    bot.sendMessage(chatId, "🔊 Testing alert sound...");
     sendAlertSound(chatId);
-    bot.sendMessage(chatId, "🔊 Testing alert sound — aapko upar audio file milegi!");
   });
 
   bot.onText(/\/forcecheck/, async (msg) => {
@@ -733,7 +774,7 @@ if (bot) {
           `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`,
           options
         );
-        // ✅ Audio bhejo
+        // ✅ Voice message bhejo
         sendAlertSound(chatId);
         delete alerts[chatId][address];
         saveData(ALERTS_FILE, alerts);
@@ -757,7 +798,7 @@ if (bot) {
     await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true });
   });
 
-  // /setalert command
+  // ✅ FIXED: /setalert — ReadStream use karo, file path nahi
   bot.onText(/\/setalert/, (msg) => {
     const chatId = msg.chat.id;
     const voicePath = './beep.ogg';
@@ -765,16 +806,13 @@ if (bot) {
       bot.sendMessage(chatId, "❌ Voice file not found. Please ensure beep.ogg exists in the server folder.");
       return;
     }
-    bot.sendVoice(chatId, voicePath, {
-      caption: "🔊 *Tap this voice message* to set it as your custom notification sound for this bot.\n\n" +
-               "📱 *How to set:*\n" +
-               "1️⃣ Tap the voice message above\n" +
-               "2️⃣ Tap the ⋮ (three dots) menu\n" +
-               "3️⃣ Select 'Set as notification sound'\n\n" +
-               "⚙️ You can change or remove it anytime from Telegram's notification settings.\n\n" +
-               "✅ After setting, you will hear this sound for all future price alerts from this bot!",
+    bot.sendVoice(chatId, fs.createReadStream(voicePath), {
+      caption: "🔊 *Ye tumhara alert sound hai!*\n\n📱 *Phone par notification sound set karne ke liye:*\n1️⃣ Is voice message ko tap karo\n2️⃣ Upar ⋮ (teen dots) tap karo\n3️⃣ *'Set as notification sound'* select karo\n\n✅ Iske baad jab bhi price alert aayega, ye sound bajega!",
       parse_mode: "Markdown"
-    }).catch(err => console.error("Voice send error:", err));
+    }).catch(err => {
+      console.error("Voice send error:", err.message);
+      bot.sendMessage(chatId, "❌ Voice file send karne mein error. Check karo beep.ogg sahi OGG Opus format mein hai.");
+    });
   });
 
   // Callback query handler
@@ -800,5 +838,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   if (!fs.existsSync("./sounds")) fs.mkdirSync("./sounds");
   console.log("✅ APIs: DexScreener v2 + Jupiter v2 + GeckoTerminal + CoinGecko + TopHolders + BuyersSellers");
-  console.log("✅ Fix: Alert sound now sent via Telegram audio (device par bajega)");
+  console.log("✅ Fix: Alert sound ab sendVoice() se bheja jaata hai — OGG Opus auto-play hoga Telegram mein");
 });
