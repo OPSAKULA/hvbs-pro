@@ -41,10 +41,10 @@ const COINGECKO_COIN_DATA     = "https://api.coingecko.com/api/v3/coins/";
 const GECKO_TERMINAL_API      = "https://api.geckoterminal.com/api/v2/networks/solana/tokens/";
 const SOLSCAN_TOPHOLDERS      = "https://api.solscan.io/v2/token/holders?tokenAddress=";
 
-const ALERTS_FILE       = "./alerts.json";
-const WATCHLIST_FILE    = "./watchlist.json";
+const ALERTS_FILE    = "./alerts.json";
+const WATCHLIST_FILE = "./watchlist.json";
 const USERNAME_MAP_FILE = "./username_chatid_map.json";
-const MUTE_FILE         = "./muted_users.json";
+const MUTE_FILE = "./muted_users.json";
 
 function loadData(file) {
   if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file));
@@ -54,10 +54,10 @@ function saveData(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-let alerts           = loadData(ALERTS_FILE);
-let watchlists       = loadData(WATCHLIST_FILE);
+let alerts    = loadData(ALERTS_FILE);
+let watchlists = loadData(WATCHLIST_FILE);
 let usernameChatIdMap = loadData(USERNAME_MAP_FILE);
-let mutedUsers       = loadData(MUTE_FILE);
+let mutedUsers = loadData(MUTE_FILE);
 
 // Clean invalid alerts
 for (let chatId in alerts) {
@@ -108,7 +108,7 @@ function playSound(chatId) {
   }
   if (soundFile) {
     let playerProcess;
-    if (process.platform === "win32")       playerProcess = exec(`start "" "${soundFile}"`);
+    if (process.platform === "win32")      playerProcess = exec(`start "" "${soundFile}"`);
     else if (process.platform === "darwin") playerProcess = exec(`afplay "${soundFile}"`);
     else                                    playerProcess = exec(`aplay "${soundFile}"`);
     activeSounds[chatId] = { type: 'custom', process: playerProcess };
@@ -125,79 +125,6 @@ function playSound(chatId) {
       beepCount++;
     }, 1000);
     activeSounds[chatId] = { type: 'beep', intervalId: beepInterval };
-  }
-}
-
-// ✅ FIXED: Alert ke saath Telegram par VOICE MESSAGE bhejo (OGG Opus = auto-play hota hai)
-function sendAlertSound(chatId) {
-  if (!bot) return;
-
-  // Priority 1: User-specific OGG voice file check karo
-  const soundDir = "./sounds";
-  const userOgg = path.join(soundDir, `${chatId}.ogg`);
-  const userMp3 = path.join(soundDir, `${chatId}.mp3`);
-  const userWav = path.join(soundDir, `${chatId}.wav`);
-  const userM4a = path.join(soundDir, `${chatId}.m4a`);
-
-  // Priority 2: Global default beep files
-  const defaultOgg = "./beep.ogg";
-  const defaultMp3 = "./beep.mp3";
-
-  // ✅ sendVoice() use karo — OGG Opus file auto-play hoti hai Telegram mein
-  // sendAudio() = manual play, sendVoice() = auto-play with notification sound
-
-  if (fs.existsSync(userOgg)) {
-    // User ka custom OGG voice file
-    bot.sendVoice(chatId, fs.createReadStream(userOgg), {
-      caption: "🔊 Price Alert!"
-    }).catch(e => {
-      console.log("User voice send error:", e.message);
-      _sendFallbackAudio(chatId, defaultOgg, defaultMp3);
-    });
-  } else if (fs.existsSync(defaultOgg)) {
-    // ✅ Default beep.ogg — ye auto-play hogi
-    bot.sendVoice(chatId, fs.createReadStream(defaultOgg), {
-      caption: "🔊 Price Alert!"
-    }).catch(e => {
-      console.log("Default voice send error:", e.message);
-      // Fallback to MP3 audio
-      if (fs.existsSync(defaultMp3)) {
-        bot.sendAudio(chatId, fs.createReadStream(defaultMp3), {
-          caption: "🔊 Price Alert Sound"
-        }).catch(err => console.log("Audio fallback error:", err.message));
-      }
-    });
-  } else if (fs.existsSync(userMp3)) {
-    bot.sendAudio(chatId, fs.createReadStream(userMp3), {
-      caption: "🔊 Price Alert Sound"
-    }).catch(e => console.log("User mp3 send error:", e.message));
-  } else if (fs.existsSync(defaultMp3)) {
-    bot.sendAudio(chatId, fs.createReadStream(defaultMp3), {
-      caption: "🔊 Price Alert Sound"
-    }).catch(e => console.log("Default mp3 send error:", e.message));
-  } else if (fs.existsSync(userWav) || fs.existsSync(userM4a)) {
-    const f = fs.existsSync(userWav) ? userWav : userM4a;
-    bot.sendAudio(chatId, fs.createReadStream(f), {
-      caption: "🔊 Price Alert Sound"
-    }).catch(e => console.log("Alt audio send error:", e.message));
-  } else {
-    console.log("⚠️ No sound file found. beep.ogg ya beep.mp3 project folder mein rakhein.");
-  }
-
-  // Server-side beep bhi (optional, server par bajega)
-  playSound(chatId);
-}
-
-// Internal helper for fallback
-function _sendFallbackAudio(chatId, oggPath, mp3Path) {
-  if (fs.existsSync(oggPath)) {
-    bot.sendVoice(chatId, fs.createReadStream(oggPath), {
-      caption: "🔊 Price Alert!"
-    }).catch(e => console.log("Fallback voice error:", e.message));
-  } else if (fs.existsSync(mp3Path)) {
-    bot.sendAudio(chatId, fs.createReadStream(mp3Path), {
-      caption: "🔊 Price Alert Sound"
-    }).catch(e => console.log("Fallback audio error:", e.message));
   }
 }
 
@@ -468,16 +395,11 @@ async function checkAllAlerts() {
               ]
             }
           };
-
-          // ✅ Pehle text alert bhejo
           bot.sendMessage(chatId,
             `🚨 *PRICE ALERT!*\nToken: \`${addr.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`,
             options
           );
-
-          // ✅ Phir VOICE MESSAGE bhejo — OGG Opus = auto-play hoga Telegram mein
-          sendAlertSound(chatId);
-
+          playSound(chatId);
           delete alerts[chatId][addr];
           saveData(ALERTS_FILE, alerts);
         }
@@ -562,7 +484,7 @@ app.post("/api/alert-by-username", async (req, res) => {
 app.post("/api/upload-sound/:chatId", upload.single("sound"), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, error: "No file" });
   const chatId = req.params.chatId;
-  const exts = [".mp3", ".wav", ".m4a", ".ogg"];
+  const exts = [".mp3", ".wav", ".m4a"];
   for (let ext of exts) {
     const oldPath = path.join("./sounds", `${chatId}${ext}`);
     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
@@ -573,7 +495,7 @@ app.post("/api/upload-sound/:chatId", upload.single("sound"), (req, res) => {
 app.get("/api/sound-status/:chatId", (req, res) => {
   const chatId = req.params.chatId;
   let hasCustom = false;
-  for (let ext of [".mp3", ".wav", ".m4a", ".ogg"]) {
+  for (let ext of [".mp3", ".wav", ".m4a"]) {
     if (fs.existsSync(path.join("./sounds", `${chatId}${ext}`))) { hasCustom = true; break; }
   }
   res.json({ hasCustom, isPlaying: !!activeSounds[chatId] });
@@ -607,7 +529,6 @@ if (bot) {
     );
     setTimeout(() => sendNotificationReminder(chatId), 2000);
   });
-
   bot.on('message', (msg) => {
     const username = msg.from?.username;
     const chatId = msg.chat.id;
@@ -616,23 +537,17 @@ if (bot) {
       saveData(USERNAME_MAP_FILE, usernameChatIdMap);
     }
   });
-
   bot.onText(/\/help/, (msg) => {
     bot.sendMessage(msg.chat.id, `📖 *Help*\n• /search pippin\n• /alerts So111... 0.02 above\n• /forcecheck\n• /testbeep\n• /mute – turn off alerts\n• /unmute – turn on alerts\n• /stopsound\n• /setalert – set custom notification sound`, { parse_mode: "Markdown" });
   });
-
-  // ✅ FIXED: /testbeep bhi voice message bhejta hai
   bot.onText(/\/testbeep/, (msg) => {
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId, "🔊 Testing alert sound...");
-    sendAlertSound(chatId);
+    playSound(msg.chat.id);
+    bot.sendMessage(msg.chat.id, "🔊 Testing sound.");
   });
-
   bot.onText(/\/forcecheck/, async (msg) => {
     await checkAllAlerts();
     bot.sendMessage(msg.chat.id, "✅ Force check done.");
   });
-
   bot.onText(/\/search (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const result = await searchTokenBySymbol(match[1].trim());
@@ -642,40 +557,34 @@ if (bot) {
       bot.sendMessage(chatId, `❌ No token found for "${match[1].trim()}".`);
     }
   });
-
   bot.onText(/\/clearalerts/, (msg) => {
     const chatId = msg.chat.id;
     if (alerts[chatId]) { delete alerts[chatId]; saveData(ALERTS_FILE, alerts); bot.sendMessage(chatId, "✅ All alerts cleared."); }
     else bot.sendMessage(chatId, "📭 No active alerts.");
   });
-
   bot.onText(/\/stopsound/, (msg) => {
     const chatId = msg.chat.id;
     if (stopSound(chatId)) bot.sendMessage(chatId, "🔇 Sound stopped.");
     else bot.sendMessage(chatId, "No active sound.");
   });
-
   bot.onText(/\/mute/, (msg) => {
     const chatId = msg.chat.id;
     mutedUsers[chatId] = true;
     saveData(MUTE_FILE, mutedUsers);
     bot.sendMessage(chatId, "🔇 *Alerts muted.* You will no longer receive price alerts. Use /unmute to enable again.", { parse_mode: "Markdown" });
   });
-
   bot.onText(/\/unmute/, (msg) => {
     const chatId = msg.chat.id;
     delete mutedUsers[chatId];
     saveData(MUTE_FILE, mutedUsers);
     bot.sendMessage(chatId, "🔔 *Alerts unmuted.* You will now receive price alerts.", { parse_mode: "Markdown" });
   });
-
   bot.onText(/\/checkprice (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const market = await getMarketData(match[1].trim(), 2);
     if (market) bot.sendMessage(chatId, `💰 Price: $${market.price}`);
     else bot.sendMessage(chatId, "❌ Price fetch failed.");
   });
-
   bot.onText(/\/trending/, async (msg) => {
     const chatId = msg.chat.id;
     const msgSend = await bot.sendMessage(chatId, "⏳ Fetching...");
@@ -687,7 +596,6 @@ if (bot) {
     });
     await bot.editMessageText(text, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true });
   });
-
   bot.onText(/\/add (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const address = match[1].trim();
@@ -698,7 +606,6 @@ if (bot) {
       bot.sendMessage(chatId, `✅ Added \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" });
     } else bot.sendMessage(chatId, `⚠️ Already in watchlist.`);
   });
-
   bot.onText(/\/remove (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const address = match[1].trim();
@@ -708,7 +615,6 @@ if (bot) {
       bot.sendMessage(chatId, `🗑 Removed \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" });
     } else bot.sendMessage(chatId, `❌ Not found.`);
   });
-
   bot.onText(/\/watchlist/, async (msg) => {
     const chatId = msg.chat.id;
     const list = watchlists[chatId] || [];
@@ -721,7 +627,6 @@ if (bot) {
     }
     bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
   });
-
   bot.onText(/\/myalerts/, (msg) => {
     const chatId = msg.chat.id;
     const userAlerts = alerts[chatId] || {};
@@ -733,7 +638,6 @@ if (bot) {
     }
     bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
   });
-
   bot.onText(/\/removealert (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const address = match[1].trim();
@@ -743,7 +647,6 @@ if (bot) {
       bot.sendMessage(chatId, `🗑 Removed alert for \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" });
     } else bot.sendMessage(chatId, `❌ No active alert.`);
   });
-
   bot.onText(/\/alerts (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const parts = match[1].trim().split(/\s+/);
@@ -770,18 +673,13 @@ if (bot) {
             inline_keyboard: [[{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]]
           }
         };
-        bot.sendMessage(chatId,
-          `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`,
-          options
-        );
-        // ✅ Voice message bhejo
-        sendAlertSound(chatId);
+        bot.sendMessage(chatId, `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`, options);
+        playSound(chatId);
         delete alerts[chatId][address];
         saveData(ALERTS_FILE, alerts);
       }
     }
   });
-
   bot.onText(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, async (msg) => {
     const chatId = msg.chat.id;
     const address = msg.text.trim();
@@ -798,24 +696,34 @@ if (bot) {
     await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true });
   });
 
-  // ✅ FIXED: /setalert — ReadStream use karo, file path nahi
+  // 🆕 MODIFIED: /setalert command – instructions + downloadable beep.mp3
   bot.onText(/\/setalert/, (msg) => {
     const chatId = msg.chat.id;
-    const voicePath = './beep.ogg';
-    if (!fs.existsSync(voicePath)) {
-      bot.sendMessage(chatId, "❌ Voice file not found. Please ensure beep.ogg exists in the server folder.");
-      return;
+    const audioPath = './beep.mp3';
+    const exists = fs.existsSync(audioPath);
+    
+    let message = "🔊 *How to set custom notification sound for this bot:*\n\n" +
+                  "1️⃣ Open this chat\n" +
+                  "2️⃣ Tap on the bot's name at the top\n" +
+                  "3️⃣ Go to *Notifications* → *Sound*\n" +
+                  "4️⃣ Choose any sound you like (or use the downloaded file below)\n\n" +
+                  "📌 *Tip:* You can download the sound file below and save it to your phone's 'Notifications' folder, then it will appear in the sound list.\n\n" +
+                  "⚙️ You can change or remove it anytime from the same settings.\n\n" +
+                  "✅ After setting, you will hear that sound for all future price alerts from this bot!";
+    
+    if (exists) {
+      bot.sendDocument(chatId, audioPath, {
+        caption: "🔊 *Sample beep sound – download and save to your device*",
+        parse_mode: "Markdown"
+      }).catch(err => console.error("Document send error:", err));
+    } else {
+      message += "\n\n⚠️ *Note:* No sound file available for download. Please use your phone's default sounds.";
     }
-    bot.sendVoice(chatId, fs.createReadStream(voicePath), {
-      caption: "🔊 *Ye tumhara alert sound hai!*\n\n📱 *Phone par notification sound set karne ke liye:*\n1️⃣ Is voice message ko tap karo\n2️⃣ Upar ⋮ (teen dots) tap karo\n3️⃣ *'Set as notification sound'* select karo\n\n✅ Iske baad jab bhi price alert aayega, ye sound bajega!",
-      parse_mode: "Markdown"
-    }).catch(err => {
-      console.error("Voice send error:", err.message);
-      bot.sendMessage(chatId, "❌ Voice file send karne mein error. Check karo beep.ogg sahi OGG Opus format mein hai.");
-    });
+    
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
   });
 
-  // Callback query handler
+  // Callback query handler (for stop sound button)
   bot.on('callback_query', (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const data = callbackQuery.data;
@@ -838,5 +746,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   if (!fs.existsSync("./sounds")) fs.mkdirSync("./sounds");
   console.log("✅ APIs: DexScreener v2 + Jupiter v2 + GeckoTerminal + CoinGecko + TopHolders + BuyersSellers");
-  console.log("✅ Fix: Alert sound ab sendVoice() se bheja jaata hai — OGG Opus auto-play hoga Telegram mein");
+  console.log("✅ New: notification reminder, mute/unmute commands");
 });
