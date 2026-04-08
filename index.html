@@ -172,6 +172,12 @@
     .tg-set-alert-btn { background: linear-gradient(135deg, #0088cc, #005f99); border: none; padding: 0.6rem 1.5rem; border-radius: 2rem; color: white; cursor: pointer; font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
     .tg-status { font-size: 0.8rem; margin-top: 0.5rem; min-height: 20px; }
 
+    /* NEW: Web Notification Section */
+    .web-notif-section { background: #0f172a; border-radius: 1.5rem; padding: 1.2rem; margin: 1rem 0; text-align: center; }
+    .notif-btn { background: #3b82f6; border: none; padding: 0.75rem 1.5rem; border-radius: 2rem; color: white; font-weight: 600; cursor: pointer; transition: 0.2s; margin: 0.5rem; }
+    .notif-btn:hover { background: #2563eb; transform: scale(1.02); }
+    .notif-status { font-size: 0.8rem; margin-top: 0.5rem; color: #94a3b8; }
+
     footer { text-align: center; margin-top: 2.5rem; font-size: 0.7rem; color: #94a3b8; }
     @media (max-width: 640px) { .container { padding: 1rem; } .stat-value { font-size: 1.1rem; } .step-container { flex-direction: column; } .holders-table { font-size: 0.7rem; } }
   </style>
@@ -232,7 +238,15 @@
     </div>
   </div>
 
-  <!-- ========== NEW: COMING SOON 3D STYLE SECTION ========== -->
+  <!-- ========== NEW: WEB PUSH NOTIFICATIONS SECTION ========== -->
+  <div class="web-notif-section glass">
+    <div class="section-title" style="justify-content: center; border-left: none;">🔔 Browser Sound Alerts</div>
+    <p>Enable browser notifications to receive a sound + popup when a price alert is triggered – works even if Telegram is closed!</p>
+    <button id="enableWebNotificationsBtn" class="notif-btn">🔔 Enable & Test Sound</button>
+    <div id="webNotificationStatus" class="notif-status"></div>
+  </div>
+
+  <!-- ========== NEW: COMING SOON 3D STYLE SECTION (keep as is) ========== -->
   <div class="sound-upload glass" style="text-align: center; padding: 2rem;">
     <div class="section-title" style="justify-content: center; border-left: none;">✨ Coming Soon ✨</div>
     <div class="coming-soon-3d">
@@ -336,7 +350,7 @@
   <footer>⚠️ DYOR – High risk may indicate scam or rugpull. Always verify. HVBS Pro v2.0 – Data: DexScreener + Solscan + CoinGecko</footer>
 </div>
 
-<!-- THREE.JS BACKGROUND -->
+<!-- THREE.JS BACKGROUND (unchanged) -->
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.128.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -413,7 +427,7 @@ window.addEventListener('resize', () => { camera.aspect = window.innerWidth/wind
 // ✅ CORRECT BACKEND URL (Render live service)
 const BACKEND = "https://hvbs-pro.onrender.com";
 
-// ========== TOKEN SCANNER (with timeout for cold starts) ==========
+// ========== TOKEN SCANNER (unchanged) ==========
 async function scanToken() {
   const addr = document.getElementById("tokenAddress").value.trim();
   if (!addr) return alert("Enter a Solana token address");
@@ -422,7 +436,7 @@ async function scanToken() {
   card.innerHTML = `<div style="text-align:center; padding:2rem;"><div style="font-size:2rem;">⏳</div><div style="margin-top:0.5rem; color:#94a3b8;">Scanning token... (cold start may take 50s)</div></div>`;
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 70000); // 70 seconds timeout
+    const timeoutId = setTimeout(() => controller.abort(), 70000);
     const res = await fetch(`${BACKEND}/api/token/${addr}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     const data = await res.json();
@@ -430,16 +444,14 @@ async function scanToken() {
 
     const riskClass = data.riskLevel.includes("SAFE") ? "safe" : (data.riskLevel.includes("CAUTION") ? "caution" : "high");
 
-    // --- EXCHANGES HTML ---
     const dexList = (data.exchanges || []).filter(e => e.type === 'DEX');
     const cexList = (data.exchanges || []).filter(e => e.type === 'CEX');
     let exchangesHtml = `<div class="exchanges-section">
       <div style="font-weight:700; margin-bottom:0.8rem;">🌐 Listed Platforms & Exchanges</div>
       <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:0.5rem;">DEX (Decentralized)</div>
       <div class="exchange-chips">`;
-    if (dexList.length === 0) {
-      exchangesHtml += `<span style="color:#ef4444; font-size:0.8rem;">⚠️ Not listed on any DEX (High Risk!)</span>`;
-    } else {
+    if (dexList.length === 0) exchangesHtml += `<span style="color:#ef4444; font-size:0.8rem;">⚠️ Not listed on any DEX (High Risk!)</span>`;
+    else {
       dexList.forEach(ex => {
         exchangesHtml += `<a href="${ex.url||'#'}" target="_blank" class="ex-chip-dex">${ex.name} (${ex.baseToken}/${ex.quoteToken})</a>`;
       });
@@ -468,63 +480,34 @@ async function scanToken() {
     }
     exchangesHtml += `</div>`;
 
-    // --- BUYERS/SELLERS HTML ---
     const bs = data.buyersSellers || { h1:{buys:0,sells:0}, h6:{buys:0,sells:0}, h24:{buys:0,sells:0} };
     function bsPct(buys, sells) { const t = buys+sells; return t ? Math.round((buys/t)*100) : 50; }
     const bsHtml = `<div class="buysell-section">
       <div class="buysell-title">📊 Real-Time Buyers vs Sellers</div>
       <table class="buysell-table">
         <tr><th>Period</th><th>🟢 Buyers</th><th>🔴 Sellers</th><th>Buy %</th></tr>
-        <tr>
-          <td style="color:#94a3b8; font-weight:600;">1 Hour</td>
-          <td class="buys-val">${bs.h1.buys}</td>
-          <td class="sells-val">${bs.h1.sells}</td>
-          <td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h1.buys,bs.h1.sells)}%"></div></div><span style="font-size:0.7rem">${bsPct(bs.h1.buys,bs.h1.sells)}%</span></td>
-        </tr>
-        <tr>
-          <td style="color:#94a3b8; font-weight:600;">6 Hours</td>
-          <td class="buys-val">${bs.h6.buys}</td>
-          <td class="sells-val">${bs.h6.sells}</td>
-          <td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h6.buys,bs.h6.sells)}%"></div></div><span style="font-size:0.7rem">${bsPct(bs.h6.buys,bs.h6.sells)}%</span></td>
-        </tr>
-        <tr>
-          <td style="color:#94a3b8; font-weight:600;">24 Hours</td>
-          <td class="buys-val">${bs.h24.buys}</td>
-          <td class="sells-val">${bs.h24.sells}</td>
-          <td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h24.buys,bs.h24.sells)}%"></div></div><span style="font-size:0.7rem">${bsPct(bs.h24.buys,bs.h24.sells)}%</span></td>
-        </tr>
+        <tr><td>1 Hour</td><td class="buys-val">${bs.h1.buys}</td><td class="sells-val">${bs.h1.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h1.buys,bs.h1.sells)}%"></div></div><span>${bsPct(bs.h1.buys,bs.h1.sells)}%</span></td></tr>
+        <tr><td>6 Hours</td><td class="buys-val">${bs.h6.buys}</td><td class="sells-val">${bs.h6.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h6.buys,bs.h6.sells)}%"></div></div><span>${bsPct(bs.h6.buys,bs.h6.sells)}%</span></td></tr>
+        <tr><td>24 Hours</td><td class="buys-val">${bs.h24.buys}</td><td class="sells-val">${bs.h24.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h24.buys,bs.h24.sells)}%"></div></div><span>${bsPct(bs.h24.buys,bs.h24.sells)}%</span></td></tr>
       </table>
     </div>`;
 
-    // --- TOP HOLDERS HTML ---
     const holders = data.topHolders || [];
-    let holdersHtml = `<div class="holders-section">
-      <div class="holders-title">👥 Top 10 Holders</div>`;
-    if (holders.length === 0) {
-      holdersHtml += `<div style="color:#94a3b8; font-size:0.85rem;">⚠️ Holder data unavailable (API limit or new token)</div>`;
-    } else {
-      holdersHtml += `<table class="holders-table">
-        <tr><th>#</th><th>Wallet Address</th><th>Amount</th><th>%</th></tr>`;
+    let holdersHtml = `<div class="holders-section"><div class="holders-title">👥 Top 10 Holders</div>`;
+    if (holders.length === 0) holdersHtml += `<div style="color:#94a3b8; font-size:0.85rem;">⚠️ Holder data unavailable (API limit or new token)</div>`;
+    else {
+      holdersHtml += `<table class="holders-table"><tr><th>#</th><th>Wallet Address</th><th>Amount</th><th>%</th></tr>`;
       holders.forEach((h, i) => {
         const rankClass = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
         const shortAddr = h.address.length > 10 ? h.address.slice(0,6)+'...'+h.address.slice(-4) : h.address;
         const pct = parseFloat(h.percentage) || 0;
         const solscanUrl = `https://solscan.io/account/${h.address}`;
-        holdersHtml += `<tr>
-          <td><span class="rank-badge ${rankClass}">${i+1}</span></td>
-          <td><a href="${solscanUrl}" target="_blank" class="holder-addr" title="${h.address}">${shortAddr}</a></td>
-          <td style="font-weight:600;">${typeof h.amount === 'number' ? h.amount.toLocaleString(undefined,{maximumFractionDigits:2}) : h.amount}</td>
-          <td>
-            <span style="font-size:0.78rem; font-weight:600; color:#a78bfa;">${h.percentage !== 'N/A' ? h.percentage+'%' : 'N/A'}</span>
-            ${pct > 0 ? `<div class="pct-bar"><div class="pct-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>` : ''}
-            </td>
-        </tr>`;
+        holdersHtml += `<tr><td><span class="rank-badge ${rankClass}">${i+1}</span></td><td><a href="${solscanUrl}" target="_blank" class="holder-addr" title="${h.address}">${shortAddr}</a></td><td>${typeof h.amount === 'number' ? h.amount.toLocaleString(undefined,{maximumFractionDigits:2}) : h.amount}</td><td><span>${h.percentage !== 'N/A' ? h.percentage+'%' : 'N/A'}</span>${pct > 0 ? `<div class="pct-bar"><div class="pct-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>` : ''}</td></tr>`;
       });
       holdersHtml += `</table>`;
     }
     holdersHtml += `</div>`;
 
-    // --- ASSEMBLE RESULT ---
     const logoHtml = data.logo ? `<img src="${data.logo}" class="token-logo" onerror="this.style.display='none'" alt="${data.symbol}">` : '';
     card.innerHTML = `
       <div class="token-header">
@@ -562,7 +545,7 @@ async function scanToken() {
 
 function copyAddress(addr) { navigator.clipboard.writeText(addr); alert("✅ Address copied!"); }
 
-// ========== TRENDING ==========
+// ========== TRENDING (unchanged) ==========
 async function loadTrending() {
   try {
     const res = await fetch(`${BACKEND}/api/trending`);
@@ -581,7 +564,7 @@ async function loadTrending() {
   } catch { document.getElementById("trendingGrid").innerHTML = "<p>Error loading trending.</p>"; }
 }
 
-// ========== WATCHLIST ==========
+// ========== WATCHLIST (unchanged) ==========
 function getWatchlist() { let w = localStorage.getItem("hvbs_watchlist"); return w ? JSON.parse(w) : []; }
 function saveWatchlist(list) { localStorage.setItem("hvbs_watchlist", JSON.stringify(list)); renderWatchlist(); updateAlertTokenSelect(); }
 function addToWatchlist() {
@@ -606,12 +589,27 @@ async function renderWatchlist() {
   }
 }
 
-// ========== PRICE ALERT WIZARD ==========
+// ========== PRICE ALERT WIZARD with localStorage persistence ==========
 let priceAlerts = [];
 let customSoundBlob = null;
 let audioElemGlobal = null;
 let audioEnabled = false;
 let currentCondition = "above";
+let browserNotificationsEnabled = false;
+
+// Load alerts from localStorage
+function saveAlertsToLocalStorage() {
+  localStorage.setItem('hvbs_priceAlerts', JSON.stringify(priceAlerts));
+}
+function loadAlertsFromLocalStorage() {
+  const saved = localStorage.getItem('hvbs_priceAlerts');
+  if (saved) {
+    try {
+      priceAlerts = JSON.parse(saved);
+      renderActiveAlerts();
+    } catch(e) { console.error("Failed to load alerts", e); }
+  }
+}
 
 function setCondition(val) {
   currentCondition = val;
@@ -700,7 +698,54 @@ document.getElementById('globalStopSoundBtn').addEventListener('click', () => {
   document.getElementById('soundStatusWizard').innerHTML = "🔇 Sound stopped";
 });
 
-// ALL DONE BUTTON - Set alert
+// ========== WEB PUSH NOTIFICATIONS ==========
+const webNotifBtn = document.getElementById('enableWebNotificationsBtn');
+const webNotifStatus = document.getElementById('webNotificationStatus');
+
+async function requestWebNotificationPermission() {
+  if (!("Notification" in window)) {
+    webNotifStatus.innerHTML = "❌ Your browser does not support desktop notifications.";
+    return;
+  }
+  if (Notification.permission === "granted") {
+    webNotifStatus.innerHTML = "✅ Notifications enabled. You will hear a sound when price alerts trigger!";
+    browserNotificationsEnabled = true;
+    webNotifBtn.textContent = "✅ Notifications On";
+    webNotifBtn.style.background = "#059669";
+    new Notification("HVBS Pro Alert Test", { body: "This is a test notification. You should hear a sound (depends on your system).", icon: "https://OPSAKULA.github.io/hvbs-pro/favicon.ico" });
+    playAlertSound();
+  } else if (Notification.permission !== "denied") {
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      webNotifStatus.innerHTML = "✅ Notifications enabled! You will receive sound alerts.";
+      browserNotificationsEnabled = true;
+      webNotifBtn.textContent = "✅ Notifications On";
+      webNotifBtn.style.background = "#059669";
+      new Notification("HVBS Pro Alert Test", { body: "Test successful! You'll get sound on price alerts.", icon: "https://OPSAKULA.github.io/hvbs-pro/favicon.ico" });
+      playAlertSound();
+    } else {
+      webNotifStatus.innerHTML = "❌ Notifications denied. You won't receive browser alerts.";
+      browserNotificationsEnabled = false;
+    }
+  } else {
+    webNotifStatus.innerHTML = "❌ Notifications are blocked. Please allow them in your browser settings.";
+    browserNotificationsEnabled = false;
+  }
+}
+
+webNotifBtn.addEventListener('click', requestWebNotificationPermission);
+
+function sendBrowserNotification(tokenAddr, price, direction, targetPrice, chartUrl) {
+  if (!browserNotificationsEnabled && Notification.permission !== "granted") return;
+  const title = "🚨 HVBS Pro Price Alert!";
+  const body = `Token: ${tokenAddr.slice(0,6)}...\nDirection: ${direction === 'above' ? '↑ Above' : '↓ Below'} target $${targetPrice}\nCurrent price: $${price}`;
+  const notification = new Notification(title, { body, icon: "https://OPSAKULA.github.io/hvbs-pro/favicon.ico", requireInteraction: true, tag: tokenAddr });
+  notification.onclick = () => {
+    window.open(chartUrl, '_blank');
+  };
+}
+
+// ALL DONE BUTTON - Set alert with save
 document.getElementById('allDoneBtn').addEventListener('click', async () => {
   if (priceAlerts.length >= 10) { alert("Maximum 10 alerts allowed!"); return; }
   let token = document.getElementById('manualTokenAddr').value.trim() || document.getElementById('alertTokenSelect').value;
@@ -718,6 +763,7 @@ document.getElementById('allDoneBtn').addEventListener('click', async () => {
     lastTriggered: 0,
     triggeredType: null
   });
+  saveAlertsToLocalStorage();  // ✅ save after adding
   renderActiveAlerts();
 
   const tgUsername = document.getElementById('tgUsernameInput').value.trim();
@@ -793,22 +839,33 @@ async function checkAllPriceAlerts() {
         alert.triggeredType = triggerType;
         anyTriggered = true;
         if (audioEnabled) playAlertSound();
+        if (Notification.permission === "granted" || browserNotificationsEnabled) {
+          sendBrowserNotification(alert.tokenAddr, livePrice, alert.condition ? 'above' : 'below', alert.targetPrice, `https://dexscreener.com/solana/${alert.tokenAddr}`);
+        }
         document.getElementById('step2Status').innerHTML = `🔔 ALERT! ${alert.tokenAddr.slice(0,6)}... hit $${livePrice.toFixed(8)}`;
       }
     } else { alert.triggeredType = null; }
   }
-  if (anyTriggered) renderActiveAlerts();
+  if (anyTriggered) {
+    renderActiveAlerts();
+    saveAlertsToLocalStorage(); // save triggered state
+  }
 }
 
-window.removeAlertById = (id) => { priceAlerts = priceAlerts.filter(a => a.id !== id); renderActiveAlerts(); };
+window.removeAlertById = (id) => {
+  priceAlerts = priceAlerts.filter(a => a.id !== id);
+  saveAlertsToLocalStorage();
+  renderActiveAlerts();
+};
 window.removeFromWatchlist = removeFromWatchlist;
 
 setInterval(checkAllPriceAlerts, 15000);
 
-// INIT
+// INIT - load alerts from storage
 updateAlertTokenSelect();
 renderWatchlist();
 loadTrending();
+loadAlertsFromLocalStorage();  // ✅ load saved alerts
 renderActiveAlerts();
 document.getElementById("tokenAddress").addEventListener("keypress", e => e.key === "Enter" && scanToken());
 </script>
