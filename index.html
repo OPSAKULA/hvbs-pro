@@ -196,6 +196,8 @@
       Join Bot on Telegram
     </a>
     <a href="https://twitter.com/BahadurVijender" target="_blank" class="social-btn">🐦 X (Twitter)</a>
+    <!-- 🌐 GitHub Pages Link Added -->
+    <a href="https://opsakula.github.io/hvbs-pro/" target="_blank" class="social-btn">🌐 GitHub Pages</a>
   </div>
 
   <!-- TOKEN SCANNER -->
@@ -486,9 +488,9 @@ async function scanToken() {
       <div class="buysell-title">📊 Real-Time Buyers vs Sellers</div>
       <table class="buysell-table">
         <tr><th>Period</th><th>🟢 Buyers</th><th>🔴 Sellers</th><th>Buy %</th></tr>
-        <tr><td>1 Hour</td><td class="buys-val">${bs.h1.buys}</td><td class="sells-val">${bs.h1.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h1.buys,bs.h1.sells)}%"></div></div><span>${bsPct(bs.h1.buys,bs.h1.sells)}%</span></td></tr>
-        <tr><td>6 Hours</td><td class="buys-val">${bs.h6.buys}</td><td class="sells-val">${bs.h6.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h6.buys,bs.h6.sells)}%"></div></div><span>${bsPct(bs.h6.buys,bs.h6.sells)}%</span></td></tr>
-        <tr><td>24 Hours</td><td class="buys-val">${bs.h24.buys}</td><td class="sells-val">${bs.h24.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h24.buys,bs.h24.sells)}%"></div></div><span>${bsPct(bs.h24.buys,bs.h24.sells)}%</span></td></tr>
+        <tr><td style="color:#94a3b8; font-weight:600;">1 Hour</td><td class="buys-val">${bs.h1.buys}</td><td class="sells-val">${bs.h1.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h1.buys,bs.h1.sells)}%"></div></div><span>${bsPct(bs.h1.buys,bs.h1.sells)}%</span></td></tr>
+        <tr><td style="color:#94a3b8; font-weight:600;">6 Hours</td><td class="buys-val">${bs.h6.buys}</td><td class="sells-val">${bs.h6.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h6.buys,bs.h6.sells)}%"></div></div><span>${bsPct(bs.h6.buys,bs.h6.sells)}%</span></td></tr>
+        <tr><td style="color:#94a3b8; font-weight:600;">24 Hours</td><td class="buys-val">${bs.h24.buys}</td><td class="sells-val">${bs.h24.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h24.buys,bs.h24.sells)}%"></div></div><span>${bsPct(bs.h24.buys,bs.h24.sells)}%</span></td></tr>
       </table>
     </div>`;
 
