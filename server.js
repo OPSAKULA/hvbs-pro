@@ -44,6 +44,7 @@ const SOLSCAN_TOPHOLDERS      = "https://api.solscan.io/v2/token/holders?tokenAd
 const ALERTS_FILE    = "./alerts.json";
 const WATCHLIST_FILE = "./watchlist.json";
 const USERNAME_MAP_FILE = "./username_chatid_map.json";
+const MUTE_FILE = "./muted_users.json"; // NEW: store muted users
 
 function loadData(file) {
   if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file));
@@ -56,6 +57,7 @@ function saveData(file, data) {
 let alerts    = loadData(ALERTS_FILE);
 let watchlists = loadData(WATCHLIST_FILE);
 let usernameChatIdMap = loadData(USERNAME_MAP_FILE);
+let mutedUsers = loadData(MUTE_FILE); // { chatId: true }
 
 // Clean invalid alerts
 for (let chatId in alerts) {
@@ -369,10 +371,12 @@ async function resolveTelegramUsername(username) {
   return null;
 }
 
-// ========== IMPROVED ALERT CHECKER with guaranteed inline keyboard ==========
+// ========== ALERT CHECKER (respects mute) ==========
 async function checkAllAlerts() {
   if (!bot) return;
   for (let chatId in alerts) {
+    // Skip if user has muted alerts
+    if (mutedUsers[chatId]) continue;
     for (let addr in alerts[chatId]) {
       const alert = alerts[chatId][addr];
       if (!alert.price || isNaN(alert.price)) { delete alerts[chatId][addr]; continue; }
@@ -384,7 +388,6 @@ async function checkAllAlerts() {
         if (direction === 'above' && market.price >= targetPrice) triggered = true;
         if (direction === 'below' && market.price <= targetPrice) triggered = true;
         if (triggered) {
-          // ✅ INLINE KEYBOARD BUTTON – direct object
           const options = {
             parse_mode: "Markdown",
             reply_markup: {
@@ -468,7 +471,14 @@ app.post("/api/alert-by-username", async (req, res) => {
   if (!alerts[chatId]) alerts[chatId] = {};
   alerts[chatId][tokenAddress] = { price, direction: dir };
   saveData(ALERTS_FILE, alerts);
-  if (bot) bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0,6)}...\`\nTarget: $${price} (${dir})\n\nYou will receive a Telegram message + sound when this hits!`, { parse_mode: "Markdown" });
+  if (bot) {
+    // Check if user is muted, if so inform them that alerts are muted
+    if (mutedUsers[chatId]) {
+      bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0,6)}...\`\nTarget: $${price} (${dir})\n\n⚠️ *Your alerts are currently muted.* You will not receive notifications. Use /unmute to enable alerts.`, { parse_mode: "Markdown" });
+    } else {
+      bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0,6)}...\`\nTarget: $${price} (${dir})\n\nYou will receive a Telegram message + sound when this hits!`, { parse_mode: "Markdown" });
+    }
+  }
   res.json({ success: true, message: `Alert set for @${cleanUsername}` });
 });
 
@@ -500,19 +510,14 @@ app.post("/api/stop-sound/:chatId", (req, res) => {
 
 // ========== TELEGRAM BOT HANDLERS ==========
 if (bot) {
-  // Test button command – to verify inline keyboards work
-  bot.onText(/\/testbutton/, (msg) => {
-    const chatId = msg.chat.id;
-    const options = {
-      parse_mode: "Markdown",
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: "🔇 Test Stop", callback_data: "test_stop" }]
-        ]
-      }
-    };
-    bot.sendMessage(chatId, "This is a test message with a button. Press it to see if callback works.", options);
-  });
+  // Helper to send notification reminder (once per user)
+  const notificationReminded = {}; // in-memory, but we can also persist
+  function sendNotificationReminder(chatId) {
+    if (!notificationReminded[chatId]) {
+      bot.sendMessage(chatId, "🔔 *Notification Reminder*\n\nTo receive price alerts with sound, please ensure Telegram notifications are enabled on your device.\n\nGo to Telegram Settings → Notifications and Sounds → Enable for this bot.\n\nYou can also mute/unmute alerts using:\n`/mute` – disable all alerts\n`/unmute` – enable alerts\n\n_This message will not appear again._", { parse_mode: "Markdown" });
+      notificationReminded[chatId] = true;
+    }
+  }
 
   bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
@@ -522,9 +527,11 @@ if (bot) {
       saveData(USERNAME_MAP_FILE, usernameChatIdMap);
     }
     bot.sendMessage(chatId,
-      `🚀 *HVBS Pro Bot*\n\n✅ You are now registered!\nUsername: @${username || "unknown"}\nChat ID: \`${chatId}\`\n\n*Commands:*\n/trending\n/search <symbol>\n/alerts <address> <price> [above|below]\n/forcecheck\n/testbeep\n/testbutton\n/myalerts\n/clearalerts\n/removealert <address>\n/checkprice <address>\n/stopsound\n/watchlist\n/add <address>\n/remove <address>`,
+      `🚀 *HVBS Pro Bot*\n\n✅ You are now registered!\nUsername: @${username || "unknown"}\nChat ID: \`${chatId}\`\n\n*Commands:*\n/trending\n/search <symbol>\n/alerts <address> <price> [above|below]\n/forcecheck\n/testbeep\n/mute – Disable all price alerts\n/unmute – Enable price alerts\n/myalerts\n/clearalerts\n/removealert <address>\n/checkprice <address>\n/stopsound\n/watchlist\n/add <address>\n/remove <address>`,
       { parse_mode: "Markdown" }
     );
+    // Send notification reminder after a short delay
+    setTimeout(() => sendNotificationReminder(chatId), 2000);
   });
   bot.on('message', (msg) => {
     const username = msg.from?.username;
@@ -535,7 +542,7 @@ if (bot) {
     }
   });
   bot.onText(/\/help/, (msg) => {
-    bot.sendMessage(msg.chat.id, `📖 *Help*\n• /search pippin\n• /alerts So111... 0.02 above\n• /forcecheck\n• /testbeep\n• /testbutton\n• /stopsound`, { parse_mode: "Markdown" });
+    bot.sendMessage(msg.chat.id, `📖 *Help*\n• /search pippin\n• /alerts So111... 0.02 above\n• /forcecheck\n• /testbeep\n• /mute – turn off alerts\n• /unmute – turn on alerts\n• /stopsound`, { parse_mode: "Markdown" });
   });
   bot.onText(/\/testbeep/, (msg) => {
     playSound(msg.chat.id);
@@ -563,6 +570,18 @@ if (bot) {
     const chatId = msg.chat.id;
     if (stopSound(chatId)) bot.sendMessage(chatId, "🔇 Sound stopped.");
     else bot.sendMessage(chatId, "No active sound.");
+  });
+  bot.onText(/\/mute/, (msg) => {
+    const chatId = msg.chat.id;
+    mutedUsers[chatId] = true;
+    saveData(MUTE_FILE, mutedUsers);
+    bot.sendMessage(chatId, "🔇 *Alerts muted.* You will no longer receive price alerts. Use /unmute to enable again.", { parse_mode: "Markdown" });
+  });
+  bot.onText(/\/unmute/, (msg) => {
+    const chatId = msg.chat.id;
+    delete mutedUsers[chatId];
+    saveData(MUTE_FILE, mutedUsers);
+    bot.sendMessage(chatId, "🔔 *Alerts unmuted.* You will now receive price alerts.", { parse_mode: "Markdown" });
   });
   bot.onText(/\/checkprice (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -645,6 +664,8 @@ if (bot) {
     if (!alerts[chatId]) alerts[chatId] = {};
     alerts[chatId][address] = { price: targetPrice, direction };
     saveData(ALERTS_FILE, alerts);
+    // Send notification reminder (once)
+    sendNotificationReminder(chatId);
     bot.sendMessage(chatId, `🔔 Alert set for \`${address.slice(0,6)}...\` at $${targetPrice} (${direction}).`, { parse_mode: "Markdown" });
     const market = await getMarketData(address);
     if (market) {
@@ -680,7 +701,7 @@ if (bot) {
     await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true });
   });
 
-  // ✅ Callback query handler (for both test and real stop)
+  // Callback query handler (for stop sound button)
   bot.on('callback_query', (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const data = callbackQuery.data;
@@ -703,5 +724,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   if (!fs.existsSync("./sounds")) fs.mkdirSync("./sounds");
   console.log("✅ APIs: DexScreener v2 + Jupiter v2 + GeckoTerminal + CoinGecko + TopHolders + BuyersSellers");
-  console.log("✅ Test command: /testbutton – to verify inline keyboard");
+  console.log("✅ New: notification reminder, mute/unmute commands");
 });
