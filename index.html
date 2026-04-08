@@ -196,8 +196,8 @@
       Join Bot on Telegram
     </a>
     <a href="https://twitter.com/BahadurVijender" target="_blank" class="social-btn">🐦 X (Twitter)</a>
-    <!-- 🌐 GitHub Pages Link Added -->
-    <a href="https://opsakula.github.io/hvbs-pro/" target="_blank" class="social-btn">🌐 GitHub Pages</a>
+    <!-- ✅ Fixed: Replaced GitHub Pages (404) with Render live demo link -->
+    <a href="https://hvbs-pro-frontend.onrender.com" target="_blank" class="social-btn">🚀 Live Demo</a>
   </div>
 
   <!-- TOKEN SCANNER -->
@@ -599,7 +599,6 @@ let audioEnabled = false;
 let currentCondition = "above";
 let browserNotificationsEnabled = false;
 
-// Load alerts from localStorage
 function saveAlertsToLocalStorage() {
   localStorage.setItem('hvbs_priceAlerts', JSON.stringify(priceAlerts));
 }
@@ -714,7 +713,7 @@ async function requestWebNotificationPermission() {
     browserNotificationsEnabled = true;
     webNotifBtn.textContent = "✅ Notifications On";
     webNotifBtn.style.background = "#059669";
-    new Notification("HVBS Pro Alert Test", { body: "This is a test notification. You should hear a sound (depends on your system).", icon: "https://OPSAKULA.github.io/hvbs-pro/favicon.ico" });
+    new Notification("HVBS Pro Alert Test", { body: "This is a test notification. You should hear a sound (depends on your system).", icon: "https://hvbs-pro-frontend.onrender.com/favicon.ico" });
     playAlertSound();
   } else if (Notification.permission !== "denied") {
     const permission = await Notification.requestPermission();
@@ -723,7 +722,7 @@ async function requestWebNotificationPermission() {
       browserNotificationsEnabled = true;
       webNotifBtn.textContent = "✅ Notifications On";
       webNotifBtn.style.background = "#059669";
-      new Notification("HVBS Pro Alert Test", { body: "Test successful! You'll get sound on price alerts.", icon: "https://OPSAKULA.github.io/hvbs-pro/favicon.ico" });
+      new Notification("HVBS Pro Alert Test", { body: "Test successful! You'll get sound on price alerts.", icon: "https://hvbs-pro-frontend.onrender.com/favicon.ico" });
       playAlertSound();
     } else {
       webNotifStatus.innerHTML = "❌ Notifications denied. You won't receive browser alerts.";
@@ -741,7 +740,7 @@ function sendBrowserNotification(tokenAddr, price, direction, targetPrice, chart
   if (!browserNotificationsEnabled && Notification.permission !== "granted") return;
   const title = "🚨 HVBS Pro Price Alert!";
   const body = `Token: ${tokenAddr.slice(0,6)}...\nDirection: ${direction === 'above' ? '↑ Above' : '↓ Below'} target $${targetPrice}\nCurrent price: $${price}`;
-  const notification = new Notification(title, { body, icon: "https://OPSAKULA.github.io/hvbs-pro/favicon.ico", requireInteraction: true, tag: tokenAddr });
+  const notification = new Notification(title, { body, icon: "https://hvbs-pro-frontend.onrender.com/favicon.ico", requireInteraction: true, tag: tokenAddr });
   notification.onclick = () => {
     window.open(chartUrl, '_blank');
   };
@@ -765,7 +764,7 @@ document.getElementById('allDoneBtn').addEventListener('click', async () => {
     lastTriggered: 0,
     triggeredType: null
   });
-  saveAlertsToLocalStorage();  // ✅ save after adding
+  saveAlertsToLocalStorage();
   renderActiveAlerts();
 
   const tgUsername = document.getElementById('tgUsernameInput').value.trim();
@@ -850,7 +849,7 @@ async function checkAllPriceAlerts() {
   }
   if (anyTriggered) {
     renderActiveAlerts();
-    saveAlertsToLocalStorage(); // save triggered state
+    saveAlertsToLocalStorage();
   }
 }
 
@@ -867,7 +866,7 @@ setInterval(checkAllPriceAlerts, 15000);
 updateAlertTokenSelect();
 renderWatchlist();
 loadTrending();
-loadAlertsFromLocalStorage();  // ✅ load saved alerts
+loadAlertsFromLocalStorage();
 renderActiveAlerts();
 document.getElementById("tokenAddress").addEventListener("keypress", e => e.key === "Enter" && scanToken());
 </script>
