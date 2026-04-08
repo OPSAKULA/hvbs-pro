@@ -696,24 +696,24 @@ if (bot) {
     await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true });
   });
 
-  // 🆕 /setalert command – send custom notification sound
+  // 🆕 /setalert command – send voice message (ogg) for custom notification sound
   bot.onText(/\/setalert/, (msg) => {
     const chatId = msg.chat.id;
-    const audioPath = './beep.mp3';
-    if (!fs.existsSync(audioPath)) {
-      bot.sendMessage(chatId, "❌ Sound file not found. Please contact admin.");
+    const voicePath = './beep.ogg';   // use .ogg file for voice message
+    if (!fs.existsSync(voicePath)) {
+      bot.sendMessage(chatId, "❌ Voice file not found. Please ensure beep.ogg exists in the server folder.");
       return;
     }
-    bot.sendAudio(chatId, audioPath, {
-      caption: "🔊 *Tap this audio file* to set it as your custom notification sound for this bot.\n\n" +
+    bot.sendVoice(chatId, voicePath, {
+      caption: "🔊 *Tap this voice message* to set it as your custom notification sound for this bot.\n\n" +
                "📱 *How to set:*\n" +
-               "1️⃣ Tap the audio message above\n" +
+               "1️⃣ Tap the voice message above\n" +
                "2️⃣ Tap the ⋮ (three dots) menu\n" +
                "3️⃣ Select 'Set as notification sound'\n\n" +
                "⚙️ You can change or remove it anytime from Telegram's notification settings.\n\n" +
                "✅ After setting, you will hear this sound for all future price alerts from this bot!",
       parse_mode: "Markdown"
-    }).catch(err => console.error("Audio send error:", err));
+    }).catch(err => console.error("Voice send error:", err));
   });
 
   // Callback query handler (for stop sound button)
