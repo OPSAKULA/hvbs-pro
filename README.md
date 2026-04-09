@@ -61,7 +61,7 @@
 
 ## 🌐 Connect With Me
 
-* Website: https://hvbs-pro-frontend.onrender.com/
+* Website: https://hvbsai.com/
 * X (Twitter): https://x.com/BahadurVijender
 
 ---
