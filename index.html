@@ -173,14 +173,17 @@
     .tg-set-alert-btn { background: linear-gradient(135deg, #0088cc, #005f99); border: none; padding: 0.6rem 1.5rem; border-radius: 2rem; color: white; cursor: pointer; font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
     .tg-status { font-size: 0.8rem; margin-top: 0.5rem; min-height: 20px; }
 
-    /* NEW: Web Notification Section */
-    .web-notif-section { background: #0f172a; border-radius: 1.5rem; padding: 1.2rem; margin: 1rem 0; text-align: center; }
-    .notif-btn { background: #3b82f6; border: none; padding: 0.75rem 1.5rem; border-radius: 2rem; color: white; font-weight: 600; cursor: pointer; transition: 0.2s; margin: 0.5rem; }
-    .notif-btn:hover { background: #2563eb; transform: scale(1.02); }
-    .notif-status { font-size: 0.8rem; margin-top: 0.5rem; color: #94a3b8; }
+    /* NEW: Multi-Chain Coming Soon Section */
+    .chain-coming-soon { padding: 2rem; margin: 1rem 0; text-align: center; }
+    .chain-grid { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin: 2rem 0 1rem; }
+    .chain-card { background: #0f172a; border-radius: 1.5rem; padding: 1.5rem; min-width: 160px; text-align: center; transition: 0.2s; border: 1px solid #334155; }
+    .chain-card:hover { transform: translateY(-5px); border-color: #10b981; box-shadow: 0 8px 20px rgba(16,185,129,0.2); }
+    .chain-logo { font-size: 3.5rem; margin-bottom: 0.8rem; }
+    .chain-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #e2e8f0, #94a3b8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .chain-badge { background: #10b98120; color: #10b981; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; display: inline-block; margin-top: 0.5rem; }
 
     footer { text-align: center; margin-top: 2.5rem; font-size: 0.7rem; color: #94a3b8; }
-    @media (max-width: 640px) { .container { padding: 1rem; } .stat-value { font-size: 1.1rem; } .step-container { flex-direction: column; } .holders-table { font-size: 0.7rem; } }
+    @media (max-width: 640px) { .container { padding: 1rem; } .stat-value { font-size: 1.1rem; } .step-container { flex-direction: column; } .holders-table { font-size: 0.7rem; } .chain-grid { gap: 1rem; } .chain-card { min-width: 120px; padding: 1rem; } .chain-logo { font-size: 2.5rem; } .chain-name { font-size: 1rem; } }
   </style>
 </head>
 <body>
@@ -197,7 +200,6 @@
       Join Bot on Telegram
     </a>
     <a href="https://twitter.com/BahadurVijender" target="_blank" class="social-btn">🐦 X (Twitter)</a>
-    <!-- ✅ GitHub Repository Link Added (Live Demo removed) -->
     <a href="https://github.com/OPSAKULA/hvbs-pro" target="_blank" class="social-btn">🐙 GitHub</a>
   </div>
 
@@ -241,50 +243,27 @@
     </div>
   </div>
 
-  <!-- ========== NEW: WEB PUSH NOTIFICATIONS SECTION ========== -->
-  <div class="web-notif-section glass">
-    <div class="section-title" style="justify-content: center; border-left: none;">🔔 Browser Sound Alerts</div>
-    <p>Enable browser notifications to receive a sound + popup when a price alert is triggered – works even if Telegram is closed!</p>
-    <button id="enableWebNotificationsBtn" class="notif-btn">🔔 Enable & Test Sound</button>
-    <div id="webNotificationStatus" class="notif-status"></div>
-  </div>
-
-  <!-- ========== NEW: COMING SOON 3D STYLE SECTION (keep as is) ========== -->
-  <div class="sound-upload glass" style="text-align: center; padding: 2rem;">
-    <div class="section-title" style="justify-content: center; border-left: none;">✨ Coming Soon ✨</div>
-    <div class="coming-soon-3d">
-      <div class="cs-3d-text">Advanced Alert Sounds</div>
-      <div class="cs-3d-sub">Customizable • 3D Effects • More Features</div>
+  <!-- NEW: Multi-Chain Coming Soon Section (replaces old notification and coming-soon blocks) -->
+  <div class="chain-coming-soon glass">
+    <div class="section-title" style="justify-content: center; border-left: none;">🌐 Expanding to New Chains – Coming Soon</div>
+    <div class="chain-grid">
+      <div class="chain-card">
+        <div class="chain-logo">⟠</div>
+        <div class="chain-name">Ethereum</div>
+        <div class="chain-badge">ERC-20 Tokens</div>
+      </div>
+      <div class="chain-card">
+        <div class="chain-logo">🔶</div>
+        <div class="chain-name">BNB Chain</div>
+        <div class="chain-badge">BEP-20 / BSC</div>
+      </div>
+      <div class="chain-card">
+        <div class="chain-logo">🔷</div>
+        <div class="chain-name">Base Chain</div>
+        <div class="chain-badge">Coinbase L2</div>
+      </div>
     </div>
-    <style>
-      .coming-soon-3d {
-        perspective: 800px;
-        margin: 1.5rem 0;
-      }
-      .cs-3d-text {
-        font-size: 2rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #a855f7, #ec4899, #f59e0b);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        transform-style: preserve-3d;
-        transform: rotateX(5deg) rotateY(-5deg);
-        text-shadow: 0 0 15px rgba(168,85,247,0.5);
-        animation: float3d 3s ease-in-out infinite;
-      }
-      .cs-3d-sub {
-        color: #94a3b8;
-        font-size: 0.9rem;
-        margin-top: 0.8rem;
-        letter-spacing: 1px;
-      }
-      @keyframes float3d {
-        0% { transform: rotateX(5deg) rotateY(-5deg) translateY(0px); }
-        50% { transform: rotateX(5deg) rotateY(-5deg) translateY(-8px); }
-        100% { transform: rotateX(5deg) rotateY(-5deg) translateY(0px); }
-      }
-    </style>
+    <p style="color:#94a3b8; margin-top: 1rem;">Full AI scanner, holder analysis, price alerts & anti‑scam shield for Ethereum, BNB Chain and Base are under development. Stay tuned!</p>
   </div>
 
   <!-- PRICE ALERT WIZARD -->
@@ -428,7 +407,7 @@ window.addEventListener('resize', () => { camera.aspect = window.innerWidth/wind
 </script>
 
 <script>
-// ✅ CORRECT BACKEND URL (Render live service)
+// ✅ BACKEND URL (Render live service)
 const BACKEND = "https://hvbs-pro.onrender.com";
 
 // ========== TOKEN SCANNER (unchanged) ==========
@@ -549,7 +528,7 @@ async function scanToken() {
 
 function copyAddress(addr) { navigator.clipboard.writeText(addr); alert("✅ Address copied!"); }
 
-// ========== TRENDING (unchanged) ==========
+// ========== TRENDING ==========
 async function loadTrending() {
   try {
     const res = await fetch(`${BACKEND}/api/trending`);
@@ -568,7 +547,7 @@ async function loadTrending() {
   } catch { document.getElementById("trendingGrid").innerHTML = "<p>Error loading trending.</p>"; }
 }
 
-// ========== WATCHLIST (unchanged) ==========
+// ========== WATCHLIST ==========
 function getWatchlist() { let w = localStorage.getItem("hvbs_watchlist"); return w ? JSON.parse(w) : []; }
 function saveWatchlist(list) { localStorage.setItem("hvbs_watchlist", JSON.stringify(list)); renderWatchlist(); updateAlertTokenSelect(); }
 function addToWatchlist() {
@@ -593,36 +572,28 @@ async function renderWatchlist() {
   }
 }
 
-// ========== PRICE ALERT WIZARD with localStorage persistence ==========
+// ========== PRICE ALERT WIZARD ==========
 let priceAlerts = [];
 let customSoundBlob = null;
 let audioElemGlobal = null;
 let audioEnabled = false;
 let currentCondition = "above";
-let browserNotificationsEnabled = false;
-let currentFetchedPrice = null;   // store latest fetched price for percentage calculation
+let currentFetchedPrice = null;
 
-function saveAlertsToLocalStorage() {
-  localStorage.setItem('hvbs_priceAlerts', JSON.stringify(priceAlerts));
-}
+function saveAlertsToLocalStorage() { localStorage.setItem('hvbs_priceAlerts', JSON.stringify(priceAlerts)); }
 function loadAlertsFromLocalStorage() {
   const saved = localStorage.getItem('hvbs_priceAlerts');
   if (saved) {
-    try {
-      priceAlerts = JSON.parse(saved);
-      renderActiveAlerts();
-    } catch(e) { console.error("Failed to load alerts", e); }
+    try { priceAlerts = JSON.parse(saved); renderActiveAlerts(); } catch(e) { console.error(e); }
   }
 }
-
 function setCondition(val) {
   currentCondition = val;
   document.getElementById('condAbove').classList.toggle('active', val === 'above');
   document.getElementById('condBelow').classList.toggle('active', val === 'below');
   document.getElementById('step2Status').innerHTML = val === 'above' ? 'Condition: ≥ (price hits or goes above)' : 'Condition: ≤ (price hits or goes below)';
-  updatePercentageHint(); // refresh percentage text because wording changes
+  updatePercentageHint();
 }
-
 function updateAlertTokenSelect() {
   const sel = document.getElementById('alertTokenSelect');
   const watch = getWatchlist();
@@ -634,7 +605,6 @@ function updateAlertTokenSelect() {
     sel.appendChild(opt);
   });
 }
-
 async function fetchDexPrice(address) {
   if (!address?.trim()) return null;
   try {
@@ -653,15 +623,10 @@ async function fetchDexPrice(address) {
     const solPair = pairs.find(p => p.chainId === "solana");
     if (solPair && solPair.priceUsd) return parseFloat(solPair.priceUsd);
     return null;
-  } catch (err) {
-    console.log("Fast price fetch error:", err);
-    return null;
-  }
+  } catch { return null; }
 }
-
 function updatePercentageHint() {
-  const targetInput = document.getElementById('targetPriceInput');
-  const target = parseFloat(targetInput.value);
+  const target = parseFloat(document.getElementById('targetPriceInput').value);
   const hintDiv = document.getElementById('percentageHint');
   if (!currentFetchedPrice || isNaN(currentFetchedPrice) || currentFetchedPrice <= 0) {
     hintDiv.innerHTML = "📊 Fetch current price first to see % difference";
@@ -673,37 +638,19 @@ function updatePercentageHint() {
   }
   const diffPercent = ((target - currentFetchedPrice) / currentFetchedPrice) * 100;
   const absPercent = Math.abs(diffPercent).toFixed(2);
-  if (diffPercent > 0) {
-    hintDiv.innerHTML = `📈 Target is ${absPercent}% ABOVE current price (${currentCondition === 'above' ? 'will trigger when price rises' : '⚠️ condition is BELOW, this target may never trigger'})`;
-  } else if (diffPercent < 0) {
-    hintDiv.innerHTML = `📉 Target is ${absPercent}% BELOW current price (${currentCondition === 'below' ? 'will trigger when price drops' : '⚠️ condition is ABOVE, this target may never trigger'})`;
-  } else {
-    hintDiv.innerHTML = `🎯 Target equals current price (exact match will trigger)`;
-  }
+  if (diffPercent > 0) hintDiv.innerHTML = `📈 Target is ${absPercent}% ABOVE current price (${currentCondition === 'above' ? 'will trigger' : '⚠️ condition mismatch'})`;
+  else if (diffPercent < 0) hintDiv.innerHTML = `📉 Target is ${absPercent}% BELOW current price (${currentCondition === 'below' ? 'will trigger' : '⚠️ condition mismatch'})`;
+  else hintDiv.innerHTML = `🎯 Target equals current price (exact match will trigger)`;
 }
-
-// Fetch price and store it globally
 document.getElementById('fetchAlertPriceBtn').addEventListener('click', async () => {
   let addr = document.getElementById('manualTokenAddr').value.trim() || document.getElementById('alertTokenSelect').value;
   if (!addr) { document.getElementById('step1Price').innerHTML = "Price: —"; currentFetchedPrice = null; updatePercentageHint(); return; }
   document.getElementById('step1Price').innerHTML = "Price: fetching...";
   const price = await fetchDexPrice(addr);
-  if (price !== null) {
-    currentFetchedPrice = price;
-    document.getElementById('step1Price').innerHTML = `Price: $${price.toFixed(8)}`;
-    updatePercentageHint();
-  } else {
-    currentFetchedPrice = null;
-    document.getElementById('step1Price').innerHTML = "Price: not found";
-    updatePercentageHint();
-  }
+  if (price !== null) { currentFetchedPrice = price; document.getElementById('step1Price').innerHTML = `Price: $${price.toFixed(8)}`; updatePercentageHint(); }
+  else { currentFetchedPrice = null; document.getElementById('step1Price').innerHTML = "Price: not found"; updatePercentageHint(); }
 });
-
-// Listen to target price input changes
-document.getElementById('targetPriceInput').addEventListener('input', () => {
-  updatePercentageHint();
-});
-
+document.getElementById('targetPriceInput').addEventListener('input', updatePercentageHint);
 document.getElementById('uploadAlertSoundBtn').addEventListener('click', () => {
   const file = document.getElementById('alertMp3File').files[0];
   if (!file) { document.getElementById('soundStatusWizard').innerHTML = "❌ Select MP3/WAV first"; return; }
@@ -715,12 +662,9 @@ document.getElementById('uploadAlertSoundBtn').addEventListener('click', () => {
   audioElemGlobal.play().then(() => { audioElemGlobal.pause(); audioElemGlobal.currentTime=0; }).catch(()=>{});
   document.getElementById('soundStatusWizard').innerHTML = `✅ ${file.name} ready`;
 });
-
 function playAlertSound() {
-  if (audioElemGlobal && customSoundBlob) {
-    audioElemGlobal.pause(); audioElemGlobal.currentTime = 0;
-    audioElemGlobal.play().catch(()=>{});
-  } else {
+  if (audioElemGlobal && customSoundBlob) { audioElemGlobal.pause(); audioElemGlobal.currentTime = 0; audioElemGlobal.play().catch(()=>{}); }
+  else {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
@@ -734,61 +678,8 @@ function playAlertSound() {
     } catch {}
   }
 }
-
 document.getElementById('testWizardSoundBtn').addEventListener('click', () => { audioEnabled = true; playAlertSound(); });
-document.getElementById('globalStopSoundBtn').addEventListener('click', () => {
-  if (audioElemGlobal) { audioElemGlobal.pause(); audioElemGlobal.currentTime = 0; }
-  document.getElementById('soundStatusWizard').innerHTML = "🔇 Sound stopped";
-});
-
-// ========== WEB PUSH NOTIFICATIONS ==========
-const webNotifBtn = document.getElementById('enableWebNotificationsBtn');
-const webNotifStatus = document.getElementById('webNotificationStatus');
-
-async function requestWebNotificationPermission() {
-  if (!("Notification" in window)) {
-    webNotifStatus.innerHTML = "❌ Your browser does not support desktop notifications.";
-    return;
-  }
-  if (Notification.permission === "granted") {
-    webNotifStatus.innerHTML = "✅ Notifications enabled. You will hear a sound when price alerts trigger!";
-    browserNotificationsEnabled = true;
-    webNotifBtn.textContent = "✅ Notifications On";
-    webNotifBtn.style.background = "#059669";
-    new Notification("HVBS Pro Alert Test", { body: "This is a test notification. You should hear a sound (depends on your system).", icon: "https://hvbs-pro-frontend.onrender.com/favicon.ico" });
-    playAlertSound();
-  } else if (Notification.permission !== "denied") {
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      webNotifStatus.innerHTML = "✅ Notifications enabled! You will receive sound alerts.";
-      browserNotificationsEnabled = true;
-      webNotifBtn.textContent = "✅ Notifications On";
-      webNotifBtn.style.background = "#059669";
-      new Notification("HVBS Pro Alert Test", { body: "Test successful! You'll get sound on price alerts.", icon: "https://hvbs-pro-frontend.onrender.com/favicon.ico" });
-      playAlertSound();
-    } else {
-      webNotifStatus.innerHTML = "❌ Notifications denied. You won't receive browser alerts.";
-      browserNotificationsEnabled = false;
-    }
-  } else {
-    webNotifStatus.innerHTML = "❌ Notifications are blocked. Please allow them in your browser settings.";
-    browserNotificationsEnabled = false;
-  }
-}
-
-webNotifBtn.addEventListener('click', requestWebNotificationPermission);
-
-function sendBrowserNotification(tokenAddr, price, direction, targetPrice, chartUrl) {
-  if (!browserNotificationsEnabled && Notification.permission !== "granted") return;
-  const title = "🚨 HVBS Pro Price Alert!";
-  const body = `Token: ${tokenAddr.slice(0,6)}...\nDirection: ${direction === 'above' ? '↑ Above' : '↓ Below'} target $${targetPrice}\nCurrent price: $${price}`;
-  const notification = new Notification(title, { body, icon: "https://hvbs-pro-frontend.onrender.com/favicon.ico", requireInteraction: true, tag: tokenAddr });
-  notification.onclick = () => {
-    window.open(chartUrl, '_blank');
-  };
-}
-
-// ALL DONE BUTTON - Set alert with save
+document.getElementById('globalStopSoundBtn').addEventListener('click', () => { if (audioElemGlobal) { audioElemGlobal.pause(); audioElemGlobal.currentTime = 0; } document.getElementById('soundStatusWizard').innerHTML = "🔇 Sound stopped"; });
 document.getElementById('allDoneBtn').addEventListener('click', async () => {
   if (priceAlerts.length >= 10) { alert("Maximum 10 alerts allowed!"); return; }
   let token = document.getElementById('manualTokenAddr').value.trim() || document.getElementById('alertTokenSelect').value;
@@ -797,76 +688,45 @@ document.getElementById('allDoneBtn').addEventListener('click', async () => {
   if (!targetInput || targetInput === '') { alert("Step 2: Enter target price"); return; }
   const target = parseFloat(targetInput);
   if (isNaN(target) || target <= 0) { alert("Step 2: Enter a valid price greater than 0"); return; }
-
-  priceAlerts.push({
-    id: Date.now() + Math.random(),
-    tokenAddr: token,
-    targetPrice: target,
-    condition: currentCondition === "above",
-    lastTriggered: 0,
-    triggeredType: null
-  });
+  priceAlerts.push({ id: Date.now() + Math.random(), tokenAddr: token, targetPrice: target, condition: currentCondition === "above", lastTriggered: 0, triggeredType: null });
   saveAlertsToLocalStorage();
   renderActiveAlerts();
-
   const tgUsername = document.getElementById('tgUsernameInput').value.trim();
   if (tgUsername) {
     document.getElementById('tgAlertStatus').innerHTML = '⏳ Setting Telegram alert...';
     try {
       const resp = await fetch(`${BACKEND}/api/alert-by-username`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: tgUsername, tokenAddress: token, targetPrice: target, direction: currentCondition })
       });
       const result = await resp.json();
-      if (result.success) {
-        document.getElementById('tgAlertStatus').innerHTML = `✅ Telegram alert set for ${tgUsername}`;
-      } else {
-        document.getElementById('tgAlertStatus').innerHTML = `⚠️ ${result.error}`;
-      }
-    } catch {
-      document.getElementById('tgAlertStatus').innerHTML = `❌ Could not reach backend`;
-    }
+      if (result.success) document.getElementById('tgAlertStatus').innerHTML = `✅ Telegram alert set for ${tgUsername}`;
+      else document.getElementById('tgAlertStatus').innerHTML = `⚠️ ${result.error}`;
+    } catch { document.getElementById('tgAlertStatus').innerHTML = `❌ Could not reach backend`; }
   } else {
-    const btn = document.getElementById('allDoneBtn');
-    btn.style.background = 'radial-gradient(circle at 35% 35%, #6ee7b7, #10b981 60%, #065f46)';
-    setTimeout(() => { btn.style.background = ''; }, 600);
-    document.getElementById('tgAlertStatus').innerHTML = `✅ Browser alert set! (Enter @username above to also get Telegram notification)`;
+    document.getElementById('tgAlertStatus').innerHTML = `✅ Browser alert set! (Enter @username for Telegram)`;
   }
 });
-
 function renderActiveAlerts() {
   document.getElementById('alertCountDisplay').innerText = priceAlerts.length;
   const container = document.getElementById('activeAlertsListWizard');
-  if (!priceAlerts.length) {
-    container.innerHTML = '<div style="color:#94a3b8; font-size:0.85rem;">No active alerts. Use wizard above to add.</div>';
-    return;
-  }
+  if (!priceAlerts.length) { container.innerHTML = '<div style="color:#94a3b8;">No active alerts.</div>'; return; }
   container.innerHTML = '';
   priceAlerts.forEach(alert => {
-    const badge = document.createElement('div');
-    badge.className = 'alert-badge';
+    const badge = document.createElement('div'); badge.className = 'alert-badge';
     let indClass = 'indicator-green', blinkClass = '';
     if (alert.triggeredType === 'above') { indClass = 'indicator-green'; blinkClass = 'blink'; }
     else if (alert.triggeredType === 'below') { indClass = 'indicator-red'; blinkClass = 'blink'; }
     else if (alert.triggeredType === 'equal') { indClass = 'indicator-yellow'; blinkClass = 'blink'; }
-    badge.innerHTML = `
-      <div class="indicator-btn ${indClass} ${blinkClass}"></div>
-      <span style="font-family:monospace; font-size:0.78rem;">${alert.tokenAddr.slice(0,6)}...</span>
-      <span>🎯 $${alert.targetPrice} ${alert.condition ? '≥' : '≤'}</span>
-      <button onclick="removeAlertById(${alert.id})" style="background:#7f1d1d; border:none; color:white; border-radius:2rem; padding:0.2rem 0.6rem; cursor:pointer; font-size:0.75rem;">✖</button>`;
+    badge.innerHTML = `<div class="indicator-btn ${indClass} ${blinkClass}"></div><span style="font-family:monospace;">${alert.tokenAddr.slice(0,6)}...</span><span>🎯 $${alert.targetPrice} ${alert.condition ? '≥' : '≤'}</span><button onclick="removeAlertById(${alert.id})" style="background:#7f1d1d; border:none; color:white; border-radius:2rem; padding:0.2rem 0.6rem;">✖</button>`;
     container.appendChild(badge);
   });
 }
-
 async function checkAllPriceAlerts() {
   if (!priceAlerts.length) return;
   const tokenMap = new Map();
   for (let alert of priceAlerts) {
-    if (!tokenMap.has(alert.tokenAddr)) {
-      const price = await fetchDexPrice(alert.tokenAddr);
-      if (price !== null) tokenMap.set(alert.tokenAddr, price);
-    }
+    if (!tokenMap.has(alert.tokenAddr)) { const price = await fetchDexPrice(alert.tokenAddr); if (price !== null) tokenMap.set(alert.tokenAddr, price); }
   }
   let anyTriggered = false;
   for (let alert of priceAlerts) {
@@ -875,41 +735,18 @@ async function checkAllPriceAlerts() {
     let met = false, triggerType = null;
     if (alert.condition && livePrice >= alert.targetPrice) { met = true; triggerType = livePrice === alert.targetPrice ? 'equal' : 'above'; }
     if (!alert.condition && livePrice <= alert.targetPrice) { met = true; triggerType = livePrice === alert.targetPrice ? 'equal' : 'below'; }
-    if (met) {
-      const now = Date.now();
-      if (now - alert.lastTriggered > 60000) {
-        alert.lastTriggered = now;
-        alert.triggeredType = triggerType;
-        anyTriggered = true;
-        if (audioEnabled) playAlertSound();
-        if (Notification.permission === "granted" || browserNotificationsEnabled) {
-          sendBrowserNotification(alert.tokenAddr, livePrice, alert.condition ? 'above' : 'below', alert.targetPrice, `https://dexscreener.com/solana/${alert.tokenAddr}`);
-        }
-        document.getElementById('step2Status').innerHTML = `🔔 ALERT! ${alert.tokenAddr.slice(0,6)}... hit $${livePrice.toFixed(8)}`;
-      }
-    } else { alert.triggeredType = null; }
+    if (met && (Date.now() - alert.lastTriggered > 60000)) {
+      alert.lastTriggered = Date.now(); alert.triggeredType = triggerType; anyTriggered = true;
+      if (audioEnabled) playAlertSound();
+      document.getElementById('step2Status').innerHTML = `🔔 ALERT! ${alert.tokenAddr.slice(0,6)}... hit $${livePrice.toFixed(8)}`;
+    } else if (!met) alert.triggeredType = null;
   }
-  if (anyTriggered) {
-    renderActiveAlerts();
-    saveAlertsToLocalStorage();
-  }
+  if (anyTriggered) { renderActiveAlerts(); saveAlertsToLocalStorage(); }
 }
-
-window.removeAlertById = (id) => {
-  priceAlerts = priceAlerts.filter(a => a.id !== id);
-  saveAlertsToLocalStorage();
-  renderActiveAlerts();
-};
+window.removeAlertById = (id) => { priceAlerts = priceAlerts.filter(a => a.id !== id); saveAlertsToLocalStorage(); renderActiveAlerts(); };
 window.removeFromWatchlist = removeFromWatchlist;
-
 setInterval(checkAllPriceAlerts, 15000);
-
-// INIT - load alerts from storage
-updateAlertTokenSelect();
-renderWatchlist();
-loadTrending();
-loadAlertsFromLocalStorage();
-renderActiveAlerts();
+updateAlertTokenSelect(); renderWatchlist(); loadTrending(); loadAlertsFromLocalStorage(); renderActiveAlerts();
 document.getElementById("tokenAddress").addEventListener("keypress", e => e.key === "Enter" && scanToken());
 </script>
 </body>
