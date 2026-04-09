@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/HVBS-Pro-purple?style=for-the-badge" />
   <img src="https://img.shields.io/badge/version-2.0-blue?style=for-the-badge" />
   
-  <a href="https://hvbs-pro-frontend.onrender.com/">
+  <a href="https://hvbsai.com/">
     <img src="https://img.shields.io/badge/Website-Visit-brightgreen?style=for-the-badge" />
   </a>
   
