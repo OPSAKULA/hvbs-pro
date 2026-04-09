@@ -36,20 +36,33 @@
   </div>
 </body>
 </html>
+.......................................much more 
+
 
 # 🚀 HVBS – Smart Solana Token Analyzer & Alert System
 
-HVBS is a powerful and user-friendly tool designed for crypto enthusiasts who want a smarter and more efficient trading experience on DEX platforms.
+<p align="center">
+  <b>The smartest way to track and trade Solana tokens — with custom voice alerts.</b>
+</p>
 
-It allows users to search any Solana token and instantly access essential insights — without complexity, without manual calculations.
+---
+
+## 🌐 Connect With Me
+
+* Website: https://hvbs-pro-frontend.onrender.com/
+* X (Twitter): https://x.com/BahadurVijender
 
 ---
 
 ## 🔍 What HVBS Does
 
-HVBS helps you analyze any Solana-based token by simply pasting its contract address. It provides real-time and structured data to help you make better trading decisions.
+HVBS is a powerful and user-friendly tool designed for crypto enthusiasts who want a smarter and more efficient trading experience on DEX platforms.
 
-### 📊 Key Features
+Simply paste any Solana token contract address and instantly get all the important insights — no manual calculations, no complexity.
+
+---
+
+## 📊 Key Features
 
 * 💰 **Current Price**
 * 📈 **Market Cap**
@@ -64,7 +77,7 @@ HVBS helps you analyze any Solana-based token by simply pasting its contract add
 ## 🤖 Advanced Tools
 
 * 📲 **Telegram Bot Integration**
-* ⭐ **My Watchlist** (Saved in your browser)
+* ⭐ **My Watchlist** (Saved in browser)
 * 🔔 **Browser-Based Price Alerts**
 * 🧠 **Smart Alert Wizard**
 
@@ -72,52 +85,53 @@ HVBS helps you analyze any Solana-based token by simply pasting its contract add
 
 ## 🔥 The Most Powerful Feature – Custom Voice Alerts
 
-This is where HVBS truly stands out.
+This is where HVBS becomes truly unique.
 
-Unlike traditional DEX tools, HVBS gives you a **completely personalized alert experience**.
+Unlike any traditional DEX tools, HVBS introduces a **completely personalized alert system**.
 
 You can:
 
-* 🎤 Record alerts in **your own voice**
+* 🎤 Record alerts in your **own voice**
 * 👶 Use your **child’s voice**
 * ❤️ Set alerts in your **loved one’s voice**
-* 🎵 Upload your **favorite song (MP3)**
+* 🎵 Upload your **favorite MP3 sound or song**
 
-Now imagine this:
+### 🎧 Imagine This:
 
-Just like a phone ringtone makes you instantly pick up a call —
-HVBS alerts will make you instantly react to opportunities.
+Just like a ringtone makes you instantly pick up a call —
+HVBS alerts make you instantly react to market opportunities.
 
-But here’s the difference…
-You already know — this alert means something valuable is about to happen.
+But here’s the difference...
 
-When your target price hits, your custom sound plays on your device — making every alert exciting, personal, and impossible to ignore.
+You already know — this alert means something valuable is happening.
+
+When your target price is hit, your custom sound plays —
+making every alert exciting, emotional, and impossible to ignore.
 
 ---
 
 ## ⚡ Why HVBS?
 
-* No manual calculations needed
+* No calculations required
 * Everything on a single page
-* Clean and simple UI
+* Clean & simple UI
 * 100% Free to use
-* Designed for real traders, by a real trader mindset
+* Built for real traders
 
 ---
 
 ## 🎯 Vision
 
-HVBS aims to redefine how traders interact with DEX platforms — making them smarter, faster, and more personalized than ever before.
+HVBS aims to redefine how traders interact with DEX platforms — making trading smarter, faster, and more personal.
 
 ---
 
-## 🚀 Get Ready
+## 🚀 Get Started
 
-Paste any Solana token address.
-Set your alert.
-Relax… and wait for the moment that matters.
-
-**Because when it hits — you’ll hear it. 🔔**
+1. Visit: https://hvbs-pro-frontend.onrender.com/
+2. Paste any Solana token address
+3. Set your custom alert
+4. Relax and wait for your moment
 
 ---
 
@@ -128,9 +142,10 @@ More powerful features are coming soon.
 
 Use HVBS.
 Enjoy the experience.
-And most importantly — trade smarter.
+And trade smarter.
 
 ---
 
 **Good Luck & Happy Trading 🚀**
+
 
