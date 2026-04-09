@@ -1,12 +1,19 @@
 # 🚀 HVBS Pro – AI-Powered Solana Token Scanner
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0-blue" />
+  <img src="https://img.shields.io/badge/HVBS-Pro-purple?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/version-2.0-blue?style=for-the-badge" />
+  
   <a href="https://hvbs-pro-frontend.onrender.com/">
-    <img src="https://img.shields.io/badge/Live%20Demo-Online-green" />
+    <img src="https://img.shields.io/badge/Website-Visit-brightgreen?style=for-the-badge" />
   </a>
+  
   <a href="https://x.com/BahadurVijender">
-    <img src="https://img.shields.io/badge/X-@BahadurVijender-black" />
+    <img src="https://img.shields.io/badge/X-Follow-black?style=for-the-badge" />
+  </a>
+  
+  <a href="https://t.me/hvbs_scanner_bot">
+    <img src="https://img.shields.io/badge/Telegram-@hvbs__scanner__bot-blue?style=for-the-badge" />
   </a>
 </p>
 > **Real‑time Solana token analysis + Telegram price alerts with custom sound.**
