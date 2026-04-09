@@ -35,23 +35,6 @@
     .stat-label { font-size: 0.7rem; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.5rem; }
     .stat-value { font-size: 1.4rem; font-weight: 700; }
 
-    /* TOKENOMICS SECTION */
-    .tokenomics-section { margin: 2rem 0; }
-    .tokenomics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem; }
-    .tokenomics-card { background: #0f172a; border-radius: 1.5rem; padding: 1.2rem; border: 1px solid #1e293b; transition: 0.2s; text-align: center; }
-    .tokenomics-card:hover { border-color: #10b981; transform: translateY(-3px); }
-    .tokenomics-value { font-size: 1.6rem; font-weight: 800; color: #10b981; margin: 0.5rem 0; }
-    .burn-3d-container { background: #0a0f1a; border-radius: 1rem; padding: 1rem; margin-top: 1rem; text-align: center; }
-    #burnCanvas { width: 100%; height: 200px; border-radius: 1rem; background: #050b1a; }
-    .burn-input { display: flex; gap: 0.5rem; margin: 1rem 0; flex-wrap: wrap; }
-    .burn-input input { flex: 1; background: #0f172a; border: 1px solid #334155; padding: 0.6rem 1rem; border-radius: 2rem; color: white; }
-    .burn-input button { background: #10b981; border: none; padding: 0.6rem 1.2rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
-    .daily-winner { background: #1e293b; border-radius: 1rem; padding: 1rem; margin-top: 1rem; text-align: center; }
-    .winner-song { background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 2rem; padding: 0.5rem 1rem; margin-top: 0.5rem; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; }
-    .song-control { display: flex; justify-content: center; gap: 1rem; margin-top: 0.5rem; }
-    .whitepaper-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: #8b5cf6; padding: 0.7rem 1.5rem; border-radius: 2rem; text-decoration: none; color: white; font-weight: 600; margin-top: 1rem; transition: 0.2s; }
-    .whitepaper-btn:hover { background: #7c3aed; transform: scale(1.02); }
-
     /* BUYERS/SELLERS SECTION */
     .buysell-section { background: #0f172a; border-radius: 1.5rem; padding: 1.2rem; margin-bottom: 1rem; }
     .buysell-title { font-weight: 700; margin-bottom: 1rem; font-size: 1rem; }
@@ -190,17 +173,14 @@
     .tg-set-alert-btn { background: linear-gradient(135deg, #0088cc, #005f99); border: none; padding: 0.6rem 1.5rem; border-radius: 2rem; color: white; cursor: pointer; font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
     .tg-status { font-size: 0.8rem; margin-top: 0.5rem; min-height: 20px; }
 
-    /* NEW: Multi-Chain Coming Soon Section */
-    .chain-coming-soon { padding: 2rem; margin: 1rem 0; text-align: center; }
-    .chain-grid { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin: 2rem 0 1rem; }
-    .chain-card { background: #0f172a; border-radius: 1.5rem; padding: 1.5rem; min-width: 160px; text-align: center; transition: 0.2s; border: 1px solid #334155; }
-    .chain-card:hover { transform: translateY(-5px); border-color: #10b981; box-shadow: 0 8px 20px rgba(16,185,129,0.2); }
-    .chain-logo { font-size: 3.5rem; margin-bottom: 0.8rem; }
-    .chain-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #e2e8f0, #94a3b8); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .chain-badge { background: #10b98120; color: #10b981; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; display: inline-block; margin-top: 0.5rem; }
+    /* NEW: Web Notification Section */
+    .web-notif-section { background: #0f172a; border-radius: 1.5rem; padding: 1.2rem; margin: 1rem 0; text-align: center; }
+    .notif-btn { background: #3b82f6; border: none; padding: 0.75rem 1.5rem; border-radius: 2rem; color: white; font-weight: 600; cursor: pointer; transition: 0.2s; margin: 0.5rem; }
+    .notif-btn:hover { background: #2563eb; transform: scale(1.02); }
+    .notif-status { font-size: 0.8rem; margin-top: 0.5rem; color: #94a3b8; }
 
     footer { text-align: center; margin-top: 2.5rem; font-size: 0.7rem; color: #94a3b8; }
-    @media (max-width: 640px) { .container { padding: 1rem; } .stat-value { font-size: 1.1rem; } .step-container { flex-direction: column; } .holders-table { font-size: 0.7rem; } .chain-grid { gap: 1rem; } .chain-card { min-width: 120px; padding: 1rem; } .chain-logo { font-size: 2.5rem; } .chain-name { font-size: 1rem; } }
+    @media (max-width: 640px) { .container { padding: 1rem; } .stat-value { font-size: 1.1rem; } .step-container { flex-direction: column; } .holders-table { font-size: 0.7rem; } }
   </style>
 </head>
 <body>
@@ -217,6 +197,7 @@
       Join Bot on Telegram
     </a>
     <a href="https://twitter.com/BahadurVijender" target="_blank" class="social-btn">🐦 X (Twitter)</a>
+    <!-- ✅ GitHub Repository Link Added (Live Demo removed) -->
     <a href="https://github.com/OPSAKULA/hvbs-pro" target="_blank" class="social-btn">🐙 GitHub</a>
   </div>
 
@@ -229,55 +210,7 @@
   </div>
   <div id="resultCard" class="result-card glass" style="display:none;"></div>
 
-  <!-- ========== NEW: HVBS TOKENOMICS SECTION ========== -->
-  <div class="tokenomics-section glass" style="padding: 1.8rem;">
-    <div class="section-title">🌟 HVBS Token – Deflationary Power</div>
-    <div class="tokenomics-grid">
-      <div class="tokenomics-card">
-        <div>💰 Total Supply</div>
-        <div class="tokenomics-value">1,000,000,000</div>
-        <div style="font-size:0.8rem;">1 Billion HVBS – No minting ever</div>
-      </div>
-      <div class="tokenomics-card">
-        <div>🛡️ Tax Mechanism</div>
-        <div class="tokenomics-value">0% Buy / 0% Sell</div>
-        <div style="font-size:0.8rem;">Until $300M market cap → then 0.8% sell tax</div>
-      </div>
-      <div class="tokenomics-card">
-        <div>🔥 Auto Burn</div>
-        <div class="tokenomics-value">100% of Tax</div>
-        <div style="font-size:0.8rem;">Instantly buyback & burn → supply decreases forever</div>
-      </div>
-    </div>
-    <div style="text-align: center; margin-top: 1rem;">
-      <p>✅ <strong>No future minting</strong> – supply only goes down.<br>
-      ✅ Every sell tax (when active) triggers <strong>auto buyback + burn</strong>.<br>
-      ✅ Track your personal burn contribution via <strong>transaction ID</strong>.<br>
-      ✅ <strong>Daily top burner</strong> receives 50% of the day's burned tokens + a <strong>honor song</strong> on website.</p>
-      <a href="#" id="whitepaperLink" class="whitepaper-btn">📄 Download Whitepaper (PDF)</a>
-    </div>
-
-    <!-- 3D Burn Visualization -->
-    <div class="burn-3d-container">
-      <div style="font-weight: 700; margin-bottom: 0.8rem;">🔥 See Your Burn in 3D 🔥</div>
-      <div class="burn-input">
-        <input type="text" id="burnWalletInput" placeholder="Enter your wallet address">
-        <button id="showBurnBtn">Show My Burn</button>
-      </div>
-      <canvas id="burnCanvas" width="400" height="200" style="width:100%; max-width:400px; height:auto; margin:0 auto; display:block; border-radius:12px;"></canvas>
-      <div id="burnAmountDisplay" style="margin-top:0.5rem; font-size:0.8rem; color:#cbd5e6;"></div>
-      <div class="daily-winner">
-        <span>🏆 Daily Burn Champion 🏆</span>
-        <div id="winnerAddress">0x... (will be updated daily)</div>
-        <div id="winnerSong" class="winner-song">🎵 Play Winner's Song (20s) 🎵</div>
-        <div class="song-control">
-          <button id="stopSongBtn" style="background:#ef4444; border:none; padding:0.3rem 0.8rem; border-radius:2rem; cursor:pointer;">⏹️ Stop</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- BOT FEATURES (original) -->
+  <!-- BOT FEATURES -->
   <div class="bot-features glass" style="padding: 1.8rem;">
     <div class="section-title">🤖 Telegram Bot – Full Capabilities</div>
     <div class="features-grid">
@@ -308,27 +241,50 @@
     </div>
   </div>
 
-  <!-- NEW: Multi-Chain Coming Soon Section -->
-  <div class="chain-coming-soon glass">
-    <div class="section-title" style="justify-content: center; border-left: none;">🌐 Expanding to New Chains – Coming Soon</div>
-    <div class="chain-grid">
-      <div class="chain-card">
-        <div class="chain-logo">⟠</div>
-        <div class="chain-name">Ethereum</div>
-        <div class="chain-badge">ERC-20 Tokens</div>
-      </div>
-      <div class="chain-card">
-        <div class="chain-logo">🔶</div>
-        <div class="chain-name">BNB Chain</div>
-        <div class="chain-badge">BEP-20 / BSC</div>
-      </div>
-      <div class="chain-card">
-        <div class="chain-logo">🔷</div>
-        <div class="chain-name">Base Chain</div>
-        <div class="chain-badge">Coinbase L2</div>
-      </div>
+  <!-- ========== NEW: WEB PUSH NOTIFICATIONS SECTION ========== -->
+  <div class="web-notif-section glass">
+    <div class="section-title" style="justify-content: center; border-left: none;">🔔 Browser Sound Alerts</div>
+    <p>Enable browser notifications to receive a sound + popup when a price alert is triggered – works even if Telegram is closed!</p>
+    <button id="enableWebNotificationsBtn" class="notif-btn">🔔 Enable & Test Sound</button>
+    <div id="webNotificationStatus" class="notif-status"></div>
+  </div>
+
+  <!-- ========== NEW: COMING SOON 3D STYLE SECTION (keep as is) ========== -->
+  <div class="sound-upload glass" style="text-align: center; padding: 2rem;">
+    <div class="section-title" style="justify-content: center; border-left: none;">✨ Coming Soon ✨</div>
+    <div class="coming-soon-3d">
+      <div class="cs-3d-text">Advanced Alert Sounds</div>
+      <div class="cs-3d-sub">Customizable • 3D Effects • More Features</div>
     </div>
-    <p style="color:#94a3b8; margin-top: 1rem;">Full AI scanner, holder analysis, price alerts & anti‑scam shield for Ethereum, BNB Chain and Base are under development. Stay tuned!</p>
+    <style>
+      .coming-soon-3d {
+        perspective: 800px;
+        margin: 1.5rem 0;
+      }
+      .cs-3d-text {
+        font-size: 2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #a855f7, #ec4899, #f59e0b);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        transform-style: preserve-3d;
+        transform: rotateX(5deg) rotateY(-5deg);
+        text-shadow: 0 0 15px rgba(168,85,247,0.5);
+        animation: float3d 3s ease-in-out infinite;
+      }
+      .cs-3d-sub {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        margin-top: 0.8rem;
+        letter-spacing: 1px;
+      }
+      @keyframes float3d {
+        0% { transform: rotateX(5deg) rotateY(-5deg) translateY(0px); }
+        50% { transform: rotateX(5deg) rotateY(-5deg) translateY(-8px); }
+        100% { transform: rotateX(5deg) rotateY(-5deg) translateY(0px); }
+      }
+    </style>
   </div>
 
   <!-- PRICE ALERT WIZARD -->
@@ -398,18 +354,17 @@
   <footer>⚠️ DYOR – High risk may indicate scam or rugpull. Always verify. HVBS Pro v2.0 – Data: DexScreener + Solscan + CoinGecko</footer>
 </div>
 
-<!-- THREE.JS BACKGROUND + BURN 3D CANVAS -->
+<!-- THREE.JS BACKGROUND (unchanged) -->
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.128.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
-// Background scene (existing)
-const canvasBg = document.getElementById('bg-canvas');
+const canvas = document.getElementById('bg-canvas');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x050b1a);
 scene.fog = new THREE.FogExp2(0x050b1a, 0.008);
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 0, 5);
-const renderer = new THREE.WebGLRenderer({ canvas: canvasBg, alpha: false });
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 scene.add(new THREE.AmbientLight(0x404060));
@@ -436,8 +391,11 @@ function createLetter(letter, color, xOffset) {
   const mat = () => new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.3 });
   const box = (w,h,d,x,y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat()); m.position.set(x,y,0); return m; };
   if (letter==='H') { g.add(box(0.15,0.6,0.1,-0.2,0),box(0.15,0.6,0.1,0.2,0),box(0.3,0.15,0.1,0,0)); }
-  else if (letter==='V') { const l=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.55,0.1),mat()); l.position.set(-0.2,-0.1,0); l.rotation.z=-0.5; const r=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.55,0.1),mat()); r.position.set(0.2,-0.1,0); r.rotation.z=0.5; g.add(l,r); }
-  else if (letter==='B') { g.add(box(0.12,0.6,0.1,-0.2,0),box(0.25,0.12,0.1,0.05,0.25),box(0.25,0.12,0.1,0.05,0),box(0.25,0.12,0.1,0.05,-0.25)); }
+  else if (letter==='V') {
+    const l=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.55,0.1),mat()); l.position.set(-0.2,-0.1,0); l.rotation.z=-0.5;
+    const r=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.55,0.1),mat()); r.position.set(0.2,-0.1,0); r.rotation.z=0.5;
+    g.add(l,r);
+  } else if (letter==='B') { g.add(box(0.12,0.6,0.1,-0.2,0),box(0.25,0.12,0.1,0.05,0.25),box(0.25,0.12,0.1,0.05,0),box(0.25,0.12,0.1,0.05,-0.25)); }
   else if (letter==='S') { g.add(box(0.3,0.12,0.1,0,0.25),box(0.3,0.12,0.1,0,0),box(0.3,0.12,0.1,0,-0.25),box(0.12,0.15,0.1,-0.2,0.12),box(0.12,0.15,0.1,0.2,-0.12)); }
   g.position.x = xOffset;
   return g;
@@ -455,33 +413,26 @@ sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
 const stars = new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.5 }));
 scene.add(stars);
 let time = 0;
-function animateBg() { requestAnimationFrame(animateBg); time += 0.01; core.rotation.y = time*.5; core.rotation.x = Math.sin(time*.3)*.2; particles.rotation.y = time*.2; particles.rotation.x = time*.1; textGroup.rotation.y = Math.sin(time*.4)*.3; textGroup.rotation.x = Math.sin(time*.5)*.2; ring.rotation.x = time*.3; ring.rotation.y = time*.5; stars.rotation.y = time*.02; stars.rotation.x = time*.01; camera.position.z = 5 + Math.sin(time*.2)*.1; camera.lookAt(0,0,0); renderer.render(scene, camera); }
-animateBg();
+function animate() {
+  requestAnimationFrame(animate); time += 0.01;
+  core.rotation.y = time*.5; core.rotation.x = Math.sin(time*.3)*.2;
+  particles.rotation.y = time*.2; particles.rotation.x = time*.1;
+  textGroup.rotation.y = Math.sin(time*.4)*.3; textGroup.rotation.x = Math.sin(time*.5)*.2;
+  ring.rotation.x = time*.3; ring.rotation.y = time*.5;
+  stars.rotation.y = time*.02; stars.rotation.x = time*.01;
+  camera.position.z = 5 + Math.sin(time*.2)*.1; camera.lookAt(0,0,0);
+  renderer.render(scene, camera);
+}
+animate();
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
-
-// Additional 3D burn canvas (simple rotating torus with fire texture)
-const burnCanvas = document.getElementById('burnCanvas');
-const burnScene = new THREE.Scene();
-const burnCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-burnCamera.position.set(0, 0, 3);
-const burnRenderer = new THREE.WebGLRenderer({ canvas: burnCanvas, alpha: true });
-burnRenderer.setSize(400, 200);
-const torus = new THREE.Mesh(new THREE.TorusGeometry(1, 0.2, 32, 100), new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff2200, emissiveIntensity: 0.8 }));
-burnScene.add(torus);
-const light = new THREE.PointLight(0xffaa00, 1);
-light.position.set(2, 2, 2);
-burnScene.add(light);
-burnScene.add(new THREE.AmbientLight(0x333333));
-function animateBurn() { requestAnimationFrame(animateBurn); torus.rotation.x += 0.02; torus.rotation.y += 0.03; burnRenderer.render(burnScene, burnCamera); }
-animateBurn();
 </script>
 
 <script>
-// BACKEND URL
+// ✅ CORRECT BACKEND URL (Render live service)
 const BACKEND = "https://hvbs-pro.onrender.com";
 
-// ========== TOKEN SCANNER (same as original) ==========
-async function scanToken() { /* (unchanged - kept from original) */ 
+// ========== TOKEN SCANNER (unchanged) ==========
+async function scanToken() {
   const addr = document.getElementById("tokenAddress").value.trim();
   if (!addr) return alert("Enter a Solana token address");
   const card = document.getElementById("resultCard");
@@ -494,92 +445,472 @@ async function scanToken() { /* (unchanged - kept from original) */
     clearTimeout(timeoutId);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
+
     const riskClass = data.riskLevel.includes("SAFE") ? "safe" : (data.riskLevel.includes("CAUTION") ? "caution" : "high");
+
     const dexList = (data.exchanges || []).filter(e => e.type === 'DEX');
     const cexList = (data.exchanges || []).filter(e => e.type === 'CEX');
-    let exchangesHtml = `<div class="exchanges-section"><div style="font-weight:700; margin-bottom:0.8rem;">🌐 Listed Platforms & Exchanges</div><div style="font-size:0.8rem; color:#94a3b8; margin-bottom:0.5rem;">DEX (Decentralized)</div><div class="exchange-chips">`;
+    let exchangesHtml = `<div class="exchanges-section">
+      <div style="font-weight:700; margin-bottom:0.8rem;">🌐 Listed Platforms & Exchanges</div>
+      <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:0.5rem;">DEX (Decentralized)</div>
+      <div class="exchange-chips">`;
     if (dexList.length === 0) exchangesHtml += `<span style="color:#ef4444; font-size:0.8rem;">⚠️ Not listed on any DEX (High Risk!)</span>`;
-    else { dexList.forEach(ex => { exchangesHtml += `<a href="${ex.url||'#'}" target="_blank" class="ex-chip-dex">${ex.name} (${ex.baseToken}/${ex.quoteToken})</a>`; }); }
+    else {
+      dexList.forEach(ex => {
+        exchangesHtml += `<a href="${ex.url||'#'}" target="_blank" class="ex-chip-dex">${ex.name} (${ex.baseToken}/${ex.quoteToken})</a>`;
+      });
+    }
     exchangesHtml += `</div>`;
-    if (cexList.length > 0) { exchangesHtml += `<div style="font-size:0.8rem; color:#94a3b8; margin: 0.8rem 0 0.5rem;">CEX (Centralized)</div><div class="exchange-chips">`; cexList.forEach(ex => { exchangesHtml += `<a href="${ex.url||'#'}" target="_blank" class="ex-chip-cex">${ex.name} (${ex.baseToken}/${ex.quoteToken})</a>`; }); exchangesHtml += `</div>`; }
-    exchangesHtml += `<div class="platform-presence"><div>📊 <strong>CoinGecko:</strong> ${data.platformPresence?.coingecko?.listed ? `<span style="color:#10b981">✅ Listed – ${data.platformPresence.coingecko.name}</span>` : '<span style="color:#ef4444">❌ Not Listed</span>'}</div><div>📈 <strong>CoinMarketCap:</strong> ${data.platformPresence?.coinmarketcap?.listed ? `<span style="color:#10b981">✅ Listed – ${data.platformPresence.coinmarketcap.name}</span>` : '<span style="color:#ef4444">❌ Not Listed</span>'}</div></div>`;
-    if (data.socialLinks && Object.values(data.socialLinks).some(v => v)) { exchangesHtml += `<div style="font-size:0.8rem; color:#94a3b8; margin-top:0.8rem;">🔗 Official Links</div><div class="social-links-row">`; if (data.socialLinks.homepage) exchangesHtml += `<a href="${data.socialLinks.homepage}" target="_blank" class="soc-link">🌐 Website</a>`; if (data.socialLinks.twitter) exchangesHtml += `<a href="${data.socialLinks.twitter}" target="_blank" class="soc-link">🐦 Twitter</a>`; if (data.socialLinks.telegram) exchangesHtml += `<a href="${data.socialLinks.telegram}" target="_blank" class="soc-link">✈️ Telegram</a>`; if (data.socialLinks.discord) exchangesHtml += `<a href="${data.socialLinks.discord}" target="_blank" class="soc-link">💬 Discord</a>`; if (data.socialLinks.reddit) exchangesHtml += `<a href="${data.socialLinks.reddit}" target="_blank" class="soc-link">🟠 Reddit</a>`; if (data.coingeckoUrl) exchangesHtml += `<a href="${data.coingeckoUrl}" target="_blank" class="soc-link">🦎 CoinGecko</a>`; exchangesHtml += `</div>`; }
+    if (cexList.length > 0) {
+      exchangesHtml += `<div style="font-size:0.8rem; color:#94a3b8; margin: 0.8rem 0 0.5rem;">CEX (Centralized)</div><div class="exchange-chips">`;
+      cexList.forEach(ex => {
+        exchangesHtml += `<a href="${ex.url||'#'}" target="_blank" class="ex-chip-cex">${ex.name} (${ex.baseToken}/${ex.quoteToken})</a>`;
+      });
+      exchangesHtml += `</div>`;
+    }
+    exchangesHtml += `<div class="platform-presence">
+      <div>📊 <strong>CoinGecko:</strong> ${data.platformPresence?.coingecko?.listed ? `<span style="color:#10b981">✅ Listed – ${data.platformPresence.coingecko.name}</span>` : '<span style="color:#ef4444">❌ Not Listed</span>'}</div>
+      <div>📈 <strong>CoinMarketCap:</strong> ${data.platformPresence?.coinmarketcap?.listed ? `<span style="color:#10b981">✅ Listed – ${data.platformPresence.coinmarketcap.name}</span>` : '<span style="color:#ef4444">❌ Not Listed</span>'}</div>
+    </div>`;
+    if (data.socialLinks && Object.values(data.socialLinks).some(v => v)) {
+      exchangesHtml += `<div style="font-size:0.8rem; color:#94a3b8; margin-top:0.8rem;">🔗 Official Links</div><div class="social-links-row">`;
+      if (data.socialLinks.homepage) exchangesHtml += `<a href="${data.socialLinks.homepage}" target="_blank" class="soc-link">🌐 Website</a>`;
+      if (data.socialLinks.twitter) exchangesHtml += `<a href="${data.socialLinks.twitter}" target="_blank" class="soc-link">🐦 Twitter</a>`;
+      if (data.socialLinks.telegram) exchangesHtml += `<a href="${data.socialLinks.telegram}" target="_blank" class="soc-link">✈️ Telegram</a>`;
+      if (data.socialLinks.discord) exchangesHtml += `<a href="${data.socialLinks.discord}" target="_blank" class="soc-link">💬 Discord</a>`;
+      if (data.socialLinks.reddit) exchangesHtml += `<a href="${data.socialLinks.reddit}" target="_blank" class="soc-link">🟠 Reddit</a>`;
+      if (data.coingeckoUrl) exchangesHtml += `<a href="${data.coingeckoUrl}" target="_blank" class="soc-link">🦎 CoinGecko</a>`;
+      exchangesHtml += `</div>`;
+    }
     exchangesHtml += `</div>`;
+
     const bs = data.buyersSellers || { h1:{buys:0,sells:0}, h6:{buys:0,sells:0}, h24:{buys:0,sells:0} };
     function bsPct(buys, sells) { const t = buys+sells; return t ? Math.round((buys/t)*100) : 50; }
-    const bsHtml = `<div class="buysell-section"><div class="buysell-title">📊 Real-Time Buyers vs Sellers</div><table class="buysell-table"><tr><th>Period</th><th>🟢 Buyers</th><th>🔴 Sellers</th><th>Buy %</th></tr><tr><td>1 Hour</td><td class="buys-val">${bs.h1.buys}</td><td class="sells-val">${bs.h1.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h1.buys,bs.h1.sells)}%"></div></div><span>${bsPct(bs.h1.buys,bs.h1.sells)}%</span></td></tr><tr><td>6 Hours</td><td class="buys-val">${bs.h6.buys}</td><td class="sells-val">${bs.h6.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h6.buys,bs.h6.sells)}%"></div></div><span>${bsPct(bs.h6.buys,bs.h6.sells)}%</span></td></tr><tr><td>24 Hours</td><td class="buys-val">${bs.h24.buys}</td><td class="sells-val">${bs.h24.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h24.buys,bs.h24.sells)}%"></div></div><span>${bsPct(bs.h24.buys,bs.h24.sells)}%</span></td></tr></table></div>`;
+    const bsHtml = `<div class="buysell-section">
+      <div class="buysell-title">📊 Real-Time Buyers vs Sellers</div>
+      <table class="buysell-table">
+        <tr><th>Period</th><th>🟢 Buyers</th><th>🔴 Sellers</th><th>Buy %</th></tr>
+        <tr><td style="color:#94a3b8; font-weight:600;">1 Hour</td><td class="buys-val">${bs.h1.buys}</td><td class="sells-val">${bs.h1.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h1.buys,bs.h1.sells)}%"></div></div><span>${bsPct(bs.h1.buys,bs.h1.sells)}%</span></td></tr>
+        <tr><td style="color:#94a3b8; font-weight:600;">6 Hours</td><td class="buys-val">${bs.h6.buys}</td><td class="sells-val">${bs.h6.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h6.buys,bs.h6.sells)}%"></div></div><span>${bsPct(bs.h6.buys,bs.h6.sells)}%</span></td></tr>
+        <tr><td style="color:#94a3b8; font-weight:600;">24 Hours</td><td class="buys-val">${bs.h24.buys}</td><td class="sells-val">${bs.h24.sells}</td><td><div class="buysell-bar-wrap"><div class="buysell-bar-fill" style="width:${bsPct(bs.h24.buys,bs.h24.sells)}%"></div></div><span>${bsPct(bs.h24.buys,bs.h24.sells)}%</span></td></tr>
+      </table>
+    </div>`;
+
     const holders = data.topHolders || [];
     let holdersHtml = `<div class="holders-section"><div class="holders-title">👥 Top 10 Holders</div>`;
-    if (holders.length === 0) holdersHtml += `<div style="color:#94a3b8;">⚠️ Holder data unavailable</div>`;
-    else { holdersHtml += `<table class="holders-table"><tr><th>#</th><th>Wallet Address</th><th>Amount</th><th>%</th></tr>`;
-      holders.forEach((h, i) => { const rankClass = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''; const shortAddr = h.address.slice(0,6)+'...'+h.address.slice(-4); const pct = parseFloat(h.percentage) || 0; holdersHtml += `<tr><td><span class="rank-badge ${rankClass}">${i+1}</span></td><td><a href="https://solscan.io/account/${h.address}" target="_blank" class="holder-addr">${shortAddr}</a></td><td>${typeof h.amount === 'number' ? h.amount.toLocaleString() : h.amount}</td><td><span>${h.percentage !== 'N/A' ? h.percentage+'%' : 'N/A'}</span>${pct>0?`<div class="pct-bar"><div class="pct-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>`:''}</td></tr>`; });
-      holdersHtml += `</table>`; }
+    if (holders.length === 0) holdersHtml += `<div style="color:#94a3b8; font-size:0.85rem;">⚠️ Holder data unavailable (API limit or new token)</div>`;
+    else {
+      holdersHtml += `<table class="holders-table"><tr><th>#</th><th>Wallet Address</th><th>Amount</th><th>%</th></tr>`;
+      holders.forEach((h, i) => {
+        const rankClass = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
+        const shortAddr = h.address.length > 10 ? h.address.slice(0,6)+'...'+h.address.slice(-4) : h.address;
+        const pct = parseFloat(h.percentage) || 0;
+        const solscanUrl = `https://solscan.io/account/${h.address}`;
+        holdersHtml += `<tr><td><span class="rank-badge ${rankClass}">${i+1}</span></td><td><a href="${solscanUrl}" target="_blank" class="holder-addr" title="${h.address}">${shortAddr}</a></td><td>${typeof h.amount === 'number' ? h.amount.toLocaleString(undefined,{maximumFractionDigits:2}) : h.amount}</td><td><span>${h.percentage !== 'N/A' ? h.percentage+'%' : 'N/A'}</span>${pct > 0 ? `<div class="pct-bar"><div class="pct-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>` : ''}</td></tr>`;
+      });
+      holdersHtml += `</table>`;
+    }
     holdersHtml += `</div>`;
+
     const logoHtml = data.logo ? `<img src="${data.logo}" class="token-logo" onerror="this.style.display='none'" alt="${data.symbol}">` : '';
-    card.innerHTML = `<div class="token-header"><div style="display:flex; align-items:center; gap:0.8rem;">${logoHtml}<div><div style="font-size:1.3rem; font-weight:800;">${data.name} <span style="color:#10b981; font-size:1rem;">(${data.symbol})</span></div><span class="token-address">${data.tokenAddress}</span></div></div><button onclick="copyAddress('${data.tokenAddress}')" class="copy-btn">📋 Copy</button></div><div class="stats-grid"><div class="stat-item"><div class="stat-label">💰 Price</div><div class="stat-value">${data.price}</div></div><div class="stat-item"><div class="stat-label">💧 Liquidity</div><div class="stat-value">${data.liquidity}</div></div><div class="stat-item"><div class="stat-label">📊 24h Volume</div><div class="stat-value">${data.volume24h}</div></div><div class="stat-item"><div class="stat-label">📈 24h Change</div><div class="stat-value">${data.priceChange24h}</div></div><div class="stat-item"><div class="stat-label">🏦 Market Cap</div><div class="stat-value">${data.marketCap}</div></div><div class="stat-item"><div class="stat-label">👥 Holders</div><div class="stat-value">${data.holderCount > 0 ? data.holderCount.toLocaleString() : 'N/A'}</div></div></div><div class="risk-section"><div class="risk-header"><span>🎯 Risk Assessment</span><span class="risk-badge ${riskClass}">${data.riskScore}/100 – ${data.riskLevel}</span></div><ul class="risk-reasons">${data.riskReasons.map(r => `<li>${r}</li>`).join("")}</ul></div>${bsHtml}${holdersHtml}${exchangesHtml}<a href="${data.chartUrl}" target="_blank" class="chart-btn">📈 View on DexScreener →</a>`;
-  } catch (err) { card.innerHTML = `<div style="color:#ef4444; text-align:center;">❌ Error: ${err.message}</div>`; }
+    card.innerHTML = `
+      <div class="token-header">
+        <div style="display:flex; align-items:center; gap:0.8rem;">
+          ${logoHtml}
+          <div>
+            <div style="font-size:1.3rem; font-weight:800;">${data.name} <span style="color:#10b981; font-size:1rem;">(${data.symbol})</span></div>
+            <span class="token-address">${data.tokenAddress}</span>
+          </div>
+        </div>
+        <button onclick="copyAddress('${data.tokenAddress}')" class="copy-btn">📋 Copy</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-label">💰 Price</div><div class="stat-value">${data.price}</div></div>
+        <div class="stat-item"><div class="stat-label">💧 Liquidity</div><div class="stat-value">${data.liquidity}</div></div>
+        <div class="stat-item"><div class="stat-label">📊 24h Volume</div><div class="stat-value">${data.volume24h}</div></div>
+        <div class="stat-item"><div class="stat-label">📈 24h Change</div><div class="stat-value">${data.priceChange24h}</div></div>
+        <div class="stat-item"><div class="stat-label">🏦 Market Cap</div><div class="stat-value">${data.marketCap}</div></div>
+        <div class="stat-item"><div class="stat-label">👥 Holders</div><div class="stat-value">${data.holderCount > 0 ? data.holderCount.toLocaleString() : 'N/A'}</div></div>
+      </div>
+      <div class="risk-section">
+        <div class="risk-header"><span>🎯 Risk Assessment</span><span class="risk-badge ${riskClass}">${data.riskScore}/100 – ${data.riskLevel}</span></div>
+        <ul class="risk-reasons">${data.riskReasons.map(r => `<li>${r}</li>`).join("")}</ul>
+      </div>
+      ${bsHtml}
+      ${holdersHtml}
+      ${exchangesHtml}
+      <a href="${data.chartUrl}" target="_blank" class="chart-btn">📈 View on DexScreener →</a>
+    `;
+    window.currentToken = data.tokenAddress;
+  } catch (err) {
+    card.innerHTML = `<div style="color:#ef4444; text-align:center; padding:1rem;">❌ Error: ${err.message}<br><span style="font-size:0.8rem; color:#94a3b8;">Backend cold start may take 50s. Try again after a minute.</span></div>`;
+  }
 }
+
 function copyAddress(addr) { navigator.clipboard.writeText(addr); alert("✅ Address copied!"); }
 
-// ========== TRENDING, WATCHLIST, ALERTS (original logic kept) ==========
-async function loadTrending() { try { const res = await fetch(`${BACKEND}/api/trending`); const data = await res.json(); const grid = document.getElementById("trendingGrid"); if (!data.success || !data.trending?.length) { grid.innerHTML = "<p>Could not load trending.</p>"; return; } grid.innerHTML = ""; data.trending.forEach(t => { const card = document.createElement("div"); card.className = "trending-card"; card.onclick = () => { document.getElementById("tokenAddress").value = t.address; scanToken(); }; const cc = t.priceChange >= 0 ? "positive" : "negative"; card.innerHTML = `<div class="trending-symbol">${t.symbol}</div><div class="trending-price">$${parseFloat(t.price).toFixed(8)}</div><div class="${cc}">24h: ${t.priceChange}%</div><div style="font-size:0.7rem;">Vol: $${Math.round(t.volume24h).toLocaleString()}</div>`; grid.appendChild(card); }); } catch { document.getElementById("trendingGrid").innerHTML = "<p>Error loading trending.</p>"; } }
+// ========== TRENDING (unchanged) ==========
+async function loadTrending() {
+  try {
+    const res = await fetch(`${BACKEND}/api/trending`);
+    const data = await res.json();
+    const grid = document.getElementById("trendingGrid");
+    if (!data.success || !data.trending?.length) { grid.innerHTML = "<p>Could not load trending.</p>"; return; }
+    grid.innerHTML = "";
+    data.trending.forEach(t => {
+      const card = document.createElement("div");
+      card.className = "trending-card";
+      card.onclick = () => { document.getElementById("tokenAddress").value = t.address; scanToken(); };
+      const cc = t.priceChange >= 0 ? "positive" : "negative";
+      card.innerHTML = `<div class="trending-symbol">${t.symbol}</div><div class="trending-price">$${parseFloat(t.price).toFixed(8)}</div><div class="${cc}">24h: ${t.priceChange}%</div><div style="font-size:0.7rem; color:#94a3b8;">Vol: $${Math.round(t.volume24h).toLocaleString()}</div>`;
+      grid.appendChild(card);
+    });
+  } catch { document.getElementById("trendingGrid").innerHTML = "<p>Error loading trending.</p>"; }
+}
+
+// ========== WATCHLIST (unchanged) ==========
 function getWatchlist() { let w = localStorage.getItem("hvbs_watchlist"); return w ? JSON.parse(w) : []; }
 function saveWatchlist(list) { localStorage.setItem("hvbs_watchlist", JSON.stringify(list)); renderWatchlist(); updateAlertTokenSelect(); }
-function addToWatchlist() { let addr = document.getElementById("watchlistInput").value.trim(); if (!addr) return alert("Enter address"); if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr)) return alert("Invalid Solana address"); let list = getWatchlist(); if (!list.includes(addr)) { list.push(addr); saveWatchlist(list); document.getElementById("watchlistInput").value = ""; } else alert("Already in watchlist"); }
+function addToWatchlist() {
+  let addr = document.getElementById("watchlistInput").value.trim();
+  if (!addr) return alert("Enter address");
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr)) return alert("Invalid Solana address");
+  let list = getWatchlist();
+  if (!list.includes(addr)) { list.push(addr); saveWatchlist(list); document.getElementById("watchlistInput").value = ""; }
+  else alert("Already in watchlist");
+}
 function removeFromWatchlist(addr) { saveWatchlist(getWatchlist().filter(a => a !== addr)); }
-async function renderWatchlist() { const list = getWatchlist(); const container = document.getElementById("watchlistItems"); if (!list.length) { container.innerHTML = "<li style='color:#64748b;'>No tokens in watchlist.</li>"; return; } container.innerHTML = ""; for (let addr of list) { const li = document.createElement("li"); li.className = "watchlist-item"; li.innerHTML = `<span style="font-family:monospace; cursor:pointer; color:#60a5fa;" onclick="document.getElementById('tokenAddress').value='${addr}'; scanToken();">${addr.slice(0,6)}...${addr.slice(-4)}</span><button class="watchlist-remove" onclick="removeFromWatchlist('${addr}')">Remove</button>`; container.appendChild(li); } }
-let priceAlerts = [], customSoundBlob = null, audioElemGlobal = null, audioEnabled = false, currentCondition = "above", currentFetchedPrice = null;
-function saveAlertsToLocalStorage() { localStorage.setItem('hvbs_priceAlerts', JSON.stringify(priceAlerts)); }
-function loadAlertsFromLocalStorage() { const saved = localStorage.getItem('hvbs_priceAlerts'); if (saved) { try { priceAlerts = JSON.parse(saved); renderActiveAlerts(); } catch(e) { console.error(e); } } }
-function setCondition(val) { currentCondition = val; document.getElementById('condAbove').classList.toggle('active', val === 'above'); document.getElementById('condBelow').classList.toggle('active', val === 'below'); document.getElementById('step2Status').innerHTML = val === 'above' ? 'Condition: ≥ (price hits or goes above)' : 'Condition: ≤ (price hits or goes below)'; updatePercentageHint(); }
-function updateAlertTokenSelect() { const sel = document.getElementById('alertTokenSelect'); const watch = getWatchlist(); sel.innerHTML = '<option value="">-- Choose from watchlist --</option>'; watch.forEach(addr => { const opt = document.createElement('option'); opt.value = addr; opt.textContent = addr.slice(0,6)+'...'+addr.slice(-4); sel.appendChild(opt); }); }
-async function fetchDexPrice(address) { if (!address?.trim()) return null; try { const url = `https://api.dexscreener.com/token-pairs/v1/solana/${address.trim()}`; const resp = await fetch(url, { signal: AbortSignal.timeout(5000) }); if (!resp.ok) return null; const data = await resp.json(); if (Array.isArray(data) && data.length > 0 && data[0].priceUsd) { const price = parseFloat(data[0].priceUsd); if (!isNaN(price) && price > 0) return price; } const fallbackUrl = `https://api.dexscreener.com/latest/dex/search?q=${address}`; const fallbackResp = await fetch(fallbackUrl, { signal: AbortSignal.timeout(5000) }); const fallbackData = await fallbackResp.json(); const pairs = fallbackData.pairs || []; const solPair = pairs.find(p => p.chainId === "solana"); if (solPair && solPair.priceUsd) return parseFloat(solPair.priceUsd); return null; } catch { return null; } }
-function updatePercentageHint() { const target = parseFloat(document.getElementById('targetPriceInput').value); const hintDiv = document.getElementById('percentageHint'); if (!currentFetchedPrice || isNaN(currentFetchedPrice) || currentFetchedPrice <= 0) { hintDiv.innerHTML = "📊 Fetch current price first to see % difference"; return; } if (isNaN(target) || target <= 0) { hintDiv.innerHTML = `📊 Current price: $${currentFetchedPrice.toFixed(8)} — enter target price to see %`; return; } const diffPercent = ((target - currentFetchedPrice) / currentFetchedPrice) * 100; const absPercent = Math.abs(diffPercent).toFixed(2); if (diffPercent > 0) hintDiv.innerHTML = `📈 Target is ${absPercent}% ABOVE current price (${currentCondition === 'above' ? 'will trigger' : '⚠️ condition mismatch'})`; else if (diffPercent < 0) hintDiv.innerHTML = `📉 Target is ${absPercent}% BELOW current price (${currentCondition === 'below' ? 'will trigger' : '⚠️ condition mismatch'})`; else hintDiv.innerHTML = `🎯 Target equals current price (exact match will trigger)`; }
-document.getElementById('fetchAlertPriceBtn').addEventListener('click', async () => { let addr = document.getElementById('manualTokenAddr').value.trim() || document.getElementById('alertTokenSelect').value; if (!addr) { document.getElementById('step1Price').innerHTML = "Price: —"; currentFetchedPrice = null; updatePercentageHint(); return; } document.getElementById('step1Price').innerHTML = "Price: fetching..."; const price = await fetchDexPrice(addr); if (price !== null) { currentFetchedPrice = price; document.getElementById('step1Price').innerHTML = `Price: $${price.toFixed(8)}`; updatePercentageHint(); } else { currentFetchedPrice = null; document.getElementById('step1Price').innerHTML = "Price: not found"; updatePercentageHint(); } });
-document.getElementById('targetPriceInput').addEventListener('input', updatePercentageHint);
-document.getElementById('uploadAlertSoundBtn').addEventListener('click', () => { const file = document.getElementById('alertMp3File').files[0]; if (!file) { document.getElementById('soundStatusWizard').innerHTML = "❌ Select MP3/WAV first"; return; } if (file.size > 10*1024*1024) { document.getElementById('soundStatusWizard').innerHTML = "❌ Max 10MB"; return; } if (customSoundBlob) URL.revokeObjectURL(customSoundBlob); customSoundBlob = URL.createObjectURL(file); audioElemGlobal = new Audio(customSoundBlob); audioEnabled = true; audioElemGlobal.play().then(() => { audioElemGlobal.pause(); audioElemGlobal.currentTime=0; }).catch(()=>{}); document.getElementById('soundStatusWizard').innerHTML = `✅ ${file.name} ready`; });
-function playAlertSound() { if (audioElemGlobal && customSoundBlob) { audioElemGlobal.pause(); audioElemGlobal.currentTime = 0; audioElemGlobal.play().catch(()=>{}); } else { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 880; gain.gain.value = 0.2; osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.8); osc.stop(ctx.currentTime + 0.8); ctx.resume(); } catch {} } }
-document.getElementById('testWizardSoundBtn').addEventListener('click', () => { audioEnabled = true; playAlertSound(); });
-document.getElementById('globalStopSoundBtn').addEventListener('click', () => { if (audioElemGlobal) { audioElemGlobal.pause(); audioElemGlobal.currentTime = 0; } document.getElementById('soundStatusWizard').innerHTML = "🔇 Sound stopped"; });
-document.getElementById('allDoneBtn').addEventListener('click', async () => { if (priceAlerts.length >= 10) { alert("Maximum 10 alerts allowed!"); return; } let token = document.getElementById('manualTokenAddr').value.trim() || document.getElementById('alertTokenSelect').value; if (!token) { alert("Step 1: Select or enter token address"); return; } const targetInput = document.getElementById('targetPriceInput').value; if (!targetInput || targetInput === '') { alert("Step 2: Enter target price"); return; } const target = parseFloat(targetInput); if (isNaN(target) || target <= 0) { alert("Step 2: Enter a valid price greater than 0"); return; } priceAlerts.push({ id: Date.now() + Math.random(), tokenAddr: token, targetPrice: target, condition: currentCondition === "above", lastTriggered: 0, triggeredType: null }); saveAlertsToLocalStorage(); renderActiveAlerts(); const tgUsername = document.getElementById('tgUsernameInput').value.trim(); if (tgUsername) { document.getElementById('tgAlertStatus').innerHTML = '⏳ Setting Telegram alert...'; try { const resp = await fetch(`${BACKEND}/api/alert-by-username`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: tgUsername, tokenAddress: token, targetPrice: target, direction: currentCondition }) }); const result = await resp.json(); if (result.success) document.getElementById('tgAlertStatus').innerHTML = `✅ Telegram alert set for ${tgUsername}`; else document.getElementById('tgAlertStatus').innerHTML = `⚠️ ${result.error}`; } catch { document.getElementById('tgAlertStatus').innerHTML = `❌ Could not reach backend`; } } else { document.getElementById('tgAlertStatus').innerHTML = `✅ Browser alert set! (Enter @username for Telegram)`; } });
-function renderActiveAlerts() { document.getElementById('alertCountDisplay').innerText = priceAlerts.length; const container = document.getElementById('activeAlertsListWizard'); if (!priceAlerts.length) { container.innerHTML = '<div style="color:#94a3b8;">No active alerts.</div>'; return; } container.innerHTML = ''; priceAlerts.forEach(alert => { const badge = document.createElement('div'); badge.className = 'alert-badge'; let indClass = 'indicator-green', blinkClass = ''; if (alert.triggeredType === 'above') { indClass = 'indicator-green'; blinkClass = 'blink'; } else if (alert.triggeredType === 'below') { indClass = 'indicator-red'; blinkClass = 'blink'; } else if (alert.triggeredType === 'equal') { indClass = 'indicator-yellow'; blinkClass = 'blink'; } badge.innerHTML = `<div class="indicator-btn ${indClass} ${blinkClass}"></div><span style="font-family:monospace;">${alert.tokenAddr.slice(0,6)}...</span><span>🎯 $${alert.targetPrice} ${alert.condition ? '≥' : '≤'}</span><button onclick="removeAlertById(${alert.id})" style="background:#7f1d1d; border:none; color:white; border-radius:2rem; padding:0.2rem 0.6rem;">✖</button>`; container.appendChild(badge); }); }
-async function checkAllPriceAlerts() { if (!priceAlerts.length) return; const tokenMap = new Map(); for (let alert of priceAlerts) { if (!tokenMap.has(alert.tokenAddr)) { const price = await fetchDexPrice(alert.tokenAddr); if (price !== null) tokenMap.set(alert.tokenAddr, price); } } let anyTriggered = false; for (let alert of priceAlerts) { const livePrice = tokenMap.get(alert.tokenAddr); if (livePrice === undefined) continue; let met = false, triggerType = null; if (alert.condition && livePrice >= alert.targetPrice) { met = true; triggerType = livePrice === alert.targetPrice ? 'equal' : 'above'; } if (!alert.condition && livePrice <= alert.targetPrice) { met = true; triggerType = livePrice === alert.targetPrice ? 'equal' : 'below'; } if (met && (Date.now() - alert.lastTriggered > 60000)) { alert.lastTriggered = Date.now(); alert.triggeredType = triggerType; anyTriggered = true; if (audioEnabled) playAlertSound(); document.getElementById('step2Status').innerHTML = `🔔 ALERT! ${alert.tokenAddr.slice(0,6)}... hit $${livePrice.toFixed(8)}`; } else if (!met) alert.triggeredType = null; } if (anyTriggered) { renderActiveAlerts(); saveAlertsToLocalStorage(); } }
-window.removeAlertById = (id) => { priceAlerts = priceAlerts.filter(a => a.id !== id); saveAlertsToLocalStorage(); renderActiveAlerts(); };
-window.removeFromWatchlist = removeFromWatchlist;
-setInterval(checkAllPriceAlerts, 15000);
-updateAlertTokenSelect(); renderWatchlist(); loadTrending(); loadAlertsFromLocalStorage(); renderActiveAlerts();
-document.getElementById("tokenAddress").addEventListener("keypress", e => e.key === "Enter" && scanToken());
+async function renderWatchlist() {
+  const list = getWatchlist();
+  const container = document.getElementById("watchlistItems");
+  if (!list.length) { container.innerHTML = "<li style='color:#64748b;'>No tokens in watchlist.</li>"; return; }
+  container.innerHTML = "";
+  for (let addr of list) {
+    const li = document.createElement("li");
+    li.className = "watchlist-item";
+    li.innerHTML = `<span style="font-family:monospace; cursor:pointer; color:#60a5fa;" onclick="document.getElementById('tokenAddress').value='${addr}'; scanToken();">${addr.slice(0,6)}...${addr.slice(-4)}</span><button class="watchlist-remove" onclick="removeFromWatchlist('${addr}')">Remove</button>`;
+    container.appendChild(li);
+  }
+}
 
-// ========== BURN VISUALIZATION & WHITEPAPER ==========
-document.getElementById('showBurnBtn').addEventListener('click', () => {
-  const wallet = document.getElementById('burnWalletInput').value.trim();
-  if (!wallet) { document.getElementById('burnAmountDisplay').innerHTML = "❌ Please enter a wallet address"; return; }
-  // Simulate burn amount (random for demo, replace with real API later)
-  const burned = Math.floor(Math.random() * 10000) + 100;
-  document.getElementById('burnAmountDisplay').innerHTML = `🔥 You burned ${burned} HVBS tokens! Check your TX ID on-chain.`;
-  // 3D effect: change torus color temporarily
-  const torusMesh = document.querySelector('#burnCanvas + script')? // hacky but fine
-  const canvas3d = document.getElementById('burnCanvas');
-  // just visual feedback
-  canvas3d.style.boxShadow = "0 0 20px #ff6600";
-  setTimeout(() => canvas3d.style.boxShadow = "", 1000);
+// ========== PRICE ALERT WIZARD with localStorage persistence ==========
+let priceAlerts = [];
+let customSoundBlob = null;
+let audioElemGlobal = null;
+let audioEnabled = false;
+let currentCondition = "above";
+let browserNotificationsEnabled = false;
+let currentFetchedPrice = null;   // store latest fetched price for percentage calculation
+
+function saveAlertsToLocalStorage() {
+  localStorage.setItem('hvbs_priceAlerts', JSON.stringify(priceAlerts));
+}
+function loadAlertsFromLocalStorage() {
+  const saved = localStorage.getItem('hvbs_priceAlerts');
+  if (saved) {
+    try {
+      priceAlerts = JSON.parse(saved);
+      renderActiveAlerts();
+    } catch(e) { console.error("Failed to load alerts", e); }
+  }
+}
+
+function setCondition(val) {
+  currentCondition = val;
+  document.getElementById('condAbove').classList.toggle('active', val === 'above');
+  document.getElementById('condBelow').classList.toggle('active', val === 'below');
+  document.getElementById('step2Status').innerHTML = val === 'above' ? 'Condition: ≥ (price hits or goes above)' : 'Condition: ≤ (price hits or goes below)';
+  updatePercentageHint(); // refresh percentage text because wording changes
+}
+
+function updateAlertTokenSelect() {
+  const sel = document.getElementById('alertTokenSelect');
+  const watch = getWatchlist();
+  sel.innerHTML = '<option value="">-- Choose from watchlist --</option>';
+  watch.forEach(addr => {
+    const opt = document.createElement('option');
+    opt.value = addr;
+    opt.textContent = addr.slice(0,6)+'...'+addr.slice(-4);
+    sel.appendChild(opt);
+  });
+}
+
+async function fetchDexPrice(address) {
+  if (!address?.trim()) return null;
+  try {
+    const url = `https://api.dexscreener.com/token-pairs/v1/solana/${address.trim()}`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (Array.isArray(data) && data.length > 0 && data[0].priceUsd) {
+      const price = parseFloat(data[0].priceUsd);
+      if (!isNaN(price) && price > 0) return price;
+    }
+    const fallbackUrl = `https://api.dexscreener.com/latest/dex/search?q=${address}`;
+    const fallbackResp = await fetch(fallbackUrl, { signal: AbortSignal.timeout(5000) });
+    const fallbackData = await fallbackResp.json();
+    const pairs = fallbackData.pairs || [];
+    const solPair = pairs.find(p => p.chainId === "solana");
+    if (solPair && solPair.priceUsd) return parseFloat(solPair.priceUsd);
+    return null;
+  } catch (err) {
+    console.log("Fast price fetch error:", err);
+    return null;
+  }
+}
+
+function updatePercentageHint() {
+  const targetInput = document.getElementById('targetPriceInput');
+  const target = parseFloat(targetInput.value);
+  const hintDiv = document.getElementById('percentageHint');
+  if (!currentFetchedPrice || isNaN(currentFetchedPrice) || currentFetchedPrice <= 0) {
+    hintDiv.innerHTML = "📊 Fetch current price first to see % difference";
+    return;
+  }
+  if (isNaN(target) || target <= 0) {
+    hintDiv.innerHTML = `📊 Current price: $${currentFetchedPrice.toFixed(8)} — enter target price to see %`;
+    return;
+  }
+  const diffPercent = ((target - currentFetchedPrice) / currentFetchedPrice) * 100;
+  const absPercent = Math.abs(diffPercent).toFixed(2);
+  if (diffPercent > 0) {
+    hintDiv.innerHTML = `📈 Target is ${absPercent}% ABOVE current price (${currentCondition === 'above' ? 'will trigger when price rises' : '⚠️ condition is BELOW, this target may never trigger'})`;
+  } else if (diffPercent < 0) {
+    hintDiv.innerHTML = `📉 Target is ${absPercent}% BELOW current price (${currentCondition === 'below' ? 'will trigger when price drops' : '⚠️ condition is ABOVE, this target may never trigger'})`;
+  } else {
+    hintDiv.innerHTML = `🎯 Target equals current price (exact match will trigger)`;
+  }
+}
+
+// Fetch price and store it globally
+document.getElementById('fetchAlertPriceBtn').addEventListener('click', async () => {
+  let addr = document.getElementById('manualTokenAddr').value.trim() || document.getElementById('alertTokenSelect').value;
+  if (!addr) { document.getElementById('step1Price').innerHTML = "Price: —"; currentFetchedPrice = null; updatePercentageHint(); return; }
+  document.getElementById('step1Price').innerHTML = "Price: fetching...";
+  const price = await fetchDexPrice(addr);
+  if (price !== null) {
+    currentFetchedPrice = price;
+    document.getElementById('step1Price').innerHTML = `Price: $${price.toFixed(8)}`;
+    updatePercentageHint();
+  } else {
+    currentFetchedPrice = null;
+    document.getElementById('step1Price').innerHTML = "Price: not found";
+    updatePercentageHint();
+  }
 });
-// Whitepaper download link (placeholder)
-document.getElementById('whitepaperLink').addEventListener('click', (e) => {
-  e.preventDefault();
-  alert("Whitepaper will be available soon. Stay tuned for the official HVBS tokenomics PDF!");
+
+// Listen to target price input changes
+document.getElementById('targetPriceInput').addEventListener('input', () => {
+  updatePercentageHint();
 });
-// Daily winner song simulation
-let currentSong = null;
-document.getElementById('winnerSong').addEventListener('click', () => {
-  if (currentSong) { currentSong.pause(); currentSong.currentTime = 0; }
-  currentSong = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"); // demo royalty-free track
-  currentSong.play();
-  setTimeout(() => { if(currentSong) currentSong.pause(); }, 20000);
+
+document.getElementById('uploadAlertSoundBtn').addEventListener('click', () => {
+  const file = document.getElementById('alertMp3File').files[0];
+  if (!file) { document.getElementById('soundStatusWizard').innerHTML = "❌ Select MP3/WAV first"; return; }
+  if (file.size > 10*1024*1024) { document.getElementById('soundStatusWizard').innerHTML = "❌ Max 10MB"; return; }
+  if (customSoundBlob) URL.revokeObjectURL(customSoundBlob);
+  customSoundBlob = URL.createObjectURL(file);
+  audioElemGlobal = new Audio(customSoundBlob);
+  audioEnabled = true;
+  audioElemGlobal.play().then(() => { audioElemGlobal.pause(); audioElemGlobal.currentTime=0; }).catch(()=>{});
+  document.getElementById('soundStatusWizard').innerHTML = `✅ ${file.name} ready`;
 });
-document.getElementById('stopSongBtn').addEventListener('click', () => { if(currentSong) { currentSong.pause(); currentSong.currentTime = 0; } });
-// Set a dummy daily winner address
-document.getElementById('winnerAddress').innerText = "0xHVBS...BurnMaster (daily updated)";
+
+function playAlertSound() {
+  if (audioElemGlobal && customSoundBlob) {
+    audioElemGlobal.pause(); audioElemGlobal.currentTime = 0;
+    audioElemGlobal.play().catch(()=>{});
+  } else {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880; gain.gain.value = 0.2;
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.8);
+      osc.stop(ctx.currentTime + 0.8);
+      ctx.resume();
+    } catch {}
+  }
+}
+
+document.getElementById('testWizardSoundBtn').addEventListener('click', () => { audioEnabled = true; playAlertSound(); });
+document.getElementById('globalStopSoundBtn').addEventListener('click', () => {
+  if (audioElemGlobal) { audioElemGlobal.pause(); audioElemGlobal.currentTime = 0; }
+  document.getElementById('soundStatusWizard').innerHTML = "🔇 Sound stopped";
+});
+
+// ========== WEB PUSH NOTIFICATIONS ==========
+const webNotifBtn = document.getElementById('enableWebNotificationsBtn');
+const webNotifStatus = document.getElementById('webNotificationStatus');
+
+async function requestWebNotificationPermission() {
+  if (!("Notification" in window)) {
+    webNotifStatus.innerHTML = "❌ Your browser does not support desktop notifications.";
+    return;
+  }
+  if (Notification.permission === "granted") {
+    webNotifStatus.innerHTML = "✅ Notifications enabled. You will hear a sound when price alerts trigger!";
+    browserNotificationsEnabled = true;
+    webNotifBtn.textContent = "✅ Notifications On";
+    webNotifBtn.style.background = "#059669";
+    new Notification("HVBS Pro Alert Test", { body: "This is a test notification. You should hear a sound (depends on your system).", icon: "https://hvbs-pro-frontend.onrender.com/favicon.ico" });
+    playAlertSound();
+  } else if (Notification.permission !== "denied") {
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      webNotifStatus.innerHTML = "✅ Notifications enabled! You will receive sound alerts.";
+      browserNotificationsEnabled = true;
+      webNotifBtn.textContent = "✅ Notifications On";
+      webNotifBtn.style.background = "#059669";
+      new Notification("HVBS Pro Alert Test", { body: "Test successful! You'll get sound on price alerts.", icon: "https://hvbs-pro-frontend.onrender.com/favicon.ico" });
+      playAlertSound();
+    } else {
+      webNotifStatus.innerHTML = "❌ Notifications denied. You won't receive browser alerts.";
+      browserNotificationsEnabled = false;
+    }
+  } else {
+    webNotifStatus.innerHTML = "❌ Notifications are blocked. Please allow them in your browser settings.";
+    browserNotificationsEnabled = false;
+  }
+}
+
+webNotifBtn.addEventListener('click', requestWebNotificationPermission);
+
+function sendBrowserNotification(tokenAddr, price, direction, targetPrice, chartUrl) {
+  if (!browserNotificationsEnabled && Notification.permission !== "granted") return;
+  const title = "🚨 HVBS Pro Price Alert!";
+  const body = `Token: ${tokenAddr.slice(0,6)}...\nDirection: ${direction === 'above' ? '↑ Above' : '↓ Below'} target $${targetPrice}\nCurrent price: $${price}`;
+  const notification = new Notification(title, { body, icon: "https://hvbs-pro-frontend.onrender.com/favicon.ico", requireInteraction: true, tag: tokenAddr });
+  notification.onclick = () => {
+    window.open(chartUrl, '_blank');
+  };
+}
+
+// ALL DONE BUTTON - Set alert with save
+document.getElementById('allDoneBtn').addEventListener('click', async () => {
+  if (priceAlerts.length >= 10) { alert("Maximum 10 alerts allowed!"); return; }
+  let token = document.getElementById('manualTokenAddr').value.trim() || document.getElementById('alertTokenSelect').value;
+  if (!token) { alert("Step 1: Select or enter token address"); return; }
+  const targetInput = document.getElementById('targetPriceInput').value;
+  if (!targetInput || targetInput === '') { alert("Step 2: Enter target price"); return; }
+  const target = parseFloat(targetInput);
+  if (isNaN(target) || target <= 0) { alert("Step 2: Enter a valid price greater than 0"); return; }
+
+  priceAlerts.push({
+    id: Date.now() + Math.random(),
+    tokenAddr: token,
+    targetPrice: target,
+    condition: currentCondition === "above",
+    lastTriggered: 0,
+    triggeredType: null
+  });
+  saveAlertsToLocalStorage();
+  renderActiveAlerts();
+
+  const tgUsername = document.getElementById('tgUsernameInput').value.trim();
+  if (tgUsername) {
+    document.getElementById('tgAlertStatus').innerHTML = '⏳ Setting Telegram alert...';
+    try {
+      const resp = await fetch(`${BACKEND}/api/alert-by-username`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: tgUsername, tokenAddress: token, targetPrice: target, direction: currentCondition })
+      });
+      const result = await resp.json();
+      if (result.success) {
+        document.getElementById('tgAlertStatus').innerHTML = `✅ Telegram alert set for ${tgUsername}`;
+      } else {
+        document.getElementById('tgAlertStatus').innerHTML = `⚠️ ${result.error}`;
+      }
+    } catch {
+      document.getElementById('tgAlertStatus').innerHTML = `❌ Could not reach backend`;
+    }
+  } else {
+    const btn = document.getElementById('allDoneBtn');
+    btn.style.background = 'radial-gradient(circle at 35% 35%, #6ee7b7, #10b981 60%, #065f46)';
+    setTimeout(() => { btn.style.background = ''; }, 600);
+    document.getElementById('tgAlertStatus').innerHTML = `✅ Browser alert set! (Enter @username above to also get Telegram notification)`;
+  }
+});
+
+function renderActiveAlerts() {
+  document.getElementById('alertCountDisplay').innerText = priceAlerts.length;
+  const container = document.getElementById('activeAlertsListWizard');
+  if (!priceAlerts.length) {
+    container.innerHTML = '<div style="color:#94a3b8; font-size:0.85rem;">No active alerts. Use wizard above to add.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  priceAlerts.forEach(alert => {
+    const badge = document.createElement('div');
+    badge.className = 'alert-badge';
+    let indClass = 'indicator-green', blinkClass = '';
+    if (alert.triggeredType === 'above') { indClass = 'indicator-green'; blinkClass = 'blink'; }
+    else if (alert.triggeredType === 'below') { indClass = 'indicator-red'; blinkClass = 'blink'; }
+    else if (alert.triggeredType === 'equal') { indClass = 'indicator-yellow'; blinkClass = 'blink'; }
+    badge.innerHTML = `
+      <div class="indicator-btn ${indClass} ${blinkClass}"></div>
+      <span style="font-family:monospace; font-size:0.78rem;">${alert.tokenAddr.slice(0,6)}...</span>
+      <span>🎯 $${alert.targetPrice} ${alert.condition ? '≥' : '≤'}</span>
+      <button onclick="removeAlertById(${alert.id})" style="background:#7f1d1d; border:none; color:white; border-radius:2rem; padding:0.2rem 0.6rem; cursor:pointer; font-size:0.75rem;">✖</button>`;
+    container.appendChild(badge);
+  });
+}
+
+async function checkAllPriceAlerts() {
+  if (!priceAlerts.length) return;
+  const tokenMap = new Map();
+  for (let alert of priceAlerts) {
+    if (!tokenMap.has(alert.tokenAddr)) {
+      const price = await fetchDexPrice(alert.tokenAddr);
+      if (price !== null) tokenMap.set(alert.tokenAddr, price);
+    }
+  }
+  let anyTriggered = false;
+  for (let alert of priceAlerts) {
+    const livePrice = tokenMap.get(alert.tokenAddr);
+    if (livePrice === undefined) continue;
+    let met = false, triggerType = null;
+    if (alert.condition && livePrice >= alert.targetPrice) { met = true; triggerType = livePrice === alert.targetPrice ? 'equal' : 'above'; }
+    if (!alert.condition && livePrice <= alert.targetPrice) { met = true; triggerType = livePrice === alert.targetPrice ? 'equal' : 'below'; }
+    if (met) {
+      const now = Date.now();
+      if (now - alert.lastTriggered > 60000) {
+        alert.lastTriggered = now;
+        alert.triggeredType = triggerType;
+        anyTriggered = true;
+        if (audioEnabled) playAlertSound();
+        if (Notification.permission === "granted" || browserNotificationsEnabled) {
+          sendBrowserNotification(alert.tokenAddr, livePrice, alert.condition ? 'above' : 'below', alert.targetPrice, `https://dexscreener.com/solana/${alert.tokenAddr}`);
+        }
+        document.getElementById('step2Status').innerHTML = `🔔 ALERT! ${alert.tokenAddr.slice(0,6)}... hit $${livePrice.toFixed(8)}`;
+      }
+    } else { alert.triggeredType = null; }
+  }
+  if (anyTriggered) {
+    renderActiveAlerts();
+    saveAlertsToLocalStorage();
+  }
+}
+
+window.removeAlertById = (id) => {
+  priceAlerts = priceAlerts.filter(a => a.id !== id);
+  saveAlertsToLocalStorage();
+  renderActiveAlerts();
+};
+window.removeFromWatchlist = removeFromWatchlist;
+
+setInterval(checkAllPriceAlerts, 15000);
+
+// INIT - load alerts from storage
+updateAlertTokenSelect();
+renderWatchlist();
+loadTrending();
+loadAlertsFromLocalStorage();
+renderActiveAlerts();
+document.getElementById("tokenAddress").addEventListener("keypress", e => e.key === "Enter" && scanToken());
 </script>
 </body>
 </html>
