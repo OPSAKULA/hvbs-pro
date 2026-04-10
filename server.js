@@ -28,14 +28,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
-// 🔐 KEYS from environment variables (safer)
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const CMC_API_KEY = process.env.CMC_API_KEY || "2e4699c5c9614df5801eed04b36ba057";
-
-if (!TELEGRAM_BOT_TOKEN) {
-  console.error("❌ TELEGRAM_BOT_TOKEN environment variable not set!");
-  process.exit(1);
-}
+// 🔐 YOUR KEYS
+const TELEGRAM_BOT_TOKEN = "8550627220:AAEbfPYDOCz64sAeTo4GUrm88mNgwsUTiEQ";
+const CMC_API_KEY = "2e4699c5c9614df5801eed04b36ba057";
 
 const DEXSCREENER_TOKEN_PAIRS = "https://api.dexscreener.com/token-pairs/v1/solana/";
 const DEXSCREENER_SEARCH      = "https://api.dexscreener.com/latest/dex/search?q=";
@@ -75,9 +70,58 @@ for (let chatId in alerts) {
 }
 saveData(ALERTS_FILE, alerts);
 
-// Bot instance – no polling, webhook mode
-let bot = new TelegramBot(TELEGRAM_BOT_TOKEN);
-console.log("🤖 Telegram bot initialized (webhook mode)");
+let bot;
+let botInitialized = false;
+
+// Initialize bot with error handling
+function initBot() {
+  if (botInitialized) return;
+  try {
+    if (TELEGRAM_BOT_TOKEN === "YOUR_BOT_TOKEN_HERE") {
+      console.error("❌ Telegram bot token not set!");
+      return;
+    }
+    bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { 
+      polling: true,
+      autoStart: true,
+      onlyFirstMatch: true,
+      request: {
+        timeout: 30000
+      }
+    });
+    
+    bot.on('polling_error', (error) => {
+      console.error("Polling error:", error.code, error.message);
+      if (error.code === 'EFATAL' || error.message.includes('409')) {
+        console.log("Attempting to restart polling...");
+        setTimeout(() => {
+          bot.stopPolling().then(() => {
+            bot.startPolling();
+          }).catch(e => console.error("Restart failed:", e));
+        }, 5000);
+      }
+    });
+    
+    bot.on('error', (error) => {
+      console.error("Bot error:", error);
+    });
+    
+    bot.getMe().then((botInfo) => {
+      console.log(`🤖 Telegram bot started as @${botInfo.username}`);
+      botInitialized = true;
+    }).catch((err) => {
+      console.error("❌ Failed to connect to Telegram API:", err.message);
+      bot = null;
+    });
+    
+  } catch (err) {
+    console.error("❌ Bot initialization error:", err);
+    bot = null;
+  }
+}
+
+// Call init
+initBot();
 
 const activeSounds = {};
 
@@ -131,7 +175,7 @@ function playSound(chatId) {
   }
 }
 
-// ========== MARKET DATA ==========
+// ========== MARKET DATA (same as before, no changes) ==========
 async function getMarketData(mint, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -376,7 +420,7 @@ async function resolveTelegramUsername(username) {
 
 // ========== ALERT CHECKER ==========
 async function checkAllAlerts() {
-  if (!bot) return;
+  if (!bot || !botInitialized) return;
   for (let chatId in alerts) {
     if (mutedUsers[chatId]) continue;
     for (let addr in alerts[chatId]) {
@@ -401,7 +445,7 @@ async function checkAllAlerts() {
           bot.sendMessage(chatId,
             `🚨 *PRICE ALERT!*\nToken: \`${addr.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`,
             options
-          );
+          ).catch(e => console.error("Send message error:", e.message));
           playSound(chatId);
           delete alerts[chatId][addr];
           saveData(ALERTS_FILE, alerts);
@@ -473,14 +517,25 @@ app.post("/api/alert-by-username", async (req, res) => {
   if (!alerts[chatId]) alerts[chatId] = {};
   alerts[chatId][tokenAddress] = { price, direction: dir };
   saveData(ALERTS_FILE, alerts);
-  if (bot) {
+  if (bot && botInitialized) {
     if (mutedUsers[chatId]) {
-      bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0,6)}...\`\nTarget: $${price} (${dir})\n\n⚠️ *Your alerts are currently muted.* You will not receive notifications. Use /unmute to enable alerts.`, { parse_mode: "Markdown" });
+      bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0,6)}...\`\nTarget: $${price} (${dir})\n\n⚠️ *Your alerts are currently muted.* You will not receive notifications. Use /unmute to enable alerts.`, { parse_mode: "Markdown" }).catch(e => console.error(e));
     } else {
-      bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0,6)}...\`\nTarget: $${price} (${dir})\n\nYou will receive a Telegram message + sound when this hits!`, { parse_mode: "Markdown" });
+      bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0,6)}...\`\nTarget: $${price} (${dir})\n\nYou will receive a Telegram message + sound when this hits!`, { parse_mode: "Markdown" }).catch(e => console.error(e));
     }
   }
   res.json({ success: true, message: `Alert set for @${cleanUsername}` });
+});
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ 
+    status: "ok", 
+    botRunning: botInitialized,
+    botUsername: bot ? "initialized" : "not",
+    alertsCount: Object.keys(alerts).length,
+    uptime: process.uptime()
+  });
 });
 
 // ========== SOUND ENDPOINTS ==========
@@ -509,30 +564,15 @@ app.post("/api/stop-sound/:chatId", (req, res) => {
   res.json({ success: stopped, message: stopped ? "Sound stopped" : "No active sound" });
 });
 
-// ========== WEBHOOK ENDPOINT (Telegram will call this) ==========
-app.post('/webhook', (req, res) => {
-  if (!bot) return res.sendStatus(403);
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
-
-// Helper endpoint to set webhook manually
-app.get('/setwebhook', async (req, res) => {
-  const webhookUrl = `https://api.hvbsai.com/webhook`;
-  try {
-    await bot.setWebHook(webhookUrl);
-    res.send(`✅ Webhook set to ${webhookUrl}`);
-  } catch (err) {
-    res.status(500).send(`❌ Error: ${err.message}`);
-  }
-});
-
-// ========== TELEGRAM BOT HANDLERS (same as original) ==========
-if (bot) {
+// ========== TELEGRAM BOT HANDLERS (only if bot initialized) ==========
+// We define handlers inside a function that runs when bot is ready
+function setupBotHandlers() {
+  if (!bot) return;
+  
   const notificationReminded = {};
   function sendNotificationReminder(chatId) {
     if (!notificationReminded[chatId]) {
-      bot.sendMessage(chatId, "🔔 *Notification Reminder*\n\nTo receive price alerts with sound, please ensure Telegram notifications are enabled on your device.\n\nGo to Telegram Settings → Notifications and Sounds → Enable for this bot.\n\nYou can also mute/unmute alerts using:\n`/mute` – disable all alerts\n`/unmute` – enable alerts\n\n_This message will not appear again._", { parse_mode: "Markdown" });
+      bot.sendMessage(chatId, "🔔 *Notification Reminder*\n\nTo receive price alerts with sound, please ensure Telegram notifications are enabled on your device.\n\nGo to Telegram Settings → Notifications and Sounds → Enable for this bot.\n\nYou can also mute/unmute alerts using:\n`/mute` – disable all alerts\n`/unmute` – enable alerts\n\n_This message will not appear again._", { parse_mode: "Markdown" }).catch(e=>{});
       notificationReminded[chatId] = true;
     }
   }
@@ -547,9 +587,10 @@ if (bot) {
     bot.sendMessage(chatId,
       `🚀 *HVBS Pro Bot*\n\n✅ You are now registered!\nUsername: @${username || "unknown"}\nChat ID: \`${chatId}\`\n\n*Commands:*\n/trending\n/search <symbol>\n/alerts <address> <price> [above|below]\n/forcecheck\n/testbeep\n/mute – Disable all price alerts\n/unmute – Enable price alerts\n/myalerts\n/clearalerts\n/removealert <address>\n/checkprice <address>\n/stopsound\n/watchlist\n/add <address>\n/remove <address>\n/setalert – Set custom notification sound`,
       { parse_mode: "Markdown" }
-    );
+    ).catch(e=>console.error(e));
     setTimeout(() => sendNotificationReminder(chatId), 2000);
   });
+  
   bot.on('message', (msg) => {
     const username = msg.from?.username;
     const chatId = msg.chat.id;
@@ -558,54 +599,64 @@ if (bot) {
       saveData(USERNAME_MAP_FILE, usernameChatIdMap);
     }
   });
+  
   bot.onText(/\/help/, (msg) => {
-    bot.sendMessage(msg.chat.id, `📖 *Help*\n• /search pippin\n• /alerts So111... 0.02 above\n• /forcecheck\n• /testbeep\n• /mute – turn off alerts\n• /unmute – turn on alerts\n• /stopsound\n• /setalert – set custom notification sound`, { parse_mode: "Markdown" });
+    bot.sendMessage(msg.chat.id, `📖 *Help*\n• /search pippin\n• /alerts So111... 0.02 above\n• /forcecheck\n• /testbeep\n• /mute – turn off alerts\n• /unmute – turn on alerts\n• /stopsound\n• /setalert – set custom notification sound`, { parse_mode: "Markdown" }).catch(e=>{});
   });
+  
   bot.onText(/\/testbeep/, (msg) => {
     playSound(msg.chat.id);
-    bot.sendMessage(msg.chat.id, "🔊 Testing sound.");
+    bot.sendMessage(msg.chat.id, "🔊 Testing sound.").catch(e=>{});
   });
+  
   bot.onText(/\/forcecheck/, async (msg) => {
     await checkAllAlerts();
-    bot.sendMessage(msg.chat.id, "✅ Force check done.");
+    bot.sendMessage(msg.chat.id, "✅ Force check done.").catch(e=>{});
   });
+  
   bot.onText(/\/search (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const result = await searchTokenBySymbol(match[1].trim());
     if (result?.address) {
-      bot.sendMessage(chatId, `🔍 *Found:* ${result.symbol}\nAddress: \`${result.address}\`\nPrice: $${result.price}\n[View](${result.url})`, { parse_mode: "Markdown" });
+      bot.sendMessage(chatId, `🔍 *Found:* ${result.symbol}\nAddress: \`${result.address}\`\nPrice: $${result.price}\n[View](${result.url})`, { parse_mode: "Markdown" }).catch(e=>{});
     } else {
-      bot.sendMessage(chatId, `❌ No token found for "${match[1].trim()}".`);
+      bot.sendMessage(chatId, `❌ No token found for "${match[1].trim()}".`).catch(e=>{});
     }
   });
+  
   bot.onText(/\/clearalerts/, (msg) => {
     const chatId = msg.chat.id;
-    if (alerts[chatId]) { delete alerts[chatId]; saveData(ALERTS_FILE, alerts); bot.sendMessage(chatId, "✅ All alerts cleared."); }
-    else bot.sendMessage(chatId, "📭 No active alerts.");
+    if (alerts[chatId]) { delete alerts[chatId]; saveData(ALERTS_FILE, alerts); bot.sendMessage(chatId, "✅ All alerts cleared.").catch(e=>{}); }
+    else bot.sendMessage(chatId, "📭 No active alerts.").catch(e=>{});
   });
+  
   bot.onText(/\/stopsound/, (msg) => {
     const chatId = msg.chat.id;
-    if (stopSound(chatId)) bot.sendMessage(chatId, "🔇 Sound stopped.");
-    else bot.sendMessage(chatId, "No active sound.");
+    if (stopSound(chatId)) bot.sendMessage(chatId, "🔇 Sound stopped.").catch(e=>{});
+    else bot.sendMessage(chatId, "No active sound.").catch(e=>{});
   });
+  
   bot.onText(/\/mute/, (msg) => {
     const chatId = msg.chat.id;
     mutedUsers[chatId] = true;
     saveData(MUTE_FILE, mutedUsers);
-    bot.sendMessage(chatId, "🔇 *Alerts muted.* You will no longer receive price alerts. Use /unmute to enable again.", { parse_mode: "Markdown" });
+    bot.sendMessage(chatId, "🔇 *Alerts muted.* You will no longer receive price alerts. Use /unmute to enable again.", { parse_mode: "Markdown" }).catch(e=>{});
   });
+  
   bot.onText(/\/unmute/, (msg) => {
     const chatId = msg.chat.id;
     delete mutedUsers[chatId];
     saveData(MUTE_FILE, mutedUsers);
-    bot.sendMessage(chatId, "🔔 *Alerts unmuted.* You will now receive price alerts.", { parse_mode: "Markdown" });
+    bot.sendMessage(chatId, "🔔 *Alerts unmuted.* You will now receive price alerts.", { parse_mode: "Markdown" }).catch(e=>{});
   });
+  
   bot.onText(/\/checkprice (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const market = await getMarketData(match[1].trim(), 2);
-    if (market) bot.sendMessage(chatId, `💰 Price: $${market.price}`);
-    else bot.sendMessage(chatId, "❌ Price fetch failed.");
+    if (market) bot.sendMessage(chatId, `💰 Price: $${market.price}`).catch(e=>{});
+    else bot.sendMessage(chatId, "❌ Price fetch failed.").catch(e=>{});
   });
+  
   bot.onText(/\/trending/, async (msg) => {
     const chatId = msg.chat.id;
     const msgSend = await bot.sendMessage(chatId, "⏳ Fetching...");
@@ -615,8 +666,9 @@ if (bot) {
     trending.forEach((t, i) => {
       text += `${i+1}. *${t.symbol}* – $${parseFloat(t.price).toFixed(8)}\n   💧 $${Math.round(t.liquidity).toLocaleString()} | 📊 $${Math.round(t.volume24h).toLocaleString()}\n   📈 ${t.priceChange}%\n   [View](${t.url})\n\n`;
     });
-    await bot.editMessageText(text, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true });
+    await bot.editMessageText(text, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e=>console.error(e));
   });
+  
   bot.onText(/\/add (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const address = match[1].trim();
@@ -624,83 +676,89 @@ if (bot) {
     if (!watchlists[chatId].includes(address)) {
       watchlists[chatId].push(address);
       saveData(WATCHLIST_FILE, watchlists);
-      bot.sendMessage(chatId, `✅ Added \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" });
-    } else bot.sendMessage(chatId, `⚠️ Already in watchlist.`);
+      bot.sendMessage(chatId, `✅ Added \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" }).catch(e=>{});
+    } else bot.sendMessage(chatId, `⚠️ Already in watchlist.`).catch(e=>{});
   });
+  
   bot.onText(/\/remove (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const address = match[1].trim();
     if (watchlists[chatId]?.includes(address)) {
       watchlists[chatId] = watchlists[chatId].filter(a => a !== address);
       saveData(WATCHLIST_FILE, watchlists);
-      bot.sendMessage(chatId, `🗑 Removed \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" });
-    } else bot.sendMessage(chatId, `❌ Not found.`);
+      bot.sendMessage(chatId, `🗑 Removed \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" }).catch(e=>{});
+    } else bot.sendMessage(chatId, `❌ Not found.`).catch(e=>{});
   });
+  
   bot.onText(/\/watchlist/, async (msg) => {
     const chatId = msg.chat.id;
     const list = watchlists[chatId] || [];
-    if (!list.length) return bot.sendMessage(chatId, "📭 Empty.");
+    if (!list.length) return bot.sendMessage(chatId, "📭 Empty.").catch(e=>{});
     let text = "*📋 Your Watchlist*\n\n";
     for (let addr of list.slice(0, 15)) {
       const market = await getMarketData(addr);
       if (market) text += `\`${addr.slice(0,6)}...\` – $${market.price} | ${market.priceChange24h}%\n`;
       else text += `\`${addr.slice(0,6)}...\` – (no data)\n`;
     }
-    bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
+    bot.sendMessage(chatId, text, { parse_mode: "Markdown" }).catch(e=>{});
   });
+  
   bot.onText(/\/myalerts/, (msg) => {
     const chatId = msg.chat.id;
     const userAlerts = alerts[chatId] || {};
     const entries = Object.entries(userAlerts);
-    if (entries.length === 0) return bot.sendMessage(chatId, "📭 No active alerts.");
+    if (entries.length === 0) return bot.sendMessage(chatId, "📭 No active alerts.").catch(e=>{});
     let text = "*🔔 Your active alerts:*\n\n";
     for (let [addr, { price, direction }] of entries) {
       text += `• \`${addr.slice(0,6)}...\` – $${price} (${direction})\n`;
     }
-    bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
+    bot.sendMessage(chatId, text, { parse_mode: "Markdown" }).catch(e=>{});
   });
+  
   bot.onText(/\/removealert (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const address = match[1].trim();
     if (alerts[chatId]?.[address]) {
       delete alerts[chatId][address];
       saveData(ALERTS_FILE, alerts);
-      bot.sendMessage(chatId, `🗑 Removed alert for \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" });
-    } else bot.sendMessage(chatId, `❌ No active alert.`);
+      bot.sendMessage(chatId, `🗑 Removed alert for \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" }).catch(e=>{});
+    } else bot.sendMessage(chatId, `❌ No active alert.`).catch(e=>{});
   });
+  
   bot.onText(/\/alerts (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const parts = match[1].trim().split(/\s+/);
-    if (parts.length < 2) return bot.sendMessage(chatId, "❌ Usage: `/alerts <address> <price> [above|below]`", { parse_mode: "Markdown" });
+    if (parts.length < 2) return bot.sendMessage(chatId, "❌ Usage: `/alerts <address> <price> [above|below]`", { parse_mode: "Markdown" }).catch(e=>{});
     const address = parts[0];
     const targetPrice = parseFloat(parts[1]);
     let direction = (parts[2] || 'above').toLowerCase();
     if (direction !== 'above' && direction !== 'below') direction = 'above';
-    if (isNaN(targetPrice)) return bot.sendMessage(chatId, "❌ Invalid price.");
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) return bot.sendMessage(chatId, "❌ Invalid address.");
+    if (isNaN(targetPrice)) return bot.sendMessage(chatId, "❌ Invalid price.").catch(e=>{});
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) return bot.sendMessage(chatId, "❌ Invalid address.").catch(e=>{});
     if (!alerts[chatId]) alerts[chatId] = {};
     alerts[chatId][address] = { price: targetPrice, direction };
     saveData(ALERTS_FILE, alerts);
     sendNotificationReminder(chatId);
-    bot.sendMessage(chatId, `🔔 Alert set for \`${address.slice(0,6)}...\` at $${targetPrice} (${direction}).`, { parse_mode: "Markdown" });
+    bot.sendMessage(chatId, `🔔 Alert set for \`${address.slice(0,6)}...\` at $${targetPrice} (${direction}).`, { parse_mode: "Markdown" }).catch(e=>{});
     const market = await getMarketData(address);
     if (market) {
       let already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
       if (already) {
-        bot.sendMessage(chatId, `⚠️ Price already meets condition! Current: $${market.price}. Alert triggered.`);
+        bot.sendMessage(chatId, `⚠️ Price already meets condition! Current: $${market.price}. Alert triggered.`).catch(e=>{});
         const options = {
           parse_mode: "Markdown",
           reply_markup: {
             inline_keyboard: [[{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]]
           }
         };
-        bot.sendMessage(chatId, `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`, options);
+        bot.sendMessage(chatId, `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`, options).catch(e=>{});
         playSound(chatId);
         delete alerts[chatId][address];
         saveData(ALERTS_FILE, alerts);
       }
     }
   });
+  
   bot.onText(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, async (msg) => {
     const chatId = msg.chat.id;
     const address = msg.text.trim();
@@ -714,14 +772,13 @@ if (bot) {
       response += `❌ No market data found.\n\n`;
     }
     response += `🎯 Risk: ${risk.score}/100 – ${risk.level}\n📋 ${risk.reasons.join("\n")}\n\n📈 [View Chart](${market?.chartUrl || `https://dexscreener.com/solana/${address}`})`;
-    await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true });
+    await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e=>console.error(e));
   });
 
   bot.onText(/\/setalert/, (msg) => {
     const chatId = msg.chat.id;
     const audioPath = './beep.mp3';
     const exists = fs.existsSync(audioPath);
-    
     let message = "🔊 *How to set custom notification sound for this bot:*\n\n" +
                   "1️⃣ Open this chat\n" +
                   "2️⃣ Tap on the bot's name at the top\n" +
@@ -730,7 +787,6 @@ if (bot) {
                   "📌 *Tip:* You can download the sound file below and save it to your phone's 'Notifications' folder, then it will appear in the sound list.\n\n" +
                   "⚙️ You can change or remove it anytime from the same settings.\n\n" +
                   "✅ After setting, you will hear that sound for all future price alerts from this bot!";
-    
     if (exists) {
       bot.sendDocument(chatId, audioPath, {
         caption: "🔊 *Sample beep sound – download and save to your device*",
@@ -739,8 +795,7 @@ if (bot) {
     } else {
       message += "\n\n⚠️ *Note:* No sound file available for download. Please use your phone's default sounds.";
     }
-    
-    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" }).catch(e=>{});
   });
 
   bot.on('callback_query', (callbackQuery) => {
@@ -748,24 +803,28 @@ if (bot) {
     const data = callbackQuery.data;
     if (data === 'stop_sound') {
       if (stopSound(chatId)) {
-        bot.sendMessage(chatId, "🔇 Sound stopped.");
+        bot.sendMessage(chatId, "🔇 Sound stopped.").catch(e=>{});
       } else {
-        bot.sendMessage(chatId, "No active sound to stop.");
+        bot.sendMessage(chatId, "No active sound to stop.").catch(e=>{});
       }
       bot.answerCallbackQuery(callbackQuery.id);
-    } else if (data === 'test_stop') {
-      bot.answerCallbackQuery(callbackQuery.id, { text: "Test button works!", show_alert: false });
-      bot.sendMessage(chatId, "Test button received!");
     }
   });
 }
 
+// Wait for bot to be ready before setting handlers
+const checkBotInterval = setInterval(() => {
+  if (botInitialized) {
+    clearInterval(checkBotInterval);
+    setupBotHandlers();
+    console.log("✅ Telegram bot handlers attached");
+  }
+}, 1000);
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
   if (!fs.existsSync("./sounds")) fs.mkdirSync("./sounds");
   console.log("✅ APIs: DexScreener v2 + Jupiter v2 + GeckoTerminal + CoinGecko + TopHolders + BuyersSellers");
-  console.log("✅ New: notification reminder, mute/unmute commands");
-  console.log("✅ Webhook endpoint: /webhook");
-  console.log("👉 Visit /setwebhook to configure Telegram webhook");
+  console.log("✅ Health check at /health");
 });
