@@ -28,8 +28,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
-// 🔐 YOUR KEYS
-const TELEGRAM_BOT_TOKEN = "8550627220:AAEbfPYDOCz64sAeTo4GUrm88mNgwsUTiEQ";
+// 🔐 YOUR NEW TELEGRAM BOT TOKEN (updated)
+const TELEGRAM_BOT_TOKEN = "8550627220:AAG2mrcZRrCsrRWNjX13TfFDaNN-yarMOw4";
 const CMC_API_KEY = "2e4699c5c9614df5801eed04b36ba057";
 
 const DEXSCREENER_TOKEN_PAIRS = "https://api.dexscreener.com/token-pairs/v1/solana/";
@@ -73,7 +73,6 @@ saveData(ALERTS_FILE, alerts);
 let bot;
 let botInitialized = false;
 
-// Initialize bot with error handling
 function initBot() {
   if (botInitialized) return;
   try {
@@ -120,7 +119,6 @@ function initBot() {
   }
 }
 
-// Call init
 initBot();
 
 const activeSounds = {};
@@ -175,7 +173,7 @@ function playSound(chatId) {
   }
 }
 
-// ========== MARKET DATA (same as before, no changes) ==========
+// ========== MARKET DATA ==========
 async function getMarketData(mint, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -510,7 +508,7 @@ app.post("/api/alert-by-username", async (req, res) => {
   if (!username || !tokenAddress || !targetPrice) return res.status(400).json({ success: false, error: "username, tokenAddress, targetPrice required" });
   const cleanUsername = username.replace('@', '').toLowerCase();
   const chatId = await resolveTelegramUsername(cleanUsername);
-  if (!chatId) return res.status(404).json({ success: false, error: "Username not found. Please join the bot first by clicking the join button, then send /start to @hvbs_scanner_bot." });
+  if (!chatId) return res.status(404).json({ success: false, error: "Username not found. Please join the bot first by clicking the join button, then send /start to @YOUR_NEW_BOT_USERNAME." });
   const price = parseFloat(targetPrice);
   if (isNaN(price)) return res.status(400).json({ success: false, error: "Invalid price" });
   const dir = (direction || 'above').toLowerCase();
@@ -564,8 +562,7 @@ app.post("/api/stop-sound/:chatId", (req, res) => {
   res.json({ success: stopped, message: stopped ? "Sound stopped" : "No active sound" });
 });
 
-// ========== TELEGRAM BOT HANDLERS (only if bot initialized) ==========
-// We define handlers inside a function that runs when bot is ready
+// ========== TELEGRAM BOT HANDLERS ==========
 function setupBotHandlers() {
   if (!bot) return;
   
@@ -825,6 +822,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   if (!fs.existsSync("./sounds")) fs.mkdirSync("./sounds");
-  console.log("✅ APIs: DexScreener v2 + Jupiter v2 + GeckoTerminal + CoinGecko + TopHolders + BuyersSellers");
+  console.log("✅ APIs ready");
   console.log("✅ Health check at /health");
 });
