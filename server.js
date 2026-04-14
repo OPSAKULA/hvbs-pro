@@ -576,6 +576,20 @@ function setupBotHandlers() {
     }
   }
 
+  // Helper: Send persistent keyboard (always visible at bottom)
+  function sendMainKeyboard(chatId, text) {
+    return bot.sendMessage(chatId, text || '📊 Choose an action:', {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        keyboard: [
+          [{ text: '📈 Alert Above' }, { text: '📉 Alert Below' }]
+        ],
+        resize_keyboard: true,
+        persistent: true
+      }
+    }).catch(e => console.error(e));
+  }
+
   bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     const username = msg.from?.username;
@@ -583,37 +597,30 @@ function setupBotHandlers() {
       usernameChatIdMap[chatId] = username.toLowerCase();
       saveData(USERNAME_MAP_FILE, usernameChatIdMap);
     }
-    // Send welcome message with interactive inline buttons
-    bot.sendMessage(chatId,
-      `🚀 *HVBS Pro Bot*\n\n✅ You are now registered!\nUsername: @${username || "unknown"}\nChat ID: \`${chatId}\`\n\nSelect an action below to get started, or type /help for all commands.`,
-      {
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "📈 Set Alert – Price Goes ABOVE", callback_data: "alert_above" }],
-            [{ text: "📉 Set Alert – Price Goes BELOW", callback_data: "alert_below" }],
-            [{ text: "🔔 Enable Custom Beep Sound", callback_data: "setup_sound" }]
-          ]
-        }
-      }
-    ).catch(e=>console.error(e));
-    // Send sound setup prompt after 2 seconds (first-time only)
+    delete userStates[chatId];
+
+    // Send welcome with persistent keyboard
+    sendMainKeyboard(chatId,
+      `🚀 *HVBS Pro Bot*\n\n✅ You are now registered!\nUsername: @${username || 'unknown'}\nChat ID: \`${chatId}\`\n\n💡 Use the buttons below to set price alerts anytime!\n📈 *Alert Above* – Notify when price goes UP\n📉 *Alert Below* – Notify when price goes DOWN`
+    );
+
+    // Send beep sound guide after 2 seconds (first time only)
     setTimeout(() => {
       if (!notificationReminded[chatId]) {
         bot.sendMessage(chatId,
-          `🔊 *Beep Sound Permission*\n\nIs this your first time using this bot? Tap the button below to get the custom beep sound file and learn how to set it as your notification sound for this bot.\n\n✅ Once set, every price alert you receive will play that beep automatically.\n❌ You can remove it anytime from Telegram's notification settings for this chat.`,
+          `🔊 *Enable Beep Sound*\n\nWant to hear a beep when your alert triggers?\n\n✅ Once set, every price alert will play the beep sound automatically.\n❌ You can remove it anytime from Telegram Notification Settings for this chat.`,
           {
-            parse_mode: "Markdown",
+            parse_mode: 'Markdown',
             reply_markup: {
               inline_keyboard: [
-                [{ text: "🔔 Yes! Send me the beep sound 🎵", callback_data: "setup_sound" }]
+                [{ text: '🔔 Yes! Send me the beep sound 🎵', callback_data: 'setup_sound' }]
               ]
             }
           }
-        ).catch(e=>{});
+        ).catch(e => {});
         notificationReminded[chatId] = true;
       }
-    }, 2000);
+    }, 1500);
   });
   
   bot.on('message', async (msg) => {
@@ -624,55 +631,80 @@ function setupBotHandlers() {
       saveData(USERNAME_MAP_FILE, usernameChatIdMap);
     }
 
-    // Handle state-based alert setup (user clicked a button and we are waiting for their input)
-    if (userStates[chatId] && msg.text && !msg.text.startsWith('/')) {
-      const state = userStates[chatId];
-      const parts = msg.text.trim().split(/\s+/);
+    const text = msg.text?.trim();
+    if (!text || text.startsWith('/')) return;
 
-      if (parts.length < 2) {
-        bot.sendMessage(chatId, "❌ Wrong format. Please send:\n`<Token_Address> <Price>`\n\nExample:\n`Dfh5DzRg... 0.02593`", { parse_mode: "Markdown" }).catch(e=>{});
-        return;
-      }
-
-      const address = parts[0];
-      const targetPrice = parseFloat(parts[1]);
-      const direction = state === 'waiting_alert_above' ? 'above' : 'below';
-
-      if (isNaN(targetPrice)) {
-        bot.sendMessage(chatId, "❌ Invalid price. Please enter a valid number.").catch(e=>{});
-        return;
-      }
-      if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
-        bot.sendMessage(chatId, "❌ Invalid token address. Please paste a valid Solana contract address.").catch(e=>{});
-        return;
-      }
-
-      if (!alerts[chatId]) alerts[chatId] = {};
-      alerts[chatId][address] = { price: targetPrice, direction };
-      saveData(ALERTS_FILE, alerts);
-      delete userStates[chatId];
-
+    // ===== PERSISTENT KEYBOARD BUTTON HANDLING =====
+    if (text === '📈 Alert Above' || text === '📉 Alert Below') {
+      const direction = text === '📈 Alert Above' ? 'above' : 'below';
+      userStates[chatId] = { step: 'waiting_address', direction };
       bot.sendMessage(chatId,
-        `✅ *Alert Set!*\nToken: \`${address.slice(0,8)}...\`\nDirection: *${direction.toUpperCase()}*\nTarget Price: *$${targetPrice}*\n\nYou will be notified when price goes ${direction} $${targetPrice}! 🎯`,
-        { parse_mode: "Markdown" }
-      ).catch(e=>{});
-
-      // Check if already triggered
-      const market = await getMarketData(address);
-      if (market) {
-        const already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
-        if (already) {
-          bot.sendMessage(chatId, `⚠️ Current price ($${market.price}) already meets condition! Alert triggered now.`).catch(e=>{});
-          bot.sendMessage(chatId,
-            `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,8)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[📈 View Chart](${market.chartUrl})`,
-            { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]] } }
-          ).catch(e=>{});
-          playSound(chatId);
-          delete alerts[chatId][address];
-          saveData(ALERTS_FILE, alerts);
-        }
-      }
+        `${text === '📈 Alert Above' ? '📈' : '📉'} *Alert ${direction.toUpperCase()} Selected*\n\n📌 *Step 1:* Please paste the *Token Contract Address* below:`,
+        { parse_mode: 'Markdown', reply_markup: { remove_keyboard: true } }
+      ).catch(e => {});
       return;
+    }
+
+    // ===== STEP-BY-STEP STATE HANDLING =====
+    if (userStates[chatId]) {
+      const state = userStates[chatId];
+
+      // Step 1: Waiting for token address
+      if (state.step === 'waiting_address') {
+        if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text)) {
+          bot.sendMessage(chatId,
+            '❌ *Invalid Address!*\nPlease paste a valid Solana token contract address.\n\nExample: `Dfh5DzRgSvvCFDoYc2ciTkMrbDfRKybA4SoFbPmApump`',
+            { parse_mode: 'Markdown' }
+          ).catch(e => {});
+          return;
+        }
+        userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text };
+        bot.sendMessage(chatId,
+          `✅ Address saved: \`${text.slice(0,8)}...\`\n\n💰 *Step 2:* Now enter the *Target Price* (in USD):\n\nExample: \`0.02593\``,
+          { parse_mode: 'Markdown' }
+        ).catch(e => {});
+        return;
+      }
+
+      // Step 2: Waiting for price
+      if (state.step === 'waiting_price') {
+        const targetPrice = parseFloat(text);
+        if (isNaN(targetPrice) || targetPrice <= 0) {
+          bot.sendMessage(chatId,
+            '❌ *Invalid Price!*\nPlease enter a valid number.\n\nExample: `0.02593`',
+            { parse_mode: 'Markdown' }
+          ).catch(e => {});
+          return;
+        }
+
+        const { address, direction } = state;
+        if (!alerts[chatId]) alerts[chatId] = {};
+        alerts[chatId][address] = { price: targetPrice, direction };
+        saveData(ALERTS_FILE, alerts);
+        delete userStates[chatId];
+
+        // Confirm alert and restore keyboard
+        sendMainKeyboard(chatId,
+          `✅ *Alert Set Successfully!*\n\n📍 Token: \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
+        );
+
+        // Check if already triggered
+        const market = await getMarketData(address);
+        if (market) {
+          const already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
+          if (already) {
+            bot.sendMessage(chatId, `⚠️ Current price ($${market.price}) already meets condition! Alert triggered now.`).catch(e => {});
+            bot.sendMessage(chatId,
+              `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,8)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[📈 View Chart](${market.chartUrl})`,
+              { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔇 Stop Sound', callback_data: 'stop_sound' }]] } }
+            ).catch(e => {});
+            playSound(chatId);
+            delete alerts[chatId][address];
+            saveData(ALERTS_FILE, alerts);
+          }
+        }
+        return;
+      }
     }
   });
   
