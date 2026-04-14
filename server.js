@@ -563,9 +563,6 @@ app.post("/api/stop-sound/:chatId", (req, res) => {
 });
 
 // ========== TELEGRAM BOT HANDLERS ==========
-// ========== USER STATES FOR INTERACTIVE ALERTS ==========
-const userStates = {};
-
 function setupBotHandlers() {
   if (!bot) return;
   
@@ -585,79 +582,18 @@ function setupBotHandlers() {
       saveData(USERNAME_MAP_FILE, usernameChatIdMap);
     }
     bot.sendMessage(chatId,
-      `🚀 *HVBS Pro Bot*\n\n✅ You are now registered!\nUsername: @${username || "unknown"}\nChat ID: \`${chatId}\`\n\nChoose an action below or use /help for more commands.`,
-      {
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "📈 Set Alert Above", callback_data: "alert_above" }],
-            [{ text: "📉 Set Alert Below", callback_data: "alert_below" }],
-            [{ text: "🔔 Enable Beep Sound", callback_data: "setup_sound" }]
-          ]
-        }
-      }
+      `🚀 *HVBS Pro Bot*\n\n✅ You are now registered!\nUsername: @${username || "unknown"}\nChat ID: \`${chatId}\`\n\n*Commands:*\n/trending\n/search <symbol>\n/alerts <address> <price> [above|below]\n/forcecheck\n/testbeep\n/mute – Disable all price alerts\n/unmute – Enable price alerts\n/myalerts\n/clearalerts\n/removealert <address>\n/checkprice <address>\n/stopsound\n/watchlist\n/add <address>\n/remove <address>\n/setalert – Set custom notification sound`,
+      { parse_mode: "Markdown" }
     ).catch(e=>console.error(e));
     setTimeout(() => sendNotificationReminder(chatId), 2000);
   });
   
-  bot.on('message', async (msg) => {
+  bot.on('message', (msg) => {
     const username = msg.from?.username;
     const chatId = msg.chat.id;
     if (username && !usernameChatIdMap[chatId]) {
       usernameChatIdMap[chatId] = username.toLowerCase();
       saveData(USERNAME_MAP_FILE, usernameChatIdMap);
-    }
-    
-    if (userStates[chatId] && msg.text && !msg.text.startsWith('/')) {
-      const state = userStates[chatId];
-      const text = msg.text.trim();
-      const parts = text.split(/\s+/);
-      
-      if (parts.length < 2) {
-        bot.sendMessage(chatId, "❌ Invalid format. Please reply with: `<Token_Address> <Price>`\nExample:\n`So111...112 0.05`", { parse_mode: "Markdown" }).catch(e=>{});
-        return;
-      }
-      
-      const address = parts[0];
-      const targetPrice = parseFloat(parts[1]);
-      const direction = state === 'waiting_alert_above' ? 'above' : 'below';
-      
-      if (isNaN(targetPrice)) {
-        bot.sendMessage(chatId, "❌ Invalid price.").catch(e=>{});
-        return;
-      }
-      if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
-        bot.sendMessage(chatId, "❌ Invalid address.").catch(e=>{});
-        return;
-      }
-      
-      if (!alerts[chatId]) alerts[chatId] = {};
-      alerts[chatId][address] = { price: targetPrice, direction };
-      saveData(ALERTS_FILE, alerts);
-      sendNotificationReminder(chatId);
-      
-      bot.sendMessage(chatId, `🔔 Alert set for \`${address.slice(0,6)}...\` at $${targetPrice} (${direction}).`, { parse_mode: "Markdown" }).catch(e=>{});
-      
-      delete userStates[chatId];
-      
-      const market = await getMarketData(address);
-      if (market) {
-        let already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
-        if (already) {
-          bot.sendMessage(chatId, `⚠️ Price already meets condition! Current: $${market.price}. Alert triggered.`).catch(e=>{});
-          const options = {
-            parse_mode: "Markdown",
-            reply_markup: {
-              inline_keyboard: [[{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]]
-            }
-          };
-          bot.sendMessage(chatId, `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`, options).catch(e=>{});
-          playSound(chatId);
-          delete alerts[chatId][address];
-          saveData(ALERTS_FILE, alerts);
-        }
-      }
-      return;
     }
   });
   
@@ -862,41 +798,12 @@ function setupBotHandlers() {
   bot.on('callback_query', (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const data = callbackQuery.data;
-    
     if (data === 'stop_sound') {
       if (stopSound(chatId)) {
         bot.sendMessage(chatId, "🔇 Sound stopped.").catch(e=>{});
       } else {
         bot.sendMessage(chatId, "No active sound to stop.").catch(e=>{});
       }
-      bot.answerCallbackQuery(callbackQuery.id);
-    } else if (data === 'alert_above') {
-      userStates[chatId] = 'waiting_alert_above';
-      bot.sendMessage(chatId, "📈 *Alert Above*\nPlease reply with the *Token Address* and *Target Price* separated by a space.\n\nExample:\n`So111...112 0.05`", { parse_mode: "Markdown" }).catch(e=>{});
-      bot.answerCallbackQuery(callbackQuery.id);
-    } else if (data === 'alert_below') {
-      userStates[chatId] = 'waiting_alert_below';
-      bot.sendMessage(chatId, "📉 *Alert Below*\nPlease reply with the *Token Address* and *Target Price* separated by a space.\n\nExample:\n`So111...112 0.05`", { parse_mode: "Markdown" }).catch(e=>{});
-      bot.answerCallbackQuery(callbackQuery.id);
-    } else if (data === 'setup_sound') {
-      const audioPath = './beep.mp3';
-      const exists = fs.existsSync(audioPath);
-      let message = "🔊 *How to set custom notification sound for this bot:*\n\n" +
-                    "1️⃣ Open this chat\n" +
-                    "2️⃣ Tap on the bot's name at the top\n" +
-                    "3️⃣ Go to *Notifications* → *Customize* → *Sound*\n" +
-                    "4️⃣ Choose the downloaded file below\n\n" +
-                    "📌 *Tip:* Save the sound file below to your phone's 'Notifications' folder first.\n\n" +
-                    "✅ After setting, you will hear that sound for all future price alerts from this bot!";
-      if (exists) {
-        bot.sendDocument(chatId, audioPath, {
-          caption: "🔊 *Sample beep sound – download and save to your device*",
-          parse_mode: "Markdown"
-        }).catch(err => console.error("Document send error:", err));
-      } else {
-        message += "\n\n⚠️ *Note:* No sound file (beep.mp3) was found on the server. Please manually select a sound from your phone's defaults.";
-      }
-      bot.sendMessage(chatId, message, { parse_mode: "Markdown" }).catch(e=>{});
       bot.answerCallbackQuery(callbackQuery.id);
     }
   });
