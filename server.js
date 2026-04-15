@@ -1,45 +1,3 @@
-<<<<<<< HEAD
-// 🚀 HVBS Pro - AI-Powered Solana Token Scanner
-[![🌐 Website](https://img.shields.io/badge/Website-hvbsai.com-blue?style=for-the-badge\&logo=google-chrome)](https://hvbsai.com/)
-
-[![📢 Telegram Channel](https://img.shields.io/badge/Telegram-Channel-blue?style=for-the-badge\&logo=telegram)](https://t.me/hvbsai)
-
-[![🤖 Telegram Bot](https://img.shields.io/badge/Telegram-Bot-green?style=for-the-badge\&logo=telegram)](https://t.me/hvbs_scanner_bot)
-
-
-> **Real‑time Solana token analysis + Telegram price alerts with custom sound.**
-
-## ✨ Features
-- 🔍 Instant token scan (price, liquidity, volume, holders)
-- 👥 Top 10 holders with percentages
-- 📊 Buyers vs Sellers (1h/6h/24h)
-- 🌐 DEX + CEX exchange listings
-- 🤖 Telegram bot: `/alerts`, `/watchlist`, `/trending`, `/mute`, `/unmute`
-- 🔔 Custom notification sound (instructions inside bot)
-- 🖥️ 3D interactive website with glassmorphism
-- 📱 Browser push notifications with sound
-
-## 🧪 Preview (partial code – full version not disclosed)
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>HVBS Pro – AI Scanner</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: radial-gradient(circle at 20% 30%, #0a0f1a, #030712); ... }
-    /* Full styles and 3D background are kept private */
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="logo">HVBS PRO</div>
-    <!-- Full source code is proprietary -->
-  </div>
-</body>
-</html>
-=======
 import express from "express";
 import cors from "cors";
 import axios from "axios";
@@ -83,12 +41,10 @@ const COINGECKO_COIN_DATA     = "https://api.coingecko.com/api/v3/coins/";
 const GECKO_TERMINAL_API      = "https://api.geckoterminal.com/api/v2/networks/solana/tokens/";
 const SOLSCAN_TOPHOLDERS      = "https://api.solscan.io/v2/token/holders?tokenAddress=";
 
-const ALERTS_FILE       = "./alerts.json";
-const WATCHLIST_FILE    = "./watchlist.json";
+const ALERTS_FILE    = "./alerts.json";
+const WATCHLIST_FILE = "./watchlist.json";
 const USERNAME_MAP_FILE = "./username_chatid_map.json";
-const MUTE_FILE         = "./muted_users.json";
-const RECENT_FILE       = "./recent_addresses.json";
-const PINNED_FILE       = "./pinned_messages.json";
+const MUTE_FILE = "./muted_users.json";
 
 function loadData(file) {
   if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file));
@@ -98,66 +54,10 @@ function saveData(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-let alerts           = loadData(ALERTS_FILE);
-let watchlists       = loadData(WATCHLIST_FILE);
+let alerts    = loadData(ALERTS_FILE);
+let watchlists = loadData(WATCHLIST_FILE);
 let usernameChatIdMap = loadData(USERNAME_MAP_FILE);
-let mutedUsers       = loadData(MUTE_FILE);
-let recentAddresses  = loadData(RECENT_FILE);
-let pinnedMessages   = loadData(PINNED_FILE);  // { chatId: messageId }
-
-// ========== RECENT ADDRESSES (max 10 per user, FIFO) ==========
-function saveRecentAddress(chatId, address, ticker) {
-  if (!recentAddresses[chatId]) recentAddresses[chatId] = [];
-  recentAddresses[chatId] = recentAddresses[chatId].filter(r => r.address !== address);
-  recentAddresses[chatId].unshift({ address, ticker: ticker || '?', savedAt: Date.now() });
-  if (recentAddresses[chatId].length > 10) {
-    recentAddresses[chatId] = recentAddresses[chatId].slice(0, 10);
-  }
-  saveData(RECENT_FILE, recentAddresses);
-  // Update the pinned "sidebar" message
-  if (bot && botInitialized) updatePinnedList(chatId);
-}
-
-// ========== PINNED MESSAGE - Acts as Telegram Right-Side Panel ==========
-async function updatePinnedList(chatId) {
-  const recent = recentAddresses[chatId] || [];
-  let text, keyboard;
-  if (!recent.length) {
-    text = `📌 *Saved Addresses (0/10)*\n\n_No addresses saved yet._\n\nPaste any token address and tap 💾 Save Address to add here.`;
-    keyboard = { inline_keyboard: [] };
-  } else {
-    text = `📌 *Saved Addresses (${recent.length}/10)*\n_Tap any token to view data + set alerts:_`;
-    keyboard = {
-      inline_keyboard: recent.map((r, i) => [{
-        text: `${i + 1}. 🟡 ${r.ticker}  ·  ${r.address.slice(0, 5)}...${r.address.slice(-5)}`,
-        callback_data: `view_token:${r.address}`
-      }])
-    };
-    keyboard.inline_keyboard.push([{ text: '➕ Add Address', callback_data: 'add_new_address' }]);
-  }
-  const msgOptions = { parse_mode: 'Markdown', reply_markup: keyboard };
-  try {
-    const existingMsgId = pinnedMessages[chatId];
-    if (existingMsgId) {
-      // Edit existing pinned message
-      await bot.editMessageText(text, { chat_id: chatId, message_id: existingMsgId, ...msgOptions });
-    } else {
-      // Send new message, then pin it
-      const sent = await bot.sendMessage(chatId, text, msgOptions);
-      pinnedMessages[chatId] = sent.message_id;
-      saveData(PINNED_FILE, pinnedMessages);
-      await bot.pinChatMessage(chatId, sent.message_id, { disable_notification: true }).catch(() => {});
-    }
-  } catch (e) {
-    // If edit fails (message deleted), send and pin a fresh one
-    try {
-      const sent = await bot.sendMessage(chatId, text, msgOptions);
-      pinnedMessages[chatId] = sent.message_id;
-      saveData(PINNED_FILE, pinnedMessages);
-      await bot.pinChatMessage(chatId, sent.message_id, { disable_notification: true }).catch(() => {});
-    } catch (err) {}
-  }
-}
+let mutedUsers = loadData(MUTE_FILE);
 
 // Clean invalid alerts
 for (let chatId in alerts) {
@@ -739,7 +639,7 @@ function setupBotHandlers() {
       const direction = text === '📈 Alert Above' ? 'above' : 'below';
       userStates[chatId] = { step: 'waiting_address', direction };
       bot.sendMessage(chatId,
-        `${direction === 'above' ? '📈' : '📉'} *Alert ${direction.toUpperCase()} Selected*\n\n📌 *Step 1:* Please paste the *Token Contract Address* below:`,
+        `${text === '📈 Alert Above' ? '📈' : '📉'} *Alert ${direction.toUpperCase()} Selected*\n\n📌 *Step 1:* Please paste the *Token Contract Address* below:`,
         { parse_mode: 'Markdown', reply_markup: { remove_keyboard: true } }
       ).catch(e => {});
       return;
@@ -749,7 +649,7 @@ function setupBotHandlers() {
     if (userStates[chatId]) {
       const state = userStates[chatId];
 
-      // Step 1: Waiting for token address — fetch live price immediately
+      // Step 1: Waiting for token address
       if (state.step === 'waiting_address') {
         if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text)) {
           bot.sendMessage(chatId,
@@ -758,53 +658,34 @@ function setupBotHandlers() {
           ).catch(e => {});
           return;
         }
-        // Fetch live price right away
-        const fetchMsg = await bot.sendMessage(chatId, '⏳ Fetching live price...').catch(e => null);
-        const liveMarket = await getMarketData(text);
-        const lp = liveMarket?.price || 0;
-        const ticker = liveMarket?.symbol || '?';
-        const lpStr = lp > 0 ? (lp < 0.000001 ? lp.toFixed(12) : lp < 0.01 ? lp.toFixed(10) : lp.toFixed(8)) : null;
-        // Save to recent addresses
-        if (lp > 0) saveRecentAddress(chatId, text, ticker);
-        userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, livePrice: lp };
-        const priceHint = lpStr
-          ? `\n💰 *Live Price: $${lpStr}* ← auto-filled\n\n💰 *Step 2:* Enter your target price, or just send \`${lpStr}\` to use the live price:`
-          : `\n\n💰 *Step 2:* Enter your target price (in USD):\n\nExample: \`0.02593\``;
-        const editText = `✅ Token: *${ticker}* \`${text.slice(0,8)}...${text.slice(-6)}\`${priceHint}`;
-        if (fetchMsg) {
-          bot.editMessageText(editText, { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }).catch(e => {});
-        } else {
-          bot.sendMessage(chatId, editText, { parse_mode: 'Markdown' }).catch(e => {});
-        }
+        userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text };
+        bot.sendMessage(chatId,
+          `✅ Address saved: \`${text.slice(0,8)}...\`\n\n💰 *Step 2:* Now enter the *Target Price* (in USD):\n\nExample: \`0.02593\``,
+          { parse_mode: 'Markdown' }
+        ).catch(e => {});
         return;
       }
 
       // Step 2: Waiting for price
       if (state.step === 'waiting_price') {
-        const { address, direction, livePrice } = state;
-        let targetPrice;
-        if (livePrice > 0 && (text === livePrice.toString() || parseFloat(text) === livePrice)) {
-          targetPrice = livePrice;
-        } else {
-          targetPrice = parseFloat(text);
-        }
+        const targetPrice = parseFloat(text);
         if (isNaN(targetPrice) || targetPrice <= 0) {
-          const hint = livePrice > 0 ? `\n\n_Live price: \`${livePrice}\` – send same value or type your own_` : '';
           bot.sendMessage(chatId,
-            `❌ *Invalid Price!*\nPlease enter a valid number.\n\nExample: \`0.02593\`${hint}`,
+            '❌ *Invalid Price!*\nPlease enter a valid number.\n\nExample: `0.02593`',
             { parse_mode: 'Markdown' }
           ).catch(e => {});
           return;
         }
 
+        const { address, direction } = state;
         if (!alerts[chatId]) alerts[chatId] = {};
         alerts[chatId][address] = { price: targetPrice, direction };
         saveData(ALERTS_FILE, alerts);
         delete userStates[chatId];
 
-        const emoji = direction === 'above' ? '📈' : '📉';
+        // Confirm alert and restore keyboard
         sendMainKeyboard(chatId,
-          `✅ *Alert Set Successfully!*\n\n📍 Token: \`${address.slice(0,8)}...${address.slice(-6)}\`\n${emoji} Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
+          `✅ *Alert Set Successfully!*\n\n📍 Token: \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
         );
 
         // Check if already triggered
@@ -812,7 +693,7 @@ function setupBotHandlers() {
         if (market) {
           const already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
           if (already) {
-            bot.sendMessage(chatId, `⚠️ Current price ($${market.price}) already meets your condition! Alert triggered now.`).catch(e => {});
+            bot.sendMessage(chatId, `⚠️ Current price ($${market.price}) already meets condition! Alert triggered now.`).catch(e => {});
             bot.sendMessage(chatId,
               `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,8)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[📈 View Chart](${market.chartUrl})`,
               { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔇 Stop Sound', callback_data: 'stop_sound' }]] } }
@@ -828,26 +709,7 @@ function setupBotHandlers() {
   });
   
   bot.onText(/\/help/, (msg) => {
-    bot.sendMessage(msg.chat.id,
-      `📖 *HVBS Bot – Help Guide*\n\n` +
-      `🔹 *Alert Set karna:*\n` +
-      `• Koi bhi token address paste karo → live price ke saath Alert UPAR/NICHE buttons aayenge\n` +
-      `• Ya buttons dabao: 📈 Alert Above  📉 Alert Below\n\n` +
-      `🔹 *Commands:*\n` +
-      `• /recent – Last 10 saved token addresses (ticker naam ke saath)\n` +
-      `• /myalerts – Active alerts dekhho\n` +
-      `• /clearalerts – Sab alerts delete karo\n` +
-      `• /removealert \`address\` – Ek alert hatao\n` +
-      `• /search pippin – Token search karo\n` +
-      `• /alerts So111... 0.02 above – Direct alert set\n` +
-      `• /forcecheck – Turant check karo\n` +
-      `• /testbeep – Sound test karo\n` +
-      `• /mute – Alerts band karo\n` +
-      `• /unmute – Alerts chalu karo\n` +
-      `• /stopsound – Sound band karo\n` +
-      `• /setalert – Custom notification sound set karo`,
-      { parse_mode: "Markdown" }
-    ).catch(e=>{});
+    bot.sendMessage(msg.chat.id, `📖 *Help*\n• /search pippin\n• /alerts So111... 0.02 above\n• /forcecheck\n• /testbeep\n• /mute – turn off alerts\n• /unmute – turn on alerts\n• /stopsound\n• /setalert – set custom notification sound`, { parse_mode: "Markdown" }).catch(e=>{});
   });
   
   bot.onText(/\/testbeep/, (msg) => {
@@ -1005,69 +867,20 @@ function setupBotHandlers() {
     }
   });
   
-  // ===== TOKEN ADDRESS PASTE HANDLER =====
-  async function showTokenData(chatId, address, editMsgId = null) {
-    const market = await getMarketData(address, 2);
-    const risk = calculateRiskScore(market);
-    const ticker = market?.symbol || '?';
-    let response = `🔍 *Token: ${ticker}*\n\`${address.slice(0,8)}...${address.slice(-6)}\`\n\n`;
-    if (market) {
-      const lp = market.price;
-      const lpStr = lp < 0.000001 ? lp.toFixed(12) : lp < 0.01 ? lp.toFixed(10) : lp.toFixed(8);
-      response += `💰 *Live Price: $${lpStr}*\n`;
-      response += "💧 Liquidity: " + (market.liquidity ? "$" + Math.round(market.liquidity).toLocaleString() : "N/A") + "\n";
-      response += "📊 24h Vol: " + (market.volume24h ? "$" + Math.round(market.volume24h).toLocaleString() : "N/A") + "\n";
-      response += "📈 24h Change: " + (market.priceChange24h ? market.priceChange24h + "%" : "N/A") + "\n";
-      response += "🏦 Market Cap: " + (market.marketCap ? "$" + Math.round(market.marketCap).toLocaleString() : "N/A") + "\n";
-      response += `🟢 Buys 24h: ${market.buyCount}  🔴 Sells 24h: ${market.sellCount}\n\n`;
-      // Save to recent with ticker
-      saveRecentAddress(chatId, address, ticker);
-    } else {
-      response += `❌ No market data found.\n\n`;
-    }
-    const chartUrl = market?.chartUrl || ("https://dexscreener.com/solana/" + address);
-    response += "🎯 Risk: " + risk.score + "/100 – " + risk.level + "\n" + risk.reasons.join("\n") + "\n\n📈 [View Chart](" + chartUrl + ")";
-    response += "\n\n⬇️ *Tap a button below to set an alert – live price is auto-filled:*";
-
-    const livePrice = market?.price || 0;
-    const livePriceDisplay = livePrice > 0
-      ? (livePrice < 0.000001 ? livePrice.toFixed(12) : livePrice < 0.01 ? livePrice.toFixed(10) : livePrice.toFixed(8))
-      : '?';
-
-    // Check if already saved
-    const alreadySaved = (recentAddresses[chatId] || []).some(r => r.address === address);
-
-    const inlineKeyboard = livePrice > 0
-      ? [
-          [{ text: `📈 Alert ABOVE  ✦ Live: $${livePriceDisplay}`, callback_data: `set_above:${address}` }],
-          [{ text: `📉 Alert BELOW  ✦ Live: $${livePriceDisplay}`, callback_data: `set_below:${address}` }],
-          [{ text: alreadySaved ? `✅ Already Saved (${ticker})` : `💾 Save Address (${ticker})`, callback_data: `save_addr:${address}` }]
-        ]
-      : [
-          [{ text: `📈 Alert ABOVE`, callback_data: `set_above:${address}` }],
-          [{ text: `📉 Alert BELOW`, callback_data: `set_below:${address}` }],
-          [{ text: alreadySaved ? `✅ Already Saved (${ticker})` : `💾 Save Address (${ticker})`, callback_data: `save_addr:${address}` }]
-        ];
-
-    const msgOptions = {
-      parse_mode: "Markdown",
-      disable_web_page_preview: true,
-      reply_markup: { inline_keyboard: inlineKeyboard }
-    };
-
-    if (editMsgId) {
-      await bot.editMessageText(response, { chat_id: chatId, message_id: editMsgId, ...msgOptions }).catch(e => console.error(e));
-    } else {
-      await bot.sendMessage(chatId, response, msgOptions).catch(e => console.error(e));
-    }
-    return livePrice;
-  }
-
   bot.onText(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, async (msg) => {
     const chatId = msg.chat.id;
     const address = msg.text.trim();
-    const msgSend = await bot.sendMessage(chatId, "⏳ Analyzing token...");
-    await showTokenData(chatId, address, msgSend.message_id);
+    const msgSend = await bot.sendMessage(chatId, "⏳ Analyzing...");
+    const market = await getMarketData(address, 2);
+    const risk = calculateRiskScore(market);
+    let response = `🔍 *Token:* \`${address.slice(0,6)}...\`\n\n`;
+    if (market) {
+      response += `💰 Price: $${market.price}\n💧 Liquidity: ${market.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A"}\n📊 24h Vol: ${market.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : "N/A"}\n📈 24h Change: ${market.priceChange24h ? `${market.priceChange24h}%` : "N/A"}\n🏦 Market Cap: ${market.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : "N/A"}\n🟢 Buys 24h: ${market.buyCount}\n🔴 Sells 24h: ${market.sellCount}\n\n`;
+    } else {
+      response += `❌ No market data found.\n\n`;
+    }
+    response += `🎯 Risk: ${risk.score}/100 – ${risk.level}\n📋 ${risk.reasons.join("\n")}\n\n📈 [View Chart](${market?.chartUrl || `https://dexscreener.com/solana/${address}`})`;
+    await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e=>console.error(e));
   });
 
   bot.onText(/\/setalert/, (msg) => {
@@ -1093,59 +906,6 @@ function setupBotHandlers() {
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" }).catch(e=>{});
   });
 
-  // ===== /recent COMMAND – Show saved token addresses =====
-  bot.onText(/\/recent/, (msg) => {
-    const chatId = msg.chat.id;
-    const recent = recentAddresses[chatId] || [];
-    if (!recent.length) {
-      return bot.sendMessage(chatId,
-        "📭 No addresses saved yet.\n\n💡 *How to save:*\n• Paste any token address → tap *💾 Save Address* button\n• Or use: `/save <address>`\n\nMax 10 addresses are saved (oldest removed first).",
-        { parse_mode: 'Markdown' }
-      ).catch(e=>{});
-    }
-    let text = `📋 *Saved Token Addresses (${recent.length}/10)*\n\n`;
-    recent.forEach((r, i) => {
-      text += `${i+1}. *${r.ticker}*  →  \`${r.address.slice(0,6)}...${r.address.slice(-6)}\`\n`;
-    });
-    text += "\n_Tap any token to view live data + set alerts:_";
-
-    const buttons = recent.map((r, i) => [{
-      text: `${i+1}. ${r.ticker}  •  ${r.address.slice(0,6)}...${r.address.slice(-6)}`,
-      callback_data: `view_token:${r.address}`
-    }]);
-    // Add a "+ Add New" button at bottom
-    buttons.push([{ text: '➕ Add New Address', callback_data: 'add_new_address' }]);
-
-    bot.sendMessage(chatId, text, {
-      parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: buttons }
-    }).catch(e=>{});
-  });
-
-  // ===== /save COMMAND – Manually save an address =====
-  bot.onText(/\/save (.+)/, async (msg, match) => {
-    const chatId = msg.chat.id;
-    const address = match[1].trim();
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
-      return bot.sendMessage(chatId, '❌ Invalid Solana address. Please provide a valid contract address.\n\nUsage: `/save <token_address>`', { parse_mode: 'Markdown' }).catch(e=>{});
-    }
-    const fetchMsg = await bot.sendMessage(chatId, '⏳ Fetching token info to save...').catch(e=>null);
-    const market = await getMarketData(address);
-    const ticker = market?.symbol || '?';
-    const alreadySaved = (recentAddresses[chatId] || []).some(r => r.address === address);
-    if (alreadySaved) {
-      const editText = `ℹ️ *${ticker}* is already saved!\n\`${address.slice(0,8)}...${address.slice(-6)}\`\n\nUse /recent to view all saved addresses.`;
-      if (fetchMsg) bot.editMessageText(editText, { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }).catch(e=>{});
-      else bot.sendMessage(chatId, editText, { parse_mode: 'Markdown' }).catch(e=>{});
-      return;
-    }
-    saveRecentAddress(chatId, address, ticker);
-    const count = (recentAddresses[chatId] || []).length;
-    const editText = `✅ *Saved Successfully!*\n\n🏷️ Token: *${ticker}*\n📍 Address: \`${address.slice(0,8)}...${address.slice(-6)}\`\n📋 Saved: ${count}/10\n\nUse /recent to view all saved addresses.`;
-    if (fetchMsg) bot.editMessageText(editText, { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }).catch(e=>{});
-    else bot.sendMessage(chatId, editText, { parse_mode: 'Markdown' }).catch(e=>{});
-  });
-
   bot.on('callback_query', async (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const data = callbackQuery.data;
@@ -1155,80 +915,21 @@ function setupBotHandlers() {
       else bot.sendMessage(chatId, "No active sound to stop.").catch(e=>{});
       bot.answerCallbackQuery(callbackQuery.id);
 
-    } else if (data === 'add_new_address') {
-      // User wants to manually add a new address from /recent screen
-      userStates[chatId] = { step: 'saving_address' };
-      bot.answerCallbackQuery(callbackQuery.id);
-      bot.sendMessage(chatId,
-        "💾 *Add New Address*\n\nPaste the token contract address you want to save:",
-        { parse_mode: 'Markdown' }
-      ).catch(e=>{});
     } else if (data === 'alert_above') {
-      userStates[chatId] = { step: 'waiting_address', direction: 'above' };
+      userStates[chatId] = 'waiting_alert_above';
       bot.sendMessage(chatId,
-        "📈 *Set Alert ABOVE*\n\nPlease paste the Token Contract Address:",
+        "📈 *Set Alert – Price Goes ABOVE*\n\nPlease send the *Token Address* and *Target Price* separated by a space.\n\nExample:\n`Dfh5DzRgSvvCFDoYc2ciTk... 0.02593`\n\n_Just paste it and send!_",
         { parse_mode: "Markdown" }
       ).catch(e=>{});
       bot.answerCallbackQuery(callbackQuery.id);
 
     } else if (data === 'alert_below') {
-      userStates[chatId] = { step: 'waiting_address', direction: 'below' };
+      userStates[chatId] = 'waiting_alert_below';
       bot.sendMessage(chatId,
-        "📉 *Set Alert BELOW*\n\nPlease paste the Token Contract Address:",
+        "📉 *Set Alert – Price Goes BELOW*\n\nPlease send the *Token Address* and *Target Price* separated by a space.\n\nExample:\n`Dfh5DzRgSvvCFDoYc2ciTk... 0.02593`\n\n_Just paste it and send!_",
         { parse_mode: "Markdown" }
       ).catch(e=>{});
       bot.answerCallbackQuery(callbackQuery.id);
-
-    } else if (data.startsWith('set_above:') || data.startsWith('set_below:')) {
-      // Live price auto-fill – user just confirms or types a different price
-      const parts = data.split(':');
-      const action = parts[0];
-      const address = parts.slice(1).join(':');
-      const direction = action === 'set_above' ? 'above' : 'below';
-      bot.answerCallbackQuery(callbackQuery.id, { text: '⏳ Fetching live price...' });
-      const market = await getMarketData(address);
-      const livePrice = market?.price || 0;
-      const livePriceStr = livePrice > 0
-        ? (livePrice < 0.000001 ? livePrice.toFixed(12) : livePrice < 0.01 ? livePrice.toFixed(10) : livePrice.toFixed(8))
-        : null;
-      if (livePrice > 0 && market?.symbol) saveRecentAddress(chatId, address, market.symbol);
-      userStates[chatId] = { step: 'waiting_price', direction, address, livePrice };
-      const emoji = direction === 'above' ? '📈' : '📉';
-      let priceMsg = `${emoji} *Alert ${direction.toUpperCase()} – Set Target Price*\n\n`;
-      priceMsg += `📍 Token: \`${address.slice(0,8)}...${address.slice(-6)}\`\n`;
-      if (livePriceStr) {
-        priceMsg += `💰 *Live Price: $${livePriceStr}* ← auto-filled\n\n`;
-        priceMsg += `Enter your target price below, or send \`${livePriceStr}\` to use the live price:`;
-      } else {
-        priceMsg += `\nEnter your target price (in USD):\nExample: \`0.02593\``;
-      }
-      bot.sendMessage(chatId, priceMsg, { parse_mode: 'Markdown' }).catch(e=>{});
-
-    } else if (data.startsWith('save_addr:')) {
-      // Save address from token popup button
-      const address = data.split(':').slice(1).join(':');
-      const market = await getMarketData(address);
-      const ticker = market?.symbol || '?';
-      const alreadySaved = (recentAddresses[chatId] || []).some(r => r.address === address);
-      if (alreadySaved) {
-        bot.answerCallbackQuery(callbackQuery.id, { text: `✅ ${ticker} is already saved!` });
-      } else {
-        saveRecentAddress(chatId, address, ticker);
-        const count = (recentAddresses[chatId] || []).length;
-        bot.answerCallbackQuery(callbackQuery.id, { text: `💾 Saved! ${ticker} added (${count}/10)` });
-        bot.sendMessage(chatId, `✅ *Address Saved!*\n\n🏷️ Token: *${ticker}*\n📍 \`${address.slice(0,8)}...${address.slice(-6)}\`\n📋 Total saved: ${count}/10\n\nUse /recent to view all saved addresses.`, { parse_mode: 'Markdown' }).catch(e=>{});
-      }
-
-    } else if (data.startsWith('view_token:')) {
-      // Recent list se token view karna
-      const address = data.split(':').slice(1).join(':');
-      bot.answerCallbackQuery(callbackQuery.id, { text: '⏳ Loading...' });
-      const loadMsg = await bot.sendMessage(chatId, '⏳ Loading token data...').catch(e=>null);
-      if (loadMsg) {
-        await showTokenData(chatId, address, loadMsg.message_id);
-      } else {
-        await showTokenData(chatId, address);
-      }
 
     } else if (data === 'setup_sound') {
       const audioPath = './beep.mp3';
@@ -1275,4 +976,3 @@ app.listen(PORT, () => {
   console.log("✅ APIs ready");
   console.log("✅ Health check at /health");
 });
->>>>>>> 22e251e (update)
