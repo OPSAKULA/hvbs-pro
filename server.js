@@ -45,6 +45,7 @@ const ALERTS_FILE    = "./alerts.json";
 const WATCHLIST_FILE = "./watchlist.json";
 const USERNAME_MAP_FILE = "./username_chatid_map.json";
 const MUTE_FILE = "./muted_users.json";
+const HISTORY_FILE = "./history.json";
 
 function loadData(file) {
   if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file));
@@ -58,6 +59,7 @@ let alerts    = loadData(ALERTS_FILE);
 let watchlists = loadData(WATCHLIST_FILE);
 let usernameChatIdMap = loadData(USERNAME_MAP_FILE);
 let mutedUsers = loadData(MUTE_FILE);
+let history = loadData(HISTORY_FILE);
 
 // Clean invalid alerts
 for (let chatId in alerts) {
@@ -582,7 +584,8 @@ function setupBotHandlers() {
       parse_mode: 'Markdown',
       reply_markup: {
         keyboard: [
-          [{ text: '📈 Alert Above' }, { text: '📉 Alert Below' }]
+          [{ text: '📈 Alert Above' }, { text: '📉 Alert Below' }],
+          [{ text: '📜 History' }]
         ],
         resize_keyboard: true,
         persistent: true
@@ -640,8 +643,22 @@ function setupBotHandlers() {
       userStates[chatId] = { step: 'waiting_address', direction };
       bot.sendMessage(chatId,
         `${text === '📈 Alert Above' ? '📈' : '📉'} *Alert ${direction.toUpperCase()} Selected*\n\n📌 *Step 1:* Please paste the *Token Contract Address* below:`,
-        { parse_mode: 'Markdown', reply_markup: { remove_keyboard: true } }
+        { parse_mode: 'Markdown', reply_markup: { keyboard: [[{ text: '📈 Alert Above' }, { text: '📉 Alert Below' }], [{ text: '📜 History' }]], resize_keyboard: true } }
       ).catch(e => {});
+      return;
+    }
+
+    if (text === '📜 History') {
+      const userHistory = history[chatId] || [];
+      if (userHistory.length === 0) {
+        bot.sendMessage(chatId, "📜 *Your Token History is empty.*\nSet an alert above to start tracking!", { parse_mode: 'Markdown' });
+      } else {
+        let historyMsg = "📜 *Your Last 10 Tokens:*\n\n";
+        userHistory.forEach((item, index) => {
+          historyMsg += `${index + 1}. *${item.symbol}*\n\`${item.address}\`\n\n`;
+        });
+        bot.sendMessage(chatId, historyMsg, { parse_mode: 'Markdown' });
+      }
       return;
     }
 
@@ -659,8 +676,27 @@ function setupBotHandlers() {
           return;
         }
         userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text };
+        userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text };
+        
+        // --- History Logic ---
+        (async () => {
+          try {
+            const market = await getMarketData(text);
+            const symbol = market?.symbol || "?";
+            if (!history[chatId]) history[chatId] = [];
+            // Remove existing entry for same address to bring to front
+            history[chatId] = history[chatId].filter(h => h.address !== text);
+            history[chatId].unshift({ address: text, symbol });
+            if (history[chatId].length > 10) history[chatId].pop();
+            saveData(HISTORY_FILE, history);
+          } catch (e) {
+            console.error("History update error:", e);
+          }
+        })();
+        // --- End History Logic ---
+
         bot.sendMessage(chatId,
-          `✅ Address saved: \`${text.slice(0,8)}...\`\n\n💰 *Step 2:* Now enter the *Target Price* (in USD):\n\nExample: \`0.02593\``,
+          `✅ Address saved: \`${text}\`\n\n💰 *Step 2:* Now enter the *Target Price* (in USD):\n\nExample: \`0.02593\``,
           { parse_mode: 'Markdown' }
         ).catch(e => {});
         return;
