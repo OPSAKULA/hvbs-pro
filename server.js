@@ -950,14 +950,19 @@ function setupBotHandlers() {
       ? (livePrice < 0.000001 ? livePrice.toFixed(12) : livePrice < 0.01 ? livePrice.toFixed(10) : livePrice.toFixed(8))
       : '?';
 
+    // Check if already saved
+    const alreadySaved = (recentAddresses[chatId] || []).some(r => r.address === address);
+
     const inlineKeyboard = livePrice > 0
       ? [
           [{ text: `📈 Alert ABOVE  ✦ Live: $${livePriceDisplay}`, callback_data: `set_above:${address}` }],
-          [{ text: `📉 Alert BELOW  ✦ Live: $${livePriceDisplay}`, callback_data: `set_below:${address}` }]
+          [{ text: `📉 Alert BELOW  ✦ Live: $${livePriceDisplay}`, callback_data: `set_below:${address}` }],
+          [{ text: alreadySaved ? `✅ Already Saved (${ticker})` : `💾 Save Address (${ticker})`, callback_data: `save_addr:${address}` }]
         ]
       : [
           [{ text: `📈 Alert ABOVE`, callback_data: `set_above:${address}` }],
-          [{ text: `📉 Alert BELOW`, callback_data: `set_below:${address}` }]
+          [{ text: `📉 Alert BELOW`, callback_data: `set_below:${address}` }],
+          [{ text: alreadySaved ? `✅ Already Saved (${ticker})` : `💾 Save Address (${ticker})`, callback_data: `save_addr:${address}` }]
         ];
 
     const msgOptions = {
@@ -1004,28 +1009,57 @@ function setupBotHandlers() {
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" }).catch(e=>{});
   });
 
-  // ===== /recent COMMAND – Recent 10 addresses with ticker names =====
+  // ===== /recent COMMAND – Show saved token addresses =====
   bot.onText(/\/recent/, (msg) => {
     const chatId = msg.chat.id;
     const recent = recentAddresses[chatId] || [];
     if (!recent.length) {
-      return bot.sendMessage(chatId, "📭 No recent addresses saved yet.\n\nPaste any token address – it will be saved here automatically with its ticker name!").catch(e=>{});
+      return bot.sendMessage(chatId,
+        "📭 No addresses saved yet.\n\n💡 *How to save:*\n• Paste any token address → tap *💾 Save Address* button\n• Or use: `/save <address>`\n\nMax 10 addresses are saved (oldest removed first).",
+        { parse_mode: 'Markdown' }
+      ).catch(e=>{});
     }
-    let text = "📋 *Recent Token Addresses (Last 10)*\n\n";
+    let text = `📋 *Saved Token Addresses (${recent.length}/10)*\n\n`;
     recent.forEach((r, i) => {
       text += `${i+1}. *${r.ticker}*  →  \`${r.address.slice(0,6)}...${r.address.slice(-6)}\`\n`;
     });
-    text += "\n_Tap any token below to view live data + set alerts:_";
+    text += "\n_Tap any token to view live data + set alerts:_";
 
     const buttons = recent.map((r, i) => [{
-      text: `${i+1}. ${r.ticker}  •  ${r.address.slice(0,6)}...${r.address.slice(-4)}`,
+      text: `${i+1}. ${r.ticker}  •  ${r.address.slice(0,6)}...${r.address.slice(-6)}`,
       callback_data: `view_token:${r.address}`
     }]);
+    // Add a "+ Add New" button at bottom
+    buttons.push([{ text: '➕ Add New Address', callback_data: 'add_new_address' }]);
 
     bot.sendMessage(chatId, text, {
       parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: buttons }
     }).catch(e=>{});
+  });
+
+  // ===== /save COMMAND – Manually save an address =====
+  bot.onText(/\/save (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const address = match[1].trim();
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
+      return bot.sendMessage(chatId, '❌ Invalid Solana address. Please provide a valid contract address.\n\nUsage: `/save <token_address>`', { parse_mode: 'Markdown' }).catch(e=>{});
+    }
+    const fetchMsg = await bot.sendMessage(chatId, '⏳ Fetching token info to save...').catch(e=>null);
+    const market = await getMarketData(address);
+    const ticker = market?.symbol || '?';
+    const alreadySaved = (recentAddresses[chatId] || []).some(r => r.address === address);
+    if (alreadySaved) {
+      const editText = `ℹ️ *${ticker}* is already saved!\n\`${address.slice(0,8)}...${address.slice(-6)}\`\n\nUse /recent to view all saved addresses.`;
+      if (fetchMsg) bot.editMessageText(editText, { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }).catch(e=>{});
+      else bot.sendMessage(chatId, editText, { parse_mode: 'Markdown' }).catch(e=>{});
+      return;
+    }
+    saveRecentAddress(chatId, address, ticker);
+    const count = (recentAddresses[chatId] || []).length;
+    const editText = `✅ *Saved Successfully!*\n\n🏷️ Token: *${ticker}*\n📍 Address: \`${address.slice(0,8)}...${address.slice(-6)}\`\n📋 Saved: ${count}/10\n\nUse /recent to view all saved addresses.`;
+    if (fetchMsg) bot.editMessageText(editText, { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }).catch(e=>{});
+    else bot.sendMessage(chatId, editText, { parse_mode: 'Markdown' }).catch(e=>{});
   });
 
   bot.on('callback_query', async (callbackQuery) => {
@@ -1037,6 +1071,14 @@ function setupBotHandlers() {
       else bot.sendMessage(chatId, "No active sound to stop.").catch(e=>{});
       bot.answerCallbackQuery(callbackQuery.id);
 
+    } else if (data === 'add_new_address') {
+      // User wants to manually add a new address from /recent screen
+      userStates[chatId] = { step: 'saving_address' };
+      bot.answerCallbackQuery(callbackQuery.id);
+      bot.sendMessage(chatId,
+        "💾 *Add New Address*\n\nPaste the token contract address you want to save:",
+        { parse_mode: 'Markdown' }
+      ).catch(e=>{});
     } else if (data === 'alert_above') {
       userStates[chatId] = { step: 'waiting_address', direction: 'above' };
       bot.sendMessage(chatId,
@@ -1077,6 +1119,21 @@ function setupBotHandlers() {
         priceMsg += `\nEnter your target price (in USD):\nExample: \`0.02593\``;
       }
       bot.sendMessage(chatId, priceMsg, { parse_mode: 'Markdown' }).catch(e=>{});
+
+    } else if (data.startsWith('save_addr:')) {
+      // Save address from token popup button
+      const address = data.split(':').slice(1).join(':');
+      const market = await getMarketData(address);
+      const ticker = market?.symbol || '?';
+      const alreadySaved = (recentAddresses[chatId] || []).some(r => r.address === address);
+      if (alreadySaved) {
+        bot.answerCallbackQuery(callbackQuery.id, { text: `✅ ${ticker} is already saved!` });
+      } else {
+        saveRecentAddress(chatId, address, ticker);
+        const count = (recentAddresses[chatId] || []).length;
+        bot.answerCallbackQuery(callbackQuery.id, { text: `💾 Saved! ${ticker} added (${count}/10)` });
+        bot.sendMessage(chatId, `✅ *Address Saved!*\n\n🏷️ Token: *${ticker}*\n📍 \`${address.slice(0,8)}...${address.slice(-6)}\`\n📋 Total saved: ${count}/10\n\nUse /recent to view all saved addresses.`, { parse_mode: 'Markdown' }).catch(e=>{});
+      }
 
     } else if (data.startsWith('view_token:')) {
       // Recent list se token view karna
