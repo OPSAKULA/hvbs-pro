@@ -41,10 +41,11 @@ const COINGECKO_COIN_DATA     = "https://api.coingecko.com/api/v3/coins/";
 const GECKO_TERMINAL_API      = "https://api.geckoterminal.com/api/v2/networks/solana/tokens/";
 const SOLSCAN_TOPHOLDERS      = "https://api.solscan.io/v2/token/holders?tokenAddress=";
 
-const ALERTS_FILE    = "./alerts.json";
-const WATCHLIST_FILE = "./watchlist.json";
+const ALERTS_FILE       = "./alerts.json";
+const WATCHLIST_FILE    = "./watchlist.json";
 const USERNAME_MAP_FILE = "./username_chatid_map.json";
-const MUTE_FILE = "./muted_users.json";
+const MUTE_FILE         = "./muted_users.json";
+const RECENT_FILE       = "./recent_addresses.json";
 
 function loadData(file) {
   if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file));
@@ -54,10 +55,25 @@ function saveData(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-let alerts    = loadData(ALERTS_FILE);
-let watchlists = loadData(WATCHLIST_FILE);
+// ========== RECENT ADDRESSES (max 10 per user, FIFO) ==========
+function saveRecentAddress(chatId, address, ticker) {
+  if (!recentAddresses[chatId]) recentAddresses[chatId] = [];
+  // Remove if address already exists (avoid duplicate)
+  recentAddresses[chatId] = recentAddresses[chatId].filter(r => r.address !== address);
+  // Add new at front
+  recentAddresses[chatId].unshift({ address, ticker: ticker || '?', savedAt: Date.now() });
+  // Keep max 10 (FIFO - purana hat jaye)
+  if (recentAddresses[chatId].length > 10) {
+    recentAddresses[chatId] = recentAddresses[chatId].slice(0, 10);
+  }
+  saveData(RECENT_FILE, recentAddresses);
+}
+
+let alerts           = loadData(ALERTS_FILE);
+let watchlists       = loadData(WATCHLIST_FILE);
 let usernameChatIdMap = loadData(USERNAME_MAP_FILE);
-let mutedUsers = loadData(MUTE_FILE);
+let mutedUsers       = loadData(MUTE_FILE);
+let recentAddresses  = loadData(RECENT_FILE);
 
 // Clean invalid alerts
 for (let chatId in alerts) {
@@ -668,24 +684,33 @@ function setupBotHandlers() {
 
       // Step 2: Waiting for price
       if (state.step === 'waiting_price') {
-        const targetPrice = parseFloat(text);
+        const { address, direction, livePrice } = state;
+        let targetPrice;
+        // Agar user ne sirf enter dabaya ya same live price likha
+        if (livePrice > 0 && (text === livePrice.toString() || text.trim() === '')) {
+          targetPrice = livePrice;
+        } else {
+          targetPrice = parseFloat(text);
+        }
         if (isNaN(targetPrice) || targetPrice <= 0) {
+          const hint = livePrice > 0 ? `\n\n_Live price: \`${livePrice}\` – copy karke bhejo ya apna likho_` : '';
           bot.sendMessage(chatId,
-            '❌ *Invalid Price!*\nPlease enter a valid number.\n\nExample: `0.02593`',
+            `❌ *Invalid Price!*\nValid number enter karo.\n\nExample: \`0.02593\`${hint}`,
             { parse_mode: 'Markdown' }
           ).catch(e => {});
           return;
         }
 
-        const { address, direction } = state;
         if (!alerts[chatId]) alerts[chatId] = {};
         alerts[chatId][address] = { price: targetPrice, direction };
         saveData(ALERTS_FILE, alerts);
         delete userStates[chatId];
 
+        const emoji = direction === 'above' ? '📈' : '📉';
+        const dirHindi = direction === 'above' ? 'UPAR jaye' : 'NICHE jaye';
         // Confirm alert and restore keyboard
         sendMainKeyboard(chatId,
-          `✅ *Alert Set Successfully!*\n\n📍 Token: \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
+          `✅ *Alert Set Ho Gaya!*\n\n📍 Token: \`${address.slice(0,8)}...${address.slice(-6)}\`\n${emoji} Direction: *${dirHindi}*\n💰 Target Price: *$${targetPrice}*\n\nJab price *$${targetPrice}* ${dirHindi}ga tab aapko notification milega! 🎯\n\n_Naye alert ke liye button dabayein._`
         );
 
         // Check if already triggered
@@ -693,7 +718,7 @@ function setupBotHandlers() {
         if (market) {
           const already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
           if (already) {
-            bot.sendMessage(chatId, `⚠️ Current price ($${market.price}) already meets condition! Alert triggered now.`).catch(e => {});
+            bot.sendMessage(chatId, `⚠️ Current price ($${market.price}) already condition meet kar raha hai! Alert abhi trigger ho raha hai.`).catch(e => {});
             bot.sendMessage(chatId,
               `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,8)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[📈 View Chart](${market.chartUrl})`,
               { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔇 Stop Sound', callback_data: 'stop_sound' }]] } }
@@ -709,7 +734,26 @@ function setupBotHandlers() {
   });
   
   bot.onText(/\/help/, (msg) => {
-    bot.sendMessage(msg.chat.id, `📖 *Help*\n• /search pippin\n• /alerts So111... 0.02 above\n• /forcecheck\n• /testbeep\n• /mute – turn off alerts\n• /unmute – turn on alerts\n• /stopsound\n• /setalert – set custom notification sound`, { parse_mode: "Markdown" }).catch(e=>{});
+    bot.sendMessage(msg.chat.id,
+      `📖 *HVBS Bot – Help Guide*\n\n` +
+      `🔹 *Alert Set karna:*\n` +
+      `• Koi bhi token address paste karo → live price ke saath Alert UPAR/NICHE buttons aayenge\n` +
+      `• Ya buttons dabao: 📈 Alert Above  📉 Alert Below\n\n` +
+      `🔹 *Commands:*\n` +
+      `• /recent – Last 10 saved token addresses (ticker naam ke saath)\n` +
+      `• /myalerts – Active alerts dekhho\n` +
+      `• /clearalerts – Sab alerts delete karo\n` +
+      `• /removealert \`address\` – Ek alert hatao\n` +
+      `• /search pippin – Token search karo\n` +
+      `• /alerts So111... 0.02 above – Direct alert set\n` +
+      `• /forcecheck – Turant check karo\n` +
+      `• /testbeep – Sound test karo\n` +
+      `• /mute – Alerts band karo\n` +
+      `• /unmute – Alerts chalu karo\n` +
+      `• /stopsound – Sound band karo\n` +
+      `• /setalert – Custom notification sound set karo`,
+      { parse_mode: "Markdown" }
+    ).catch(e=>{});
   });
   
   bot.onText(/\/testbeep/, (msg) => {
@@ -867,20 +911,63 @@ function setupBotHandlers() {
     }
   });
   
-  bot.onText(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, async (msg) => {
-    const chatId = msg.chat.id;
-    const address = msg.text.trim();
-    const msgSend = await bot.sendMessage(chatId, "⏳ Analyzing...");
+  // ===== TOKEN ADDRESS PASTE HANDLER =====
+  async function showTokenData(chatId, address, editMsgId = null) {
     const market = await getMarketData(address, 2);
     const risk = calculateRiskScore(market);
-    let response = `🔍 *Token:* \`${address.slice(0,6)}...\`\n\n`;
+    const ticker = market?.symbol || '?';
+    let response = `🔍 *Token: ${ticker}*\n\`${address.slice(0,8)}...${address.slice(-6)}\`\n\n`;
     if (market) {
-      response += `💰 Price: $${market.price}\n💧 Liquidity: ${market.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A"}\n📊 24h Vol: ${market.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : "N/A"}\n📈 24h Change: ${market.priceChange24h ? `${market.priceChange24h}%` : "N/A"}\n🏦 Market Cap: ${market.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : "N/A"}\n🟢 Buys 24h: ${market.buyCount}\n🔴 Sells 24h: ${market.sellCount}\n\n`;
+      const lp = market.price;
+      const lpStr = lp < 0.000001 ? lp.toFixed(12) : lp < 0.01 ? lp.toFixed(10) : lp.toFixed(8);
+      response += `💰 *Live Price: $${lpStr}*\n`;
+      response += `💧 Liquidity: ${market.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A"}\n`;
+      response += `📊 24h Vol: ${market.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : "N/A"}\n`;
+      response += `📈 24h Change: ${market.priceChange24h ? `${market.priceChange24h}%` : "N/A"}\n`;
+      response += `🏦 Market Cap: ${market.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : "N/A"}\n`;
+      response += `🟢 Buys 24h: ${market.buyCount}  🔴 Sells 24h: ${market.sellCount}\n\n`;
+      // Save to recent with ticker
+      saveRecentAddress(chatId, address, ticker);
     } else {
       response += `❌ No market data found.\n\n`;
     }
-    response += `🎯 Risk: ${risk.score}/100 – ${risk.level}\n📋 ${risk.reasons.join("\n")}\n\n📈 [View Chart](${market?.chartUrl || `https://dexscreener.com/solana/${address}`})`;
-    await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e=>console.error(e));
+    response += `🎯 Risk: ${risk.score}/100 – ${risk.level}\n${risk.reasons.join("\n")}\n\n📈 [View Chart](${market?.chartUrl || `https://dexscreener.com/solana/${address}`)}`;
+    response += `\n\n⬇️ *Alert set karne ke liye button dabayein – live price auto-fill ho chuka hai:*`;
+
+    const livePrice = market?.price || 0;
+    const livePriceDisplay = livePrice > 0
+      ? (livePrice < 0.000001 ? livePrice.toFixed(12) : livePrice < 0.01 ? livePrice.toFixed(10) : livePrice.toFixed(8))
+      : '?';
+
+    const inlineKeyboard = livePrice > 0
+      ? [
+          [{ text: `📈 Alert UPAR  ✦ Live: $${livePriceDisplay}`, callback_data: `set_above:${address}` }],
+          [{ text: `📉 Alert NICHE  ✦ Live: $${livePriceDisplay}`, callback_data: `set_below:${address}` }]
+        ]
+      : [
+          [{ text: `📈 Alert UPAR`, callback_data: `set_above:${address}` }],
+          [{ text: `📉 Alert NICHE`, callback_data: `set_below:${address}` }]
+        ];
+
+    const msgOptions = {
+      parse_mode: "Markdown",
+      disable_web_page_preview: true,
+      reply_markup: { inline_keyboard: inlineKeyboard }
+    };
+
+    if (editMsgId) {
+      await bot.editMessageText(response, { chat_id: chatId, message_id: editMsgId, ...msgOptions }).catch(e => console.error(e));
+    } else {
+      await bot.sendMessage(chatId, response, msgOptions).catch(e => console.error(e));
+    }
+    return livePrice;
+  }
+
+  bot.onText(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, async (msg) => {
+    const chatId = msg.chat.id;
+    const address = msg.text.trim();
+    const msgSend = await bot.sendMessage(chatId, "⏳ Token analyze ho raha hai...");
+    await showTokenData(chatId, address, msgSend.message_id);
   });
 
   bot.onText(/\/setalert/, (msg) => {
@@ -906,6 +993,30 @@ function setupBotHandlers() {
     bot.sendMessage(chatId, message, { parse_mode: "Markdown" }).catch(e=>{});
   });
 
+  // ===== /recent COMMAND – Recent 10 addresses with ticker names =====
+  bot.onText(/\/recent/, (msg) => {
+    const chatId = msg.chat.id;
+    const recent = recentAddresses[chatId] || [];
+    if (!recent.length) {
+      return bot.sendMessage(chatId, "📭 Abhi koi recent address nahi hai.\n\nKoi bhi token address paste karo – automatically yahan save hoga ticker naam ke saath!").catch(e=>{});
+    }
+    let text = "📋 *Recent Token Addresses (Last 10)*\n\n";
+    recent.forEach((r, i) => {
+      text += `${i+1}. *${r.ticker}* → \`${r.address.slice(0,6)}...${r.address.slice(-4)}\`\n`;
+    });
+    text += "\n_Niche se kisi bhi token ka poora data dekhne ke liye button dabayein:_";
+
+    const buttons = recent.map((r, i) => [{
+      text: `${i+1}. ${r.ticker}  •  ${r.address.slice(0,6)}...${r.address.slice(-4)}`,
+      callback_data: `view_token:${r.address}`
+    }]);
+
+    bot.sendMessage(chatId, text, {
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: buttons }
+    }).catch(e=>{});
+  });
+
   bot.on('callback_query', async (callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const data = callbackQuery.data;
@@ -916,20 +1027,57 @@ function setupBotHandlers() {
       bot.answerCallbackQuery(callbackQuery.id);
 
     } else if (data === 'alert_above') {
-      userStates[chatId] = 'waiting_alert_above';
+      userStates[chatId] = { step: 'waiting_address', direction: 'above' };
       bot.sendMessage(chatId,
-        "📈 *Set Alert – Price Goes ABOVE*\n\nPlease send the *Token Address* and *Target Price* separated by a space.\n\nExample:\n`Dfh5DzRgSvvCFDoYc2ciTk... 0.02593`\n\n_Just paste it and send!_",
+        "📈 *Alert UPAR set karo*\n\nToken contract address paste karo:",
         { parse_mode: "Markdown" }
       ).catch(e=>{});
       bot.answerCallbackQuery(callbackQuery.id);
 
     } else if (data === 'alert_below') {
-      userStates[chatId] = 'waiting_alert_below';
+      userStates[chatId] = { step: 'waiting_address', direction: 'below' };
       bot.sendMessage(chatId,
-        "📉 *Set Alert – Price Goes BELOW*\n\nPlease send the *Token Address* and *Target Price* separated by a space.\n\nExample:\n`Dfh5DzRgSvvCFDoYc2ciTk... 0.02593`\n\n_Just paste it and send!_",
+        "📉 *Alert NICHE set karo*\n\nToken contract address paste karo:",
         { parse_mode: "Markdown" }
       ).catch(e=>{});
       bot.answerCallbackQuery(callbackQuery.id);
+
+    } else if (data.startsWith('set_above:') || data.startsWith('set_below:')) {
+      // Live price auto-fill – user sirf price confirm/change kare
+      const parts = data.split(':');
+      const action = parts[0];
+      const address = parts.slice(1).join(':');
+      const direction = action === 'set_above' ? 'above' : 'below';
+      bot.answerCallbackQuery(callbackQuery.id, { text: '⏳ Live price fetch ho raha hai...' });
+      const market = await getMarketData(address);
+      const livePrice = market?.price || 0;
+      const livePriceStr = livePrice > 0
+        ? (livePrice < 0.000001 ? livePrice.toFixed(12) : livePrice < 0.01 ? livePrice.toFixed(10) : livePrice.toFixed(8))
+        : null;
+      userStates[chatId] = { step: 'waiting_price', direction, address, livePrice };
+      const emoji = direction === 'above' ? '📈' : '📉';
+      const dirText = direction === 'above' ? 'UPAR' : 'NICHE';
+      let priceMsg = `${emoji} *Alert ${dirText} – Price Set karo*\n\n`;
+      priceMsg += `📍 Token: \`${address.slice(0,8)}...${address.slice(-6)}\`\n`;
+      if (livePriceStr) {
+        priceMsg += `💰 *Live Price: $${livePriceStr}* ← auto-fill\n\n`;
+        priceMsg += `👇 Niche apna *target price* type karo:\n`;
+        priceMsg += `_(Live price already fill hai: \`${livePriceStr}\` – same bhejo ya apna price likho)_`;
+      } else {
+        priceMsg += `\n👇 Apna *target price* type karo (USD mein):\nExample: \`0.02593\``;
+      }
+      bot.sendMessage(chatId, priceMsg, { parse_mode: 'Markdown' }).catch(e=>{});
+
+    } else if (data.startsWith('view_token:')) {
+      // Recent list se token view karna
+      const address = data.split(':').slice(1).join(':');
+      bot.answerCallbackQuery(callbackQuery.id, { text: '⏳ Loading...' });
+      const loadMsg = await bot.sendMessage(chatId, '⏳ Token data load ho raha hai...').catch(e=>null);
+      if (loadMsg) {
+        await showTokenData(chatId, address, loadMsg.message_id);
+      } else {
+        await showTokenData(chatId, address);
+      }
 
     } else if (data === 'setup_sound') {
       const audioPath = './beep.mp3';
