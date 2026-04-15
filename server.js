@@ -55,6 +55,12 @@ function saveData(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
+let alerts           = loadData(ALERTS_FILE);
+let watchlists       = loadData(WATCHLIST_FILE);
+let usernameChatIdMap = loadData(USERNAME_MAP_FILE);
+let mutedUsers       = loadData(MUTE_FILE);
+let recentAddresses  = loadData(RECENT_FILE);
+
 // ========== RECENT ADDRESSES (max 10 per user, FIFO) ==========
 function saveRecentAddress(chatId, address, ticker) {
   if (!recentAddresses[chatId]) recentAddresses[chatId] = [];
@@ -68,12 +74,6 @@ function saveRecentAddress(chatId, address, ticker) {
   }
   saveData(RECENT_FILE, recentAddresses);
 }
-
-let alerts           = loadData(ALERTS_FILE);
-let watchlists       = loadData(WATCHLIST_FILE);
-let usernameChatIdMap = loadData(USERNAME_MAP_FILE);
-let mutedUsers       = loadData(MUTE_FILE);
-let recentAddresses  = loadData(RECENT_FILE);
 
 // Clean invalid alerts
 for (let chatId in alerts) {
@@ -921,17 +921,18 @@ function setupBotHandlers() {
       const lp = market.price;
       const lpStr = lp < 0.000001 ? lp.toFixed(12) : lp < 0.01 ? lp.toFixed(10) : lp.toFixed(8);
       response += `💰 *Live Price: $${lpStr}*\n`;
-      response += `💧 Liquidity: ${market.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A"}\n`;
-      response += `📊 24h Vol: ${market.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : "N/A"}\n`;
-      response += `📈 24h Change: ${market.priceChange24h ? `${market.priceChange24h}%` : "N/A"}\n`;
-      response += `🏦 Market Cap: ${market.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : "N/A"}\n`;
+      response += "💧 Liquidity: " + (market.liquidity ? "$" + Math.round(market.liquidity).toLocaleString() : "N/A") + "\n";
+      response += "📊 24h Vol: " + (market.volume24h ? "$" + Math.round(market.volume24h).toLocaleString() : "N/A") + "\n";
+      response += "📈 24h Change: " + (market.priceChange24h ? market.priceChange24h + "%" : "N/A") + "\n";
+      response += "🏦 Market Cap: " + (market.marketCap ? "$" + Math.round(market.marketCap).toLocaleString() : "N/A") + "\n";
       response += `🟢 Buys 24h: ${market.buyCount}  🔴 Sells 24h: ${market.sellCount}\n\n`;
       // Save to recent with ticker
       saveRecentAddress(chatId, address, ticker);
     } else {
       response += `❌ No market data found.\n\n`;
     }
-    response += `🎯 Risk: ${risk.score}/100 – ${risk.level}\n${risk.reasons.join("\n")}\n\n📈 [View Chart](${market?.chartUrl || `https://dexscreener.com/solana/${address}`)}`;
+    const chartUrl = market?.chartUrl || ("https://dexscreener.com/solana/" + address);
+    response += "🎯 Risk: " + risk.score + "/100 – " + risk.level + "\n" + risk.reasons.join("\n") + "\n\n📈 [View Chart](" + chartUrl + ")";
     response += `\n\n⬇️ *Alert set karne ke liye button dabayein – live price auto-fill ho chuka hai:*`;
 
     const livePrice = market?.price || 0;
