@@ -724,6 +724,19 @@ function setupBotHandlers() {
           `✅ *Alert Set Successfully!*\n\n📍 Token: \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
         );
 
+        // Send a separate inline button message to cancel this specific alert
+        bot.sendMessage(chatId,
+          `🔔 *Alert Active:*\n\`${address.slice(0,8)}...\` → *${direction.toUpperCase()}* $${targetPrice}\n\nTap below to cancel it manually anytime:`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: `❌ Cancel This Alert`, callback_data: `cancel_alert:${address}` }]
+              ]
+            }
+          }
+        ).catch(e => {});
+
         // Check if already triggered
         const market = await getMarketData(address);
         if (market) {
@@ -852,11 +865,23 @@ function setupBotHandlers() {
     const userAlerts = alerts[chatId] || {};
     const entries = Object.entries(userAlerts);
     if (entries.length === 0) return bot.sendMessage(chatId, "📭 No active alerts.").catch(e=>{});
-    let text = "*🔔 Your active alerts:*\n\n";
+    
+    // Send each alert as a separate message with a Cancel button
+    bot.sendMessage(chatId, `*🔔 Your Active Alerts (${entries.length}):*`, { parse_mode: "Markdown" }).catch(e=>{});
     for (let [addr, { price, direction }] of entries) {
-      text += `• \`${addr.slice(0,6)}...\` – $${price} (${direction})\n`;
+      const dirEmoji = direction === 'above' ? '📈' : '📉';
+      bot.sendMessage(chatId,
+        `${dirEmoji} *${direction.toUpperCase()}* Alert\n📍 Token: \`${addr.slice(0,8)}...\`\n💰 Target: *$${price}*`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: `❌ Cancel This Alert`, callback_data: `cancel_alert:${addr}` }]
+            ]
+          }
+        }
+      ).catch(e=>{});
     }
-    bot.sendMessage(chatId, text, { parse_mode: "Markdown" }).catch(e=>{});
   });
   
   bot.onText(/\/removealert (.+)/, (msg, match) => {
@@ -950,6 +975,38 @@ function setupBotHandlers() {
       if (stopSound(chatId)) bot.sendMessage(chatId, "🔇 Sound stopped.").catch(e=>{});
       else bot.sendMessage(chatId, "No active sound to stop.").catch(e=>{});
       bot.answerCallbackQuery(callbackQuery.id);
+
+    } else if (data.startsWith('cancel_alert:')) {
+      // ===== CANCEL ALERT HANDLER =====
+      const address = data.split('cancel_alert:')[1];
+      if (alerts[chatId]?.[address]) {
+        const { price, direction } = alerts[chatId][address];
+        delete alerts[chatId][address];
+        // Clean up empty chatId entry
+        if (Object.keys(alerts[chatId]).length === 0) delete alerts[chatId];
+        saveData(ALERTS_FILE, alerts);
+        // Edit the inline button message to show cancelled status
+        bot.editMessageText(
+          `✅ *Alert Cancelled!*\n\n📍 Token: \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target was: *$${price}*\n\n_This alert has been removed._`,
+          {
+            chat_id: chatId,
+            message_id: callbackQuery.message.message_id,
+            parse_mode: 'Markdown'
+          }
+        ).catch(e => {});
+        bot.answerCallbackQuery(callbackQuery.id, { text: '✅ Alert cancelled successfully!' });
+      } else {
+        // Alert already triggered or doesn't exist
+        bot.editMessageText(
+          `⚠️ *Alert Already Removed*\n\n📍 Token: \`${address.slice(0,8)}...\`\n\n_This alert was already triggered or cancelled._`,
+          {
+            chat_id: chatId,
+            message_id: callbackQuery.message.message_id,
+            parse_mode: 'Markdown'
+          }
+        ).catch(e => {});
+        bot.answerCallbackQuery(callbackQuery.id, { text: '⚠️ Alert not found!' });
+      }
 
     } else if (data === 'alert_above') {
       userStates[chatId] = 'waiting_alert_above';
