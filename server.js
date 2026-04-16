@@ -649,7 +649,7 @@ function setupBotHandlers() {
     }
 
     if (text === '📜 History') {
-      const userHistory = history[chatId] || [];
+      const userHistory = history[String(chatId)] || [];
       if (userHistory.length === 0) {
         bot.sendMessage(chatId, "📜 *Your Token History is empty.*\nSet an alert above to start tracking!", { parse_mode: 'Markdown' });
       } else {
@@ -683,11 +683,12 @@ function setupBotHandlers() {
           try {
             const market = await getMarketData(text);
             const symbol = market?.symbol || "?";
-            if (!history[chatId]) history[chatId] = [];
+            const cid = String(chatId);
+            if (!history[cid]) history[cid] = [];
             // Remove existing entry for same address to bring to front
-            history[chatId] = history[chatId].filter(h => h.address !== text);
-            history[chatId].unshift({ address: text, symbol });
-            if (history[chatId].length > 10) history[chatId].pop();
+            history[cid] = history[cid].filter(h => h.address !== text);
+            history[cid].unshift({ address: text, symbol });
+            if (history[cid].length > 10) history[cid].pop();
             saveData(HISTORY_FILE, history);
           } catch (e) {
             console.error("History update error:", e);
