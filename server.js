@@ -872,27 +872,58 @@ function setupBotHandlers() {
         }
         const chain = isEth ? 'ethereum' : 'solana';
         userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, chain };
+        const chainLabel = isEth ? '⟠ Ethereum' : '◎ Solana';
 
-        // --- History Logic ---
-        (async () => {
-          try {
-            const market = isEth ? await getMarketDataEth(text) : await getMarketData(text);
-            const symbol = market?.symbol || "?";
+        // Send "fetching..." message first
+        const fetchMsg = await bot.sendMessage(chatId,
+          `✅ *${chainLabel} address accepted!*\n\`${text}\`\n\n⏳ Fetching live price...`,
+          { parse_mode: 'Markdown' }
+        ).catch(e => {});
+
+        // Fetch live price
+        try {
+          const market = isEth ? await getMarketDataEth(text) : await getMarketData(text);
+          if (market && market.price) {
+            const priceDisplay = market.price < 0.01
+              ? `$${market.price.toFixed(10)}`
+              : `$${market.price.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
+            const changeEmoji = market.priceChange24h >= 0 ? '📈' : '📉';
+
+            // Update history
+            const symbol = market.symbol || '?';
             const cid = String(chatId);
             if (!history[cid]) history[cid] = [];
             history[cid] = history[cid].filter(h => h.address !== text);
             history[cid].unshift({ address: text, symbol, chain });
             if (history[cid].length > 10) history[cid].pop();
             saveData(HISTORY_FILE, history);
-          } catch (e) { console.error("History update error:", e); }
-        })();
-        // --- End History Logic ---
 
-        const chainLabel = isEth ? '⟠ Ethereum' : '◎ Solana';
-        bot.sendMessage(chatId,
-          `✅ ${chainLabel} address saved: \`${text}\`\n\n💰 *Step 2:* Now enter the *Target Price* (in USD):\n\nExample: \`0.02593\``,
-          { parse_mode: 'Markdown' }
-        ).catch(e => {});
+            if (fetchMsg) {
+              bot.editMessageText(
+                `✅ *${chainLabel} — ${symbol}*\n\`${text.slice(0,10)}...\`\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${market.price < 0.01 ? (market.price * 1.2).toFixed(10) : (market.price * 1.2).toFixed(6)}\``,
+                { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }
+              ).catch(e => {});
+            }
+          } else {
+            // No price found — still let them proceed
+            if (fetchMsg) {
+              bot.editMessageText(
+                `✅ *${chainLabel} address saved!*\n\`${text.slice(0,10)}...\`\n\n⚠️ Could not fetch live price right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD):\nExample: \`0.02593\``,
+                { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }
+              ).catch(e => {});
+            }
+
+            // Still update history with unknown symbol
+            const cid = String(chatId);
+            if (!history[cid]) history[cid] = [];
+            history[cid] = history[cid].filter(h => h.address !== text);
+            history[cid].unshift({ address: text, symbol: '?', chain });
+            if (history[cid].length > 10) history[cid].pop();
+            saveData(HISTORY_FILE, history);
+          }
+        } catch(e) {
+          console.error('Price fetch error in bot:', e.message);
+        }
         return;
       }
 
