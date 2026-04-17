@@ -856,36 +856,36 @@ function setupBotHandlers() {
 
       // Step 1: Waiting for token address
       if (state.step === 'waiting_address') {
-        if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text)) {
+        const isSolana = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text);
+        const isEth = /^0x[0-9a-fA-F]{40}$/.test(text);
+        if (!isSolana && !isEth) {
           bot.sendMessage(chatId,
-            '❌ *Invalid Address!*\nPlease paste a valid Solana token contract address.\n\nExample: `Dfh5DzRgSvvCFDoYc2ciTkMrbDfRKybA4SoFbPmApump`',
+            '❌ *Invalid Address!*\nPlease paste a valid:\n• *Solana* address: `Dfh5DzRgSvvCFDoYc2ciTkMrbDfRKybA4SoFbPmApump`\n• *Ethereum* address: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`',
             { parse_mode: 'Markdown' }
           ).catch(e => {});
           return;
         }
-        userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text };
-        userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text };
-        
+        const chain = isEth ? 'ethereum' : 'solana';
+        userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, chain };
+
         // --- History Logic ---
         (async () => {
           try {
-            const market = await getMarketData(text);
+            const market = isEth ? await getMarketDataEth(text) : await getMarketData(text);
             const symbol = market?.symbol || "?";
             const cid = String(chatId);
             if (!history[cid]) history[cid] = [];
-            // Remove existing entry for same address to bring to front
             history[cid] = history[cid].filter(h => h.address !== text);
-            history[cid].unshift({ address: text, symbol });
+            history[cid].unshift({ address: text, symbol, chain });
             if (history[cid].length > 10) history[cid].pop();
             saveData(HISTORY_FILE, history);
-          } catch (e) {
-            console.error("History update error:", e);
-          }
+          } catch (e) { console.error("History update error:", e); }
         })();
         // --- End History Logic ---
 
+        const chainLabel = isEth ? '⟠ Ethereum' : '◎ Solana';
         bot.sendMessage(chatId,
-          `✅ Address saved: \`${text}\`\n\n💰 *Step 2:* Now enter the *Target Price* (in USD):\n\nExample: \`0.02593\``,
+          `✅ ${chainLabel} address saved: \`${text}\`\n\n💰 *Step 2:* Now enter the *Target Price* (in USD):\n\nExample: \`0.02593\``,
           { parse_mode: 'Markdown' }
         ).catch(e => {});
         return;
@@ -902,20 +902,19 @@ function setupBotHandlers() {
           return;
         }
 
-        const { address, direction } = state;
+        const { address, direction, chain } = state;
         if (!alerts[chatId]) alerts[chatId] = {};
-        alerts[chatId][address] = { price: targetPrice, direction };
+        alerts[chatId][address] = { price: targetPrice, direction, chain: chain || 'solana' };
         saveData(ALERTS_FILE, alerts);
         delete userStates[chatId];
 
-        // Confirm alert and restore keyboard
+        const chainLabel = chain === 'ethereum' ? '⟠ ETH' : '◎ SOL';
         sendMainKeyboard(chatId,
-          `✅ *Alert Set Successfully!*\n\n📍 Token: \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
+          `✅ *Alert Set Successfully!*\n\n📍 Token [${chainLabel}]: \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
         );
 
-        // Send a separate inline button message to cancel this specific alert
         bot.sendMessage(chatId,
-          `🔔 *Alert Active:*\n\`${address.slice(0,8)}...\` → *${direction.toUpperCase()}* $${targetPrice}\n\nTap below to cancel it manually anytime:`,
+          `🔔 *Alert Active:*\n\`${address.slice(0,8)}...\` [${chainLabel}] → *${direction.toUpperCase()}* $${targetPrice}\n\nTap below to cancel it manually anytime:`,
           {
             parse_mode: 'Markdown',
             reply_markup: {
@@ -927,13 +926,13 @@ function setupBotHandlers() {
         ).catch(e => {});
 
         // Check if already triggered
-        const market = await getMarketData(address);
+        const market = chain === 'ethereum' ? await getMarketDataEth(address) : await getMarketData(address);
         if (market) {
           const already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
           if (already) {
             bot.sendMessage(chatId, `⚠️ Current price ($${market.price}) already meets condition! Alert triggered now.`).catch(e => {});
             bot.sendMessage(chatId,
-              `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,8)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[📈 View Chart](${market.chartUrl})`,
+              `🚨 *PRICE ALERT!*\nToken [${chainLabel}]: \`${address.slice(0,8)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[📈 View Chart](${market.chartUrl})`,
               { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔇 Stop Sound', callback_data: 'stop_sound' }]] } }
             ).catch(e => {});
             playSound(chatId);
@@ -1092,7 +1091,9 @@ function setupBotHandlers() {
     let direction = (parts[2] || 'above').toLowerCase();
     if (direction !== 'above' && direction !== 'below') direction = 'above';
     if (isNaN(targetPrice)) return bot.sendMessage(chatId, "❌ Invalid price.").catch(e=>{});
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) return bot.sendMessage(chatId, "❌ Invalid address.").catch(e=>{});
+    const isSolAddr = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
+    const isEthAddr = /^0x[0-9a-fA-F]{40}$/.test(address);
+    if (!isSolAddr && !isEthAddr) return bot.sendMessage(chatId, "❌ Invalid address! Use a Solana (Base58) or Ethereum (0x...) address.").catch(e=>{});
     if (!alerts[chatId]) alerts[chatId] = {};
     alerts[chatId][address] = { price: targetPrice, direction };
     saveData(ALERTS_FILE, alerts);
