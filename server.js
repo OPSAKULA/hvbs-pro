@@ -433,7 +433,16 @@ async function checkAllAlerts() {
       if (!alert.price || isNaN(alert.price)) { delete alerts[chatId][addr]; continue; }
       const targetPrice = alert.price;
       const direction = alert.direction || 'above';
-      const market = await getMarketData(addr);
+
+      // Auto-detect chain: saved chain field OR address format
+      const isEthAddress = /^0x[0-9a-fA-F]{40}$/.test(addr);
+      const chain = alert.chain || (isEthAddress ? 'ethereum' : 'solana');
+      const chainLabel = chain === 'ethereum' ? '⟠ ETH' : '◎ SOL';
+
+      const market = chain === 'ethereum'
+        ? await getMarketDataEth(addr)
+        : await getMarketData(addr);
+
       if (market) {
         let triggered = false;
         if (direction === 'above' && market.price >= targetPrice) triggered = true;
@@ -441,14 +450,10 @@ async function checkAllAlerts() {
         if (triggered) {
           const options = {
             parse_mode: "Markdown",
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]
-              ]
-            }
+            reply_markup: { inline_keyboard: [[{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]] }
           };
           bot.sendMessage(chatId,
-            `🚨 *PRICE ALERT!*\nToken: \`${addr.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`,
+            `🚨 *PRICE ALERT!*\nToken [${chainLabel}]: \`${addr.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`,
             options
           ).catch(e => console.error("Send message error:", e.message));
           playSound(chatId);
