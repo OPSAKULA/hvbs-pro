@@ -41,6 +41,11 @@ const COINGECKO_COIN_DATA     = "https://api.coingecko.com/api/v3/coins/";
 const GECKO_TERMINAL_API      = "https://api.geckoterminal.com/api/v2/networks/solana/tokens/";
 const SOLSCAN_TOPHOLDERS      = "https://api.solscan.io/v2/token/holders?tokenAddress=";
 
+// ========== ETHEREUM CONSTANTS ==========
+const DEXSCREENER_ETH_PAIRS   = "https://api.dexscreener.com/token-pairs/v1/ethereum/";
+const GECKO_TERMINAL_ETH_API  = "https://api.geckoterminal.com/api/v2/networks/eth/tokens/";
+const TRENDING_ETH_API        = "https://api.dexscreener.com/latest/dex/search?q=ethereum";
+
 const ALERTS_FILE    = "./alerts.json";
 const WATCHLIST_FILE = "./watchlist.json";
 const USERNAME_MAP_FILE = "./username_chatid_map.json";
@@ -455,6 +460,189 @@ async function checkAllAlerts() {
   }
 }
 setInterval(checkAllAlerts, 10000);
+
+// ========== ETHEREUM MARKET DATA ==========
+async function getMarketDataEth(address, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await axios.get(`${DEXSCREENER_ETH_PAIRS}${address}`, { timeout: 6000 });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        const p = res.data[0];
+        const price = parseFloat(p.priceUsd);
+        if (price && !isNaN(price) && price > 0) {
+          return {
+            price,
+            liquidity:      p.liquidity?.usd      || 0,
+            volume24h:      p.volume?.h24          || 0,
+            priceChange24h: p.priceChange?.h24     || 0,
+            marketCap:      p.marketCap            || 0,
+            symbol:         p.baseToken?.symbol    || "?",
+            name:           p.baseToken?.name      || "",
+            chartUrl:       p.url || `https://dexscreener.com/ethereum/${address}`,
+            buyCount:       p.txns?.h24?.buys      || 0,
+            sellCount:      p.txns?.h24?.sells     || 0,
+            pairAddress:    p.pairAddress           || ""
+          };
+        }
+      }
+    } catch(e) {}
+
+    try {
+      const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 6000 });
+      const pairs = searchRes.data.pairs || [];
+      const ethPairs = pairs.filter(p => p.chainId === "ethereum");
+      if (ethPairs.length > 0) {
+        const p = ethPairs[0];
+        const price = parseFloat(p.priceUsd);
+        if (price && !isNaN(price) && price > 0) {
+          return {
+            price,
+            liquidity:      p.liquidity?.usd      || 0,
+            volume24h:      p.volume?.h24          || 0,
+            priceChange24h: p.priceChange?.h24     || 0,
+            marketCap:      p.marketCap            || 0,
+            symbol:         p.baseToken?.symbol    || "?",
+            name:           p.baseToken?.name      || "",
+            chartUrl:       p.url || `https://dexscreener.com/ethereum/${address}`,
+            buyCount:       p.txns?.h24?.buys      || 0,
+            sellCount:      p.txns?.h24?.sells     || 0,
+            pairAddress:    p.pairAddress           || ""
+          };
+        }
+      }
+    } catch(e) {}
+
+    try {
+      const geckoRes = await axios.get(`${GECKO_TERMINAL_ETH_API}${address}`, { timeout: 5000 });
+      const attrs = geckoRes.data?.data?.attributes;
+      if (attrs) {
+        const price = parseFloat(attrs.price_usd);
+        if (price && price > 0) {
+          return {
+            price,
+            liquidity:      parseFloat(attrs.total_reserve_in_usd) || 0,
+            volume24h:      parseFloat(attrs.volume_usd?.h24) || 0,
+            priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
+            marketCap:      parseFloat(attrs.market_cap_usd) || 0,
+            symbol:         attrs.symbol || "?",
+            name:           attrs.name || "",
+            chartUrl:       `https://dexscreener.com/ethereum/${address}`,
+            buyCount: 0, sellCount: 0, pairAddress: ""
+          };
+        }
+      }
+    } catch(e) {}
+
+    if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
+  }
+  return null;
+}
+
+async function getHolderCountEth(address) {
+  try {
+    const geckoRes = await axios.get(`${GECKO_TERMINAL_ETH_API}${address}`, { timeout: 5000 });
+    return geckoRes.data?.data?.attributes?.holders || 0;
+  } catch (e) { return 0; }
+}
+
+async function getBuyersSellersEth(address) {
+  try {
+    const res = await axios.get(`${DEXSCREENER_ETH_PAIRS}${address}`, { timeout: 6000 });
+    if (Array.isArray(res.data) && res.data.length > 0) {
+      let totalBuys1h = 0, totalSells1h = 0, totalBuys6h = 0, totalSells6h = 0, totalBuys24h = 0, totalSells24h = 0;
+      for (const p of res.data) {
+        totalBuys1h  += p.txns?.h1?.buys   || 0; totalSells1h += p.txns?.h1?.sells  || 0;
+        totalBuys6h  += p.txns?.h6?.buys   || 0; totalSells6h += p.txns?.h6?.sells  || 0;
+        totalBuys24h += p.txns?.h24?.buys  || 0; totalSells24h+= p.txns?.h24?.sells || 0;
+      }
+      return { h1: { buys: totalBuys1h, sells: totalSells1h }, h6: { buys: totalBuys6h, sells: totalSells6h }, h24: { buys: totalBuys24h, sells: totalSells24h } };
+    }
+  } catch(e) {}
+  return { h1: { buys: 0, sells: 0 }, h6: { buys: 0, sells: 0 }, h24: { buys: 0, sells: 0 } };
+}
+
+async function getDEXListingsEth(tokenAddress) {
+  try {
+    const res = await axios.get(`${DEXSCREENER_SEARCH}${tokenAddress}`, { timeout: 6000 });
+    const pairs = res.data.pairs || [];
+    const exchanges = new Map();
+    for (const pair of pairs) {
+      if (pair.chainId === "ethereum" && pair.dexId && !exchanges.has(pair.dexId)) {
+        exchanges.set(pair.dexId, { name: pair.dexId, type: 'DEX', url: pair.url || null, baseToken: pair.baseToken?.symbol || 'N/A', quoteToken: pair.quoteToken?.symbol || 'N/A' });
+      }
+    }
+    return Array.from(exchanges.values());
+  } catch (error) { return []; }
+}
+
+async function getTrendingEthTokens(limit = 10) {
+  try {
+    const res = await axios.get(TRENDING_ETH_API, { timeout: 8000 });
+    if (res.data.pairs) {
+      let ethPairs = res.data.pairs.filter(p => p.chainId === "ethereum" && parseFloat(p.priceUsd) > 0);
+      ethPairs.sort((a, b) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0));
+      return ethPairs.slice(0, limit).map(p => ({ symbol: p.baseToken?.symbol || "?", address: p.baseToken?.address || "", price: p.priceUsd || "0", volume24h: p.volume?.h24 || 0, priceChange: p.priceChange?.h24 || 0, liquidity: p.liquidity?.usd || 0, url: p.url }));
+    }
+  } catch(e) {}
+  return [];
+}
+
+// ========== ETHEREUM TOKEN ENDPOINT ==========
+app.get("/api/token/ethereum/:address", async (req, res) => {
+  const address = req.params.address;
+  // Validate Ethereum address (0x...)
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    return res.status(400).json({ success: false, error: "Invalid Ethereum token address. Must be 0x followed by 40 hex characters." });
+  }
+  try {
+    const [market, holderCount, buyersSellers] = await Promise.all([
+      getMarketDataEth(address),
+      getHolderCountEth(address),
+      getBuyersSellersEth(address)
+    ]);
+    const risk = calculateRiskScore(market, holderCount);
+    let tokenSymbol = market?.symbol || '';
+    let cgDetails = null;
+    if (tokenSymbol) cgDetails = await getCoinGeckoDetails(tokenSymbol);
+    const dexListings = await getDEXListingsEth(address);
+    let cexListings = [];
+    if (cgDetails?.id) cexListings = await getCEXListings(cgDetails.id);
+    const allExchanges = [...dexListings, ...cexListings];
+    let formattedPrice = "N/A";
+    if (market) {
+      const priceNum = market.price;
+      formattedPrice = priceNum < 0.01 ? `$${priceNum.toFixed(10)}` : `$${priceNum.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
+    }
+    let platformPresence = { coingecko: { listed: !!cgDetails, name: cgDetails?.name || null }, coinmarketcap: { listed: false, name: null } };
+    try {
+      if (tokenSymbol) {
+        const cmcRes = await axios.get(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${tokenSymbol}`, { headers: { 'X-CMC_PRO_API_KEY': CMC_API_KEY }, timeout: 5000 });
+        const cmcData = cmcRes.data?.data?.[tokenSymbol];
+        if (cmcData) platformPresence.coinmarketcap = { listed: true, name: cmcData.name };
+      }
+    } catch(e) {}
+    res.json({
+      success: true, chain: 'ethereum', tokenAddress: address,
+      name: market?.name || market?.symbol || address.slice(0,8)+"...",
+      symbol: market?.symbol || "?",
+      price: formattedPrice, rawPrice: market?.price || 0,
+      liquidity: market?.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A",
+      volume24h: market?.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : "N/A",
+      priceChange24h: market?.priceChange24h != null ? `${market.priceChange24h.toFixed(2)}%` : "N/A",
+      marketCap: market?.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : "N/A",
+      holderCount, topHolders: [],
+      buyersSellers, riskScore: risk.score, riskLevel: risk.level, riskReasons: risk.reasons,
+      chartUrl: market?.chartUrl || `https://dexscreener.com/ethereum/${address}`,
+      exchanges: allExchanges, socialLinks: cgDetails?.links || {}, logo: cgDetails?.image || null,
+      coingeckoUrl: cgDetails?.coingeckoUrl || null, platformPresence
+    });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.get("/api/trending/ethereum", async (req, res) => {
+  try { const trending = await getTrendingEthTokens(10); res.json({ success: true, trending }); }
+  catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
 
 // ========== MAIN API ENDPOINTS ==========
 app.get("/api/token/:address", async (req, res) => {
