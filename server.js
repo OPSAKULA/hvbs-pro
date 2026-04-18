@@ -181,6 +181,12 @@ function playSound(chatId) {
 }
 
 // ========== MARKET DATA ==========
+    if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
+  }
+  return null;
+}
+
+// ========== MARKET DATA ==========
 async function getMarketData(mint, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -205,72 +211,55 @@ async function getMarketData(mint, retries = 2) {
         }
       }
     } catch(e) {}
-
-    try {
-      const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${mint}`, { timeout: 6000 });
-      const pairs = searchRes.data.pairs || [];
-      const solPairs = pairs.filter(p => p.chainId === "solana");
-      if (solPairs.length > 0) {
-        const p = solPairs[0];
-        const price = parseFloat(p.priceUsd);
-        if (price && !isNaN(price) && price > 0) {
-          return {
-            price,
-            liquidity:      p.liquidity?.usd      || 0,
-            volume24h:      p.volume?.h24          || 0,
-            priceChange24h: p.priceChange?.h24     || 0,
-            marketCap:      p.marketCap            || 0,
-            symbol:         p.baseToken?.symbol    || "?",
-            name:           p.baseToken?.name      || "",
-            chartUrl:       p.url || `https://dexscreener.com/solana/${mint}`,
-            buyCount:       p.txns?.h24?.buys      || 0,
-            sellCount:      p.txns?.h24?.sells     || 0,
-            pairAddress:    p.pairAddress           || ""
-          };
-        }
-      }
-    } catch(e) {}
-
-    try {
-      const jupRes = await axios.get(`${JUPITER_PRICE_API}${mint}`, { timeout: 5000 });
-      const tokenData = jupRes.data?.data?.[mint];
-      if (tokenData) {
-        const price = parseFloat(tokenData.price);
-        if (price && price > 0) {
-          return {
-            price, liquidity: 0, volume24h: 0, priceChange24h: 0, marketCap: 0,
-            symbol: tokenData.mintSymbol || "?", name: "",
-            chartUrl: `https://dexscreener.com/solana/${mint}`,
-            buyCount: 0, sellCount: 0, pairAddress: ""
-          };
-        }
-      }
-    } catch(e) {}
-
-    try {
-      const geckoRes = await axios.get(`${GECKO_TERMINAL_API}${mint}`, { timeout: 5000 });
-      const attrs = geckoRes.data?.data?.attributes;
-      if (attrs) {
-        const price = parseFloat(attrs.price_usd);
-        if (price && price > 0) {
-          return {
-            price,
-            liquidity:      parseFloat(attrs.total_reserve_in_usd) || 0,
-            volume24h:      parseFloat(attrs.volume_usd?.h24) || 0,
-            priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
-            marketCap:      parseFloat(attrs.market_cap_usd) || 0,
-            symbol:         attrs.symbol || "?",
-            name:           attrs.name || "",
-            chartUrl:       `https://dexscreener.com/solana/${mint}`,
-            buyCount: 0, sellCount: 0, pairAddress: ""
-          };
-        }
-      }
-    } catch(e) {}
-
     if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
   }
   return null;
+}
+
+// ========== UNIFIED TOKEN VERIFICATION ==========
+async function verifyTokenDetails(address) {
+  try {
+    const res = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 8000 });
+    const pairs = res.data.pairs || [];
+    if (pairs.length === 0) return { success: false, error: "No market data found for this address." };
+
+    // Find the best pair across all chains
+    pairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
+    const p = pairs[0];
+    const chainId = p.chainId.toLowerCase();
+
+    // Check if supported
+    if (chainId !== 'solana' && chainId !== 'ethereum') {
+      return { 
+        success: false, 
+        error: `Unsupported chain: ${chainId.toUpperCase()}`,
+        unsupported: true
+      };
+    }
+
+    return {
+      success: true,
+      chain: chainId,
+      symbol: p.baseToken?.symbol || "?",
+      name: p.baseToken?.name || "",
+      market: {
+        price: parseFloat(p.priceUsd) || 0,
+        liquidity: p.liquidity?.usd || 0,
+        volume24h: p.volume?.h24 || 0,
+        priceChange24h: p.priceChange?.h24 || 0,
+        marketCap: p.marketCap || 0,
+        symbol: p.baseToken?.symbol || "?",
+        name: p.baseToken?.name || "",
+        chartUrl: p.url,
+        buyCount: p.txns?.h24?.buys || 0,
+        sellCount: p.txns?.h24?.sells || 0,
+        pairAddress: p.pairAddress || ""
+      }
+    };
+  } catch (e) {
+    console.error("Verification error:", e.message);
+    return { success: false, error: "Failed to verify token data." };
+  }
 }
 
 // ========== TOP 10 HOLDERS ==========
@@ -872,60 +861,51 @@ function setupBotHandlers() {
           ).catch(e => {});
           return;
         }
-        const chain = isEth ? 'ethereum' : 'solana';
-        userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, chain };
-        const chainLabel = isEth ? '⟠ Ethereum' : '◎ Solana';
-
         // Send "fetching..." message first
         const fetchMsg = await bot.sendMessage(chatId,
-          `✅ *${chainLabel} address accepted!*\n\`${text}\`\n\n⏳ Fetching live price...`,
+          `⏳ *Analyzing Address...*\nChecking blockchain and live data...`,
           { parse_mode: 'Markdown' }
         ).catch(e => {});
 
-        // Fetch live price
+        // Fetch and verify token
         try {
-          const market = isEth ? await getMarketDataEth(text) : await getMarketData(text);
-          if (market && market.price) {
-            const priceDisplay = market.price < 0.01
-              ? `$${market.price.toFixed(10)}`
-              : `$${market.price.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
-            const changeEmoji = market.priceChange24h >= 0 ? '📈' : '📉';
-
-            // Update history
-            const symbol = market.symbol || '?';
-            const cid = String(chatId);
-            if (!history[cid]) history[cid] = [];
-            history[cid] = history[cid].filter(h => h.address !== text);
-            history[cid].unshift({ address: text, symbol, chain });
-            if (history[cid].length > 10) history[cid].pop();
-            saveData(HISTORY_FILE, history);
-
+          const verify = await verifyTokenDetails(text);
+          if (!verify.success) {
             if (fetchMsg) {
-              const icon = chain === 'ethereum' ? '🔹' : '◎';
-              bot.editMessageText(
-                `✅ *${chainLabel} — ${symbol}*\n${icon} \`${text.slice(0,10)}...\`\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${market.price < 0.01 ? (market.price * 1.2).toFixed(10) : (market.price * 1.2).toFixed(6)}\``,
-                { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }
-              ).catch(e => {});
+              const errorText = verify.unsupported ? `❌ *Unsupported Chain!*\n${verify.error}` : `❌ *Verification Failed*\n${verify.error}`;
+              bot.editMessageText(errorText, { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }).catch(e => {});
             }
-          } else {
-            // No price found — still let them proceed
-            if (fetchMsg) {
-              bot.editMessageText(
-                `✅ *${chainLabel} address saved!*\n\`${text.slice(0,10)}...\`\n\n⚠️ Could not fetch live price right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD):\nExample: \`0.02593\``,
-                { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }
-              ).catch(e => {});
-            }
+            return;
+          }
 
-            // Still update history with unknown symbol
-            const cid = String(chatId);
-            if (!history[cid]) history[cid] = [];
-            history[cid] = history[cid].filter(h => h.address !== text);
-            history[cid].unshift({ address: text, symbol: '?', chain });
-            if (history[cid].length > 10) history[cid].pop();
-            saveData(HISTORY_FILE, history);
+          const { chain, symbol, name, market } = verify;
+          const chainLabel = chain === 'ethereum' ? '⟠ Ethereum' : '◎ Solana';
+          const icon = chain === 'ethereum' ? '🔹' : '◎';
+
+          userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, chain };
+
+          const priceDisplay = market.price < 0.01
+            ? `$${market.price.toFixed(10)}`
+            : `$${market.price.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
+          const changeEmoji = market.priceChange24h >= 0 ? '📈' : '📉';
+
+          // Update history
+          const cid = String(chatId);
+          if (!history[cid]) history[cid] = [];
+          history[cid] = history[cid].filter(h => h.address !== text);
+          history[cid].unshift({ address: text, symbol, chain });
+          if (history[cid].length > 10) history[cid].pop();
+          saveData(HISTORY_FILE, history);
+
+          if (fetchMsg) {
+            bot.editMessageText(
+              `✅ *${name}* | ${chainLabel}\n${icon} \`${text.slice(0,10)}...\` | $${market.price}\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${(market.price * 1.2).toFixed(6)}\``,
+              { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }
+            ).catch(e => {});
           }
         } catch(e) {
-          console.error('Price fetch error in bot:', e.message);
+          console.error('Unified fetch error in bot:', e.message);
+          if (fetchMsg) bot.editMessageText(`❌ *Error:* Failed to process request.`, { chat_id: chatId, message_id: fetchMsg.message_id }).catch(e=>{});
         }
         return;
       }
@@ -1128,55 +1108,65 @@ function setupBotHandlers() {
     const chatId = msg.chat.id;
     const parts = match[1].trim().split(/\s+/);
     if (parts.length < 2) return bot.sendMessage(chatId, "❌ Usage: `/alerts <address> <price> [above|below]`", { parse_mode: "Markdown" }).catch(e=>{});
+    
     const address = parts[0];
     const targetPrice = parseFloat(parts[1]);
     let direction = (parts[2] || 'above').toLowerCase();
     if (direction !== 'above' && direction !== 'below') direction = 'above';
     if (isNaN(targetPrice)) return bot.sendMessage(chatId, "❌ Invalid price.").catch(e=>{});
-    const isSolAddr = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
-    const isEthAddr = /^0x[0-9a-fA-F]{40}$/.test(address);
-    if (!isSolAddr && !isEthAddr) return bot.sendMessage(chatId, "❌ Invalid address! Use a Solana (Base58) or Ethereum (0x...) address.").catch(e=>{});
-    if (!alerts[chatId]) alerts[chatId] = {};
-    alerts[chatId][address] = { price: targetPrice, direction, chain: isEthAddr ? 'ethereum' : 'solana' };
-    saveData(ALERTS_FILE, alerts);
-    sendNotificationReminder(chatId);
-    const icon = isEthAddr ? '🔹' : '◎';
-    bot.sendMessage(chatId, `🔔 Alert set for ${icon} \`${address.slice(0,6)}...\` at $${targetPrice} (${direction}).`, { parse_mode: "Markdown" }).catch(e=>{});
-    const market = await getMarketData(address);
-    if (market) {
-      let already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
-      if (already) {
-        bot.sendMessage(chatId, `⚠️ Price already meets condition! Current: $${market.price}. Alert triggered.`).catch(e=>{});
-        const options = {
-          parse_mode: "Markdown",
-          reply_markup: {
-            inline_keyboard: [[{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]]
-          }
-        };
-        bot.sendMessage(chatId, `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`, options).catch(e=>{});
-        playSound(chatId);
-        delete alerts[chatId][address];
-        saveData(ALERTS_FILE, alerts);
+
+    const msgSend = await bot.sendMessage(chatId, "⏳ Verifying token...");
+    try {
+      const verify = await verifyTokenDetails(address);
+      if (!verify.success) {
+        const errorText = verify.unsupported ? `❌ *Unsupported Chain!*\n${verify.error}` : `❌ *Error:* ${verify.error}`;
+        await bot.editMessageText(errorText, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: 'Markdown' }).catch(e => {});
+        return;
       }
+
+      const { chain, symbol } = verify;
+      if (!alerts[chatId]) alerts[chatId] = {};
+      alerts[chatId][address] = { price: targetPrice, direction, chain };
+      saveData(ALERTS_FILE, alerts);
+      
+      const icon = chain === 'ethereum' ? '🔹' : '◎';
+      const chainLabel = chain === 'ethereum' ? 'ETH' : 'SOL';
+      
+      await bot.editMessageText(`✅ *Alert Set Successfully!*\n${icon} \`${address.slice(0,6)}...\` [${chainLabel}]\n💰 Target: $${targetPrice} (${direction})`, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: 'Markdown' }).catch(e=>{});
+      
+      sendNotificationReminder(chatId);
+    } catch(e) {
+      await bot.editMessageText(`❌ *Error:* Failed to verify token.`, { chat_id: chatId, message_id: msgSend.message_id }).catch(e=>{});
     }
   });
   
   bot.onText(/([1-9A-HJ-NP-Za-km-z]{32,44}|0x[0-9a-fA-F]{40})/, async (msg) => {
     const chatId = msg.chat.id;
     const address = msg.text.trim();
-    const isEth = address.startsWith('0x');
     const msgSend = await bot.sendMessage(chatId, "⏳ Analyzing...");
-    const market = isEth ? await getMarketDataEth(address, 2) : await getMarketData(address, 2);
-    const risk = calculateRiskScore(market);
-    const icon = isEth ? '🔹' : '◎';
-    let response = `🔍 *Token:* ${icon} \`${address.slice(0,6)}...\`\n\n`;
-    if (market) {
+    
+    try {
+      const verify = await verifyTokenDetails(address);
+      if (!verify.success) {
+        const errorText = verify.unsupported ? `❌ *Unsupported Chain!*\n${verify.error}` : `❌ *Error:* ${verify.error}`;
+        await bot.editMessageText(errorText, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: 'Markdown' }).catch(e => {});
+        return;
+      }
+
+      const { chain, symbol, name, market } = verify;
+      const risk = calculateRiskScore(market);
+      const icon = chain === 'ethereum' ? '🔹' : '◎';
+      const chainLabel = chain === 'ethereum' ? 'ETH' : 'SOL';
+
+      let response = `${icon} *${name}* | ${chainLabel} | $${market.price} | \`${address.slice(0,6)}...\`\n\n`;
       response += `💰 Price: $${market.price}\n💧 Liquidity: ${market.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A"}\n📊 24h Vol: ${market.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : "N/A"}\n📈 24h Change: ${market.priceChange24h ? `${market.priceChange24h}%` : "N/A"}\n🏦 Market Cap: ${market.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : "N/A"}\n🟢 Buys 24h: ${market.buyCount}\n🔴 Sells 24h: ${market.sellCount}\n\n`;
-    } else {
-      response += `❌ No market data found.\n\n`;
+      response += `🎯 Risk: ${risk.score}/100 – ${risk.level}\n📋 ${risk.reasons.join("\n")}\n\n📈 [View Chart](${market.chartUrl})`;
+      
+      await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e=>console.error(e));
+    } catch(e) {
+      console.error('Direct analyzer error:', e.message);
+      await bot.editMessageText(`❌ *Error:* Failed to fetch token data.`, { chat_id: chatId, message_id: msgSend.message_id }).catch(e=>{});
     }
-    response += `🎯 Risk: ${risk.score}/100 – ${risk.level}\n📋 ${risk.reasons.join("\n")}\n\n📈 [View Chart](${market?.chartUrl || (isEth ? `https://dexscreener.com/ethereum/${address}` : `https://dexscreener.com/solana/${address}`)})`;
-    await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e=>console.error(e));
   });
 
   bot.onText(/\/setalert/, (msg) => {
