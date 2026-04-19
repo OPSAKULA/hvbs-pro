@@ -833,6 +833,47 @@ app.get("/api/trending/bsc", async (req, res) => {
   } catch(err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// ========== CHAIN AUTO-DETECTION ==========
+// Supported chains: solana, ethereum, bsc
+const SUPPORTED_CHAINS = ['ethereum', 'bsc'];
+const CHAIN_LABELS = {
+  ethereum: '⟠ Ethereum',
+  bsc:      '🟡 BNB Chain',
+  base:     'Base',
+  polygon:  'Polygon',
+  arbitrum: 'Arbitrum',
+  avalanche:'Avalanche',
+  solana:   '◎ Solana',
+};
+
+async function detectEVMChain(address) {
+  try {
+    const res = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 8000 });
+    const pairs = res.data.pairs || [];
+    if (pairs.length === 0) return { chain: null, found: false, allChains: [] };
+
+    // Sum liquidity per chain
+    const chainLiq = {};
+    for (const p of pairs) {
+      if (!chainLiq[p.chainId]) chainLiq[p.chainId] = 0;
+      chainLiq[p.chainId] += (p.liquidity?.usd || 0);
+    }
+    const allChains = Object.keys(chainLiq);
+
+    // Pick best supported chain by liquidity
+    let bestChain = null, bestLiq = 0;
+    for (const ch of SUPPORTED_CHAINS) {
+      if (chainLiq[ch] !== undefined && chainLiq[ch] > bestLiq) {
+        bestLiq = chainLiq[ch];
+        bestChain = ch;
+      }
+    }
+    return { chain: bestChain, found: true, allChains };
+  } catch(e) {
+    return { chain: null, found: false, allChains: [] };
+  }
+}
+
 // ========== MAIN API ENDPOINTS ==========
 app.get("/api/token/:address", async (req, res) => {
   const mint = req.params.address;
@@ -1046,7 +1087,8 @@ function setupBotHandlers() {
       // Step 1: Waiting for token address
       if (state.step === 'waiting_address') {
         const isSolana = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text);
-        const isEth = /^0x[0-9a-fA-F]{40}$/.test(text);
+        const isEth    = /^0x[0-9a-fA-F]{40}$/.test(text);
+
         if (!isSolana && !isEth) {
           bot.sendMessage(chatId,
             '❌ *Invalid Address!*\nPlease paste a valid:\n• *Solana* address: `Dfh5DzRgSvvCFDoYc2ciTkMrbDfRKybA4SoFbPmApump`\n• *Ethereum/BNB* address: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`',
@@ -1055,27 +1097,89 @@ function setupBotHandlers() {
           return;
         }
 
-        // If 0x address — ask Ethereum or BNB Chain?
+        // ===== 0x ADDRESS: AUTO-DETECT CHAIN =====
         if (isEth) {
-          userStates[chatId] = { step: 'waiting_chain', direction: state.direction, address: text };
-          bot.sendMessage(chatId,
-            `🔗 *0x Address Detected!*\n\`${text.slice(0,16)}...\`\n\n⚡ Which chain is this token on?`,
-            {
-              parse_mode: 'Markdown',
-              reply_markup: {
-                inline_keyboard: [[
-                  { text: '⟠ Ethereum', callback_data: 'chain_eth' },
-                  { text: '🟡 BNB Chain', callback_data: 'chain_bsc' }
-                ]]
-              }
+          // Send detecting message
+          const detectMsg = await bot.sendMessage(chatId,
+            `🔍 *Detecting Chain...*\n\`${text.slice(0,16)}...\`\n\n⏳ Checking DexScreener for chain info...`,
+            { parse_mode: 'Markdown' }
+          ).catch(e => null);
+
+          const detected = await detectEVMChain(text);
+
+          if (!detected.found) {
+            // No pairs found anywhere
+            if (detectMsg) bot.editMessageText(
+              `❌ *Token Not Found!*\n\`${text.slice(0,16)}...\`\n\n⚠️ No trading pairs found for this address on any chain.\n\n• Make sure it's a valid token contract\n• Token may not have liquidity yet\n• Try again in a few minutes`,
+              { chat_id: chatId, message_id: detectMsg.message_id, parse_mode: 'Markdown' }
+            ).catch(e => {});
+            delete userStates[chatId];
+            return;
+          }
+
+          if (!detected.chain) {
+            // Found on unsupported chain(s)
+            const foundOn = detected.allChains
+              .map(c => CHAIN_LABELS[c] || c)
+              .join(', ');
+            if (detectMsg) bot.editMessageText(
+              `❌ *Unsupported Chain!*\n\`${text.slice(0,16)}...\`\n\n📍 Token found on: *${foundOn}*\n\n⚠️ HVBS currently supports:\n• ◎ *Solana*\n• ⟠ *Ethereum*\n• 🟡 *BNB Chain (BSC)*\n\nPlease paste a token from a supported chain.`,
+              { chat_id: chatId, message_id: detectMsg.message_id, parse_mode: 'Markdown' }
+            ).catch(e => {});
+            delete userStates[chatId];
+            return;
+          }
+
+          // ✅ Chain detected automatically!
+          const chain = detected.chain;
+          const chainLabel = CHAIN_LABELS[chain];
+          userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, chain };
+
+          // Fetch live price
+          const market = chain === 'bsc' ? await getMarketDataBNB(text) : await getMarketDataEth(text);
+
+          if (market && market.price) {
+            const priceDisplay = market.price < 0.01
+              ? `$${market.price.toFixed(10)}`
+              : `$${market.price.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
+            const changeEmoji = market.priceChange24h >= 0 ? '📈' : '📉';
+            const symbol = market.symbol || '?';
+
+            const cid = String(chatId);
+            if (!history[cid]) history[cid] = [];
+            history[cid] = history[cid].filter(h => h.address !== text);
+            history[cid].unshift({ address: text, symbol, chain });
+            if (history[cid].length > 10) history[cid].pop();
+            saveData(HISTORY_FILE, history);
+
+            if (detectMsg) {
+              bot.editMessageText(
+                `✅ *${chainLabel} — ${symbol} (Auto-detected!)*\n\`${text.slice(0,10)}...\`\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${market.price < 0.01 ? (market.price * 1.2).toFixed(10) : (market.price * 1.2).toFixed(6)}\``,
+                { chat_id: chatId, message_id: detectMsg.message_id, parse_mode: 'Markdown' }
+              ).catch(e => {});
             }
-          ).catch(e => {});
+          } else {
+            const cid = String(chatId);
+            if (!history[cid]) history[cid] = [];
+            history[cid] = history[cid].filter(h => h.address !== text);
+            history[cid].unshift({ address: text, symbol: '?', chain });
+            if (history[cid].length > 10) history[cid].pop();
+            saveData(HISTORY_FILE, history);
+
+            if (detectMsg) {
+              bot.editMessageText(
+                `✅ *${chainLabel} (Auto-detected!)*\n\`${text.slice(0,10)}...\`\n\n⚠️ Could not fetch live price right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD):\nExample: \`0.02593\``,
+                { chat_id: chatId, message_id: detectMsg.message_id, parse_mode: 'Markdown' }
+              ).catch(e => {});
+            }
+          }
           return;
         }
 
+        // ===== SOLANA ADDRESS =====
         const chain = 'solana';
         userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, chain };
-        const chainLabel = isEth ? '⟠ Ethereum' : '◎ Solana';
+        const chainLabel = '◎ Solana';
 
         // Send "fetching..." message first
         const fetchMsg = await bot.sendMessage(chatId,
@@ -1085,14 +1189,13 @@ function setupBotHandlers() {
 
         // Fetch live price
         try {
-          const market = isEth ? await getMarketDataEth(text) : await getMarketData(text);
+          const market = await getMarketData(text);
           if (market && market.price) {
             const priceDisplay = market.price < 0.01
               ? `$${market.price.toFixed(10)}`
               : `$${market.price.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
             const changeEmoji = market.priceChange24h >= 0 ? '📈' : '📉';
 
-            // Update history
             const symbol = market.symbol || '?';
             const cid = String(chatId);
             if (!history[cid]) history[cid] = [];
@@ -1108,7 +1211,6 @@ function setupBotHandlers() {
               ).catch(e => {});
             }
           } else {
-            // No price found — still let them proceed
             if (fetchMsg) {
               bot.editMessageText(
                 `✅ *${chainLabel} address saved!*\n\`${text.slice(0,10)}...\`\n\n⚠️ Could not fetch live price right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD):\nExample: \`0.02593\``,
@@ -1116,7 +1218,6 @@ function setupBotHandlers() {
               ).catch(e => {});
             }
 
-            // Still update history with unknown symbol
             const cid = String(chatId);
             if (!history[cid]) history[cid] = [];
             history[cid] = history[cid].filter(h => h.address !== text);
