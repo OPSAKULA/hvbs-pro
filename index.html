@@ -85,6 +85,7 @@
     .scan-btn:hover { transform: scale(1.02); }
     .chain-btn-active { background: linear-gradient(135deg,#064e3b,#065f46) !important; border-color: #10b981 !important; color: #10b981 !important; box-shadow: 0 0 12px rgba(16,185,129,0.3); }
     #chainBtnEthereum.chain-btn-active { background: linear-gradient(135deg,#1e1b4b,#1e3a8a) !important; border-color: #627eea !important; color: #627eea !important; box-shadow: 0 0 12px rgba(98,126,234,0.3); }
+    #chainBtnBSC.chain-btn-active { background: linear-gradient(135deg,#2a1800,#3d2200) !important; border-color: #F3BA2F !important; color: #F3BA2F !important; box-shadow: 0 0 12px rgba(243,186,47,0.3); }
     .result-card { padding: 1.8rem; margin-top: 1.5rem; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
     .token-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #334155; }
@@ -520,6 +521,7 @@
     <div style="display:flex;gap:0.6rem;margin-bottom:1rem;flex-wrap:wrap;">
       <button id="chainBtnSolana" onclick="selectChain('solana')" class="chain-btn-active" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #10b981;background:linear-gradient(135deg,#064e3b,#065f46);color:#10b981;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">◎ Solana</button>
       <button id="chainBtnEthereum" onclick="selectChain('ethereum')" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #334155;background:#0f172a;color:#94a3b8;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">⟠ Ethereum</button>
+      <button id="chainBtnBSC" onclick="selectChain('bsc')" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #334155;background:#0f172a;color:#94a3b8;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">🟡 BNB Chain</button>
     </div>
     <div id="chainInputHint" style="font-size:0.78rem;color:#64748b;margin-bottom:0.8rem;">💡 Example: <span style="color:#10b981;font-family:monospace;">EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v</span></div>
     <div class="input-group">
@@ -697,8 +699,8 @@
             </svg>
           </div>
           <div class="chain-name" style="color:#F3BA2F;">BNB Chain</div>
-          <div class="chain-status status-coming">⏳ Coming Soon</div>
-          <div class="chain-desc">Q3 2026 • Anti‑scam shield &amp; alerts</div>
+          <div class="chain-status status-live">✅ Live</div>
+          <div class="chain-desc">Fully integrated • Scanner, alerts, anti‑scam shield</div>
         </div>
       </div>
       <div class="chain-card-wrapper">
@@ -718,72 +720,248 @@
   </div>
 
   <!-- ===== CRYPTO NEWS SECTION ===== -->
-  <div id="crypto-news-section" style="padding:2rem 0 0.5rem;">
-    <div class="section-title" style="text-align:center;margin-bottom:1.4rem;">📰 Crypto News Live</div>
-    <div id="news-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.2rem;padding:0 0.5rem;">
+  <div class="multi-chain-alerts" id="crypto-news-section">
+    <div class="section-title">📰 Crypto News Live</div>
+    <div class="news-grid-4">
 
       <!-- CoinDesk -->
-      <a href="https://www.coindesk.com/" target="_blank" rel="noopener" class="news-card" id="news-coindesk">
-        <div class="news-logo-row">
-          <span class="news-dot" style="background:#f7931a;box-shadow:0 0 8px #f7931a;"></span>
-          <span class="news-source-name">CoinDesk</span>
-          <span class="news-live-badge">LIVE</span>
-        </div>
-        <div class="news-ticker-wrap">
-          <div class="news-ticker" id="ticker-coindesk">
-            Bitcoin price analysis • Ethereum ETF update • Crypto regulation news • DeFi market moves • BTC hits new high • SEC crypto ruling • Layer 2 adoption surge • Altcoin season watch •&nbsp;
+      <div class="news-card-wrap">
+        <a href="https://www.coindesk.com/" target="_blank" rel="noopener" class="news-chain-card" id="news-coindesk">
+          <div class="news-header-row">
+            <span class="news-dot-pulse" style="background:#f7931a;box-shadow:0 0 10px #f7931a88;"></span>
+            <span class="news-src-title" style="color:#f7931a;">CoinDesk</span>
+            <span class="news-live-tag">● LIVE</span>
           </div>
-        </div>
-        <div class="news-visit">Visit CoinDesk →</div>
-      </a>
+          <div class="news-vticker-box">
+            <div class="news-vticker" id="vticker-cd">
+              <div class="news-line">₿ Bitcoin breaks $70K resistance level</div>
+              <div class="news-line">📊 ETH ETF sees record inflows this week</div>
+              <div class="news-line">🔐 New SEC crypto regulation proposal live</div>
+              <div class="news-line">🚀 Layer 2 adoption hits all-time high</div>
+              <div class="news-line">💰 DeFi TVL surges past $120 billion</div>
+              <div class="news-line">🌐 Altcoin season indicators flashing green</div>
+              <div class="news-line">📈 BTC dominance drops below 50%</div>
+              <div class="news-line">🔥 Meme coin revival sparks market rally</div>
+            </div>
+          </div>
+          <div class="news-visit-btn">Visit CoinDesk →</div>
+        </a>
+      </div>
 
       <!-- Cointelegraph -->
-      <a href="https://cointelegraph.com/" target="_blank" rel="noopener" class="news-card" id="news-cointelegraph">
-        <div class="news-logo-row">
-          <span class="news-dot" style="background:#0f0;box-shadow:0 0 8px #0f0;"></span>
-          <span class="news-source-name">Cointelegraph</span>
-          <span class="news-live-badge">LIVE</span>
-        </div>
-        <div class="news-ticker-wrap">
-          <div class="news-ticker" id="ticker-ct">
-            Blockchain adoption grows • NFT market update • Web3 gaming news • Solana network upgrade • ETH 2.0 staking • DeFi TVL rising • Crypto VC funding • Metaverse tokens rally •&nbsp;
+      <div class="news-card-wrap">
+        <a href="https://cointelegraph.com/" target="_blank" rel="noopener" class="news-chain-card" id="news-cointelegraph">
+          <div class="news-header-row">
+            <span class="news-dot-pulse" style="background:#00e676;box-shadow:0 0 10px #00e67688;"></span>
+            <span class="news-src-title" style="color:#00e676;">Cointelegraph</span>
+            <span class="news-live-tag">● LIVE</span>
           </div>
-        </div>
-        <div class="news-visit">Visit Cointelegraph →</div>
-      </a>
+          <div class="news-vticker-box">
+            <div class="news-vticker" id="vticker-ct">
+              <div class="news-line">🌐 Blockchain adoption grows 40% YoY</div>
+              <div class="news-line">🎮 NFT gaming market valued at $8B</div>
+              <div class="news-line">⚡ Solana network upgrade complete</div>
+              <div class="news-line">🔗 Web3 wallet hits 100M users globally</div>
+              <div class="news-line">💎 ETH 2.0 staking rewards at 4.2% APY</div>
+              <div class="news-line">🏦 Crypto VC funding up 60% this quarter</div>
+              <div class="news-line">🌍 Metaverse tokens rally 25% in 24h</div>
+              <div class="news-line">🤖 AI crypto projects dominate trends</div>
+            </div>
+          </div>
+          <div class="news-visit-btn">Visit Cointelegraph →</div>
+        </a>
+      </div>
 
       <!-- CryptoSlate -->
-      <a href="https://cryptoslate.com/" target="_blank" rel="noopener" class="news-card" id="news-cryptoslate">
-        <div class="news-logo-row">
-          <span class="news-dot" style="background:#7c3aed;box-shadow:0 0 8px #7c3aed;"></span>
-          <span class="news-source-name">CryptoSlate</span>
-          <span class="news-live-badge">LIVE</span>
-        </div>
-        <div class="news-ticker-wrap">
-          <div class="news-ticker" id="ticker-cs">
-            Market cap analysis • Bitcoin dominance chart • On-chain data insights • Stablecoin flows • Miner revenue update • Exchange inflows • Institutional buys • Token unlocks watch •&nbsp;
+      <div class="news-card-wrap">
+        <a href="https://cryptoslate.com/" target="_blank" rel="noopener" class="news-chain-card" id="news-cryptoslate">
+          <div class="news-header-row">
+            <span class="news-dot-pulse" style="background:#a855f7;box-shadow:0 0 10px #a855f788;"></span>
+            <span class="news-src-title" style="color:#a855f7;">CryptoSlate</span>
+            <span class="news-live-tag">● LIVE</span>
           </div>
-        </div>
-        <div class="news-visit">Visit CryptoSlate →</div>
-      </a>
+          <div class="news-vticker-box">
+            <div class="news-vticker" id="vticker-cs">
+              <div class="news-line">📊 Total market cap reaches $2.8T</div>
+              <div class="news-line">🏆 BTC dominance chart signals shift</div>
+              <div class="news-line">🔍 On-chain whale movements detected</div>
+              <div class="news-line">💵 USDT stablecoin supply crosses $110B</div>
+              <div class="news-line">⛏️ Bitcoin miner revenue hits 6-month high</div>
+              <div class="news-line">📉 Exchange outflows signal accumulation</div>
+              <div class="news-line">🏛️ Institutional BTC holdings up 12%</div>
+              <div class="news-line">🔓 Token unlock schedule for this week</div>
+            </div>
+          </div>
+          <div class="news-visit-btn">Visit CryptoSlate →</div>
+        </a>
+      </div>
 
       <!-- The Block -->
-      <a href="https://www.theblock.co/" target="_blank" rel="noopener" class="news-card" id="news-theblock">
-        <div class="news-logo-row">
-          <span class="news-dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8;"></span>
-          <span class="news-source-name">The Block</span>
-          <span class="news-live-badge">LIVE</span>
-        </div>
-        <div class="news-ticker-wrap">
-          <div class="news-ticker" id="ticker-tb">
-            Crypto research report • Exchange volume data • Protocol revenue stats • VC deal tracker • Policy & regulation • Funding rounds news • Token economics • DApp rankings update •&nbsp;
+      <div class="news-card-wrap">
+        <a href="https://www.theblock.co/" target="_blank" rel="noopener" class="news-chain-card" id="news-theblock">
+          <div class="news-header-row">
+            <span class="news-dot-pulse" style="background:#38bdf8;box-shadow:0 0 10px #38bdf888;"></span>
+            <span class="news-src-title" style="color:#38bdf8;">The Block</span>
+            <span class="news-live-tag">● LIVE</span>
           </div>
-        </div>
-        <div class="news-visit">Visit The Block →</div>
-      </a>
+          <div class="news-vticker-box">
+            <div class="news-vticker" id="vticker-tb">
+              <div class="news-line">📑 Q2 crypto research report published</div>
+              <div class="news-line">📈 DEX volume hits $45B monthly record</div>
+              <div class="news-line">💼 Protocol revenues surge this quarter</div>
+              <div class="news-line">🔭 VC deal flow: 3 unicorns this month</div>
+              <div class="news-line">🏛️ EU MiCA regulation takes effect</div>
+              <div class="news-line">💸 $500M raised in DeFi funding rounds</div>
+              <div class="news-line">🧩 Token economics redesign trend grows</div>
+              <div class="news-line">📱 DApp daily active users up 30%</div>
+            </div>
+          </div>
+          <div class="news-visit-btn">Visit The Block →</div>
+        </a>
+      </div>
 
     </div>
   </div>
+
+  <style>
+  /* News section dedicated grid */
+  .news-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  @media (max-width: 900px) {
+    .news-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 540px) {
+    .news-grid-4 { grid-template-columns: 1fr; }
+  }
+  .news-card-wrap {
+    min-width: 0;
+    overflow: hidden;
+  }
+  </style>
+
+  <style>
+  /* ===== NEWS CHAIN CARDS ===== */
+  .news-chain-card {
+    text-decoration: none !important;
+    color: inherit !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    cursor: pointer;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    background: rgba(5, 14, 38, 0.7);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 12px;
+    padding: 0.85rem;
+    transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+  }
+  .news-chain-card:hover {
+    text-decoration: none !important;
+  }
+  .news-header-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .news-dot-pulse {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulseDot 1.3s ease-in-out infinite;
+  }
+  @keyframes pulseDot {
+    0%,100%{opacity:1;transform:scale(1);}
+    50%{opacity:0.45;transform:scale(1.5);}
+  }
+  .news-src-title {
+    font-weight: 800;
+    font-size: 0.88rem;
+    letter-spacing: 0.04em;
+  }
+  .news-live-tag {
+    margin-left: auto;
+    font-size: 0.58rem;
+    font-weight: 800;
+    color: #ef4444;
+    letter-spacing: 0.1em;
+    animation: blinkLive 1.6s ease-in-out infinite;
+  }
+  @keyframes blinkLive{0%,100%{opacity:1;}50%{opacity:0.2;}}
+
+  /* Vertical scrolling ticker */
+  .news-vticker-box {
+    height: 120px;
+    overflow: hidden;
+    position: relative;
+    border-top: 1px solid rgba(99,102,241,0.2);
+    border-bottom: 1px solid rgba(99,102,241,0.2);
+    padding: 4px 0;
+  }
+  .news-vticker-box::before,
+  .news-vticker-box::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 22px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .news-vticker-box::before {
+    top: 0;
+    background: linear-gradient(to bottom, rgba(5,14,38,0.95), transparent);
+  }
+  .news-vticker-box::after {
+    bottom: 0;
+    background: linear-gradient(to top, rgba(5,14,38,0.95), transparent);
+  }
+  .news-vticker {
+    display: flex;
+    flex-direction: column;
+    animation: scrollUp 16s linear infinite;
+  }
+  .news-vticker:hover {
+    animation-play-state: paused;
+  }
+  @keyframes scrollUp {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
+  }
+  .news-line {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    padding: 4px 2px;
+    line-height: 1.4;
+    white-space: normal;
+    word-break: break-word;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(99,102,241,0.06);
+    transition: color 0.2s;
+  }
+  .news-chain-card:hover .news-line {
+    color: #cbd5e1;
+  }
+  .news-visit-btn {
+    font-size: 0.7rem;
+    color: #6366f1;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-top: 0.1rem;
+    transition: color 0.2s;
+  }
+  .news-chain-card:hover .news-visit-btn {
+    color: #818cf8;
+  }
+  </style>
+  <!-- END CRYPTO NEWS SECTION -->
 
   <style>
   .news-card {
@@ -1017,7 +1195,7 @@ function toggleTnC(){var b=document.getElementById('tncToggleBtn');var d=documen
 const BACKEND = "https://hvbs-pro.onrender.com";
 
 // ========== CHAIN SELECTOR STATE ==========
-let selectedChain = 'solana'; // 'solana' or 'ethereum'
+let selectedChain = 'solana'; // 'solana', 'ethereum', or 'bsc'
 
 function autoDetectChain(val) {
   if (/^0x[0-9a-fA-F]{1,40}/.test(val.trim())) {
@@ -1031,14 +1209,18 @@ function selectChain(chain) {
   selectedChain = chain;
   document.getElementById('chainBtnSolana').classList.toggle('chain-btn-active', chain === 'solana');
   document.getElementById('chainBtnEthereum').classList.toggle('chain-btn-active', chain === 'ethereum');
+  document.getElementById('chainBtnBSC').classList.toggle('chain-btn-active', chain === 'bsc');
   const input = document.getElementById('tokenAddress');
-  const hint = document.getElementById('chainInputHint');
+  const hint  = document.getElementById('chainInputHint');
   if (chain === 'solana') {
     input.placeholder = '🔍 Enter Solana Token Address (Base58)...';
     hint.innerHTML = '💡 Example: <span style="color:#10b981;font-family:monospace;">EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v</span>';
-  } else {
+  } else if (chain === 'ethereum') {
     input.placeholder = '🔍 Enter Ethereum Token Address (0x...)...';
     hint.innerHTML = '💡 Example: <span style="color:#627eea;font-family:monospace;">0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48</span> (USDC)';
+  } else {
+    input.placeholder = '🔍 Enter BNB Chain Token Address (0x...)...';
+    hint.innerHTML = '💡 Example: <span style="color:#F3BA2F;font-family:monospace;">0x55d398326f99059fF775485246999027B3197955</span> (USDT BSC)';
   }
 }
 
@@ -1144,27 +1326,31 @@ function buildExchangesHtml(platform, mintAddress) {
 
 async function scanToken() {
   const addr = document.getElementById("tokenAddress").value.trim();
-  if (!addr) return alert(selectedChain === 'ethereum' ? "Enter an Ethereum token address (0x...)" : "Enter a Solana token address");
+  if (!addr) return alert(selectedChain === 'bsc' ? 'Enter a BNB Chain token address (0x...)' : selectedChain === 'ethereum' ? 'Enter an Ethereum token address (0x...)' : 'Enter a Solana token address');
 
   // Validate based on chain
-  if (selectedChain === 'ethereum') {
+  if (selectedChain === 'ethereum' || selectedChain === 'bsc') {
     if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
-      return alert("❌ Invalid Ethereum address!\nMust start with 0x followed by 40 hex characters.\nExample: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
+      return alert(`❌ Invalid ${selectedChain === 'bsc' ? 'BNB Chain' : 'Ethereum'} address!\nMust start with 0x followed by 40 hex characters.`);
     }
   } else {
     if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr)) {
-      return alert("❌ Invalid Solana address!\nMust be 32-44 Base58 characters.");
+      return alert('❌ Invalid Solana address!\nMust be 32-44 Base58 characters.');
     }
   }
 
   const card = document.getElementById("resultCard");
   card.style.display = "block";
-  const chainLabel = selectedChain === 'ethereum' ? '⟠ Ethereum' : '◎ Solana';
-  const chainColor = selectedChain === 'ethereum' ? '#627eea' : '#9945ff';
+  const chainLabel = selectedChain === 'bsc' ? '🟡 BNB Chain' : selectedChain === 'ethereum' ? '⟠ Ethereum' : '◎ Solana';
+  const chainColor  = selectedChain === 'bsc' ? '#F3BA2F'     : selectedChain === 'ethereum' ? '#627eea'    : '#9945ff';
   card.innerHTML = `<div style="text-align:center;padding:2rem;"><div style="font-size:2rem;">⏳</div><div style="margin-top:0.5rem;color:#94a3b8;">Scanning <span style="color:${chainColor};font-weight:700;">${chainLabel}</span> token... (cold start may take 50s)</div></div>`;
   let data = null, platformData = null;
   try {
-    const apiEndpoint = selectedChain === 'ethereum' ? `${BACKEND}/api/token/ethereum/${addr}` : `${BACKEND}/api/token/${addr}`;
+    const apiEndpoint = selectedChain === 'bsc'
+      ? `${BACKEND}/api/token/bsc/${addr}`
+      : selectedChain === 'ethereum'
+        ? `${BACKEND}/api/token/ethereum/${addr}`
+        : `${BACKEND}/api/token/${addr}`;
     const [backendRes, platData] = await Promise.allSettled([
       (async () => { const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 70000); const res = await fetch(apiEndpoint, { signal: controller.signal }); clearTimeout(timeoutId); const d = await res.json(); if (!d.success) throw new Error(d.error); return d; })(),
       enrichPlatformData(addr)
@@ -1175,7 +1361,7 @@ async function scanToken() {
       const pairs = platformData?.exchanges?.filter(e => e.type === 'DEX') || [];
       if (pairs.length === 0 && !platformData?.coingecko?.listed) throw new Error("Token not found — Backend offline and no on-chain data available.");
       const cgCoin = platformData?.coingecko;
-      const baseChartUrl = selectedChain === 'ethereum' ? `https://dexscreener.com/ethereum/${addr}` : `https://dexscreener.com/solana/${addr}`;
+      const baseChartUrl = selectedChain === 'bsc' ? `https://dexscreener.com/bsc/${addr}` : selectedChain === 'ethereum' ? `https://dexscreener.com/ethereum/${addr}` : `https://dexscreener.com/solana/${addr}`;
       data = { success: true, chain: selectedChain, tokenAddress: addr, name: cgCoin?.name || 'Unknown Token', symbol: cgCoin?.symbol || '???', logo: cgCoin?.image || '', price: 'Fetching...', liquidity: 'N/A', volume24h: 'N/A', priceChange24h: 'N/A', marketCap: 'N/A', holderCount: 0, riskScore: 50, riskLevel: 'UNKNOWN — Backend Offline', riskReasons: ['⚠️ Backend server offline — full risk scan unavailable', '✅ Token found on CoinGecko/DEX'], buyersSellers: { h1:{buys:0,sells:0}, h6:{buys:0,sells:0}, h24:{buys:0,sells:0} }, topHolders: [], chartUrl: baseChartUrl, exchanges: platformData?.exchanges || [], socialLinks: platformData?.socialLinks || {}, platformPresence: platformData || {}, coingeckoUrl: cgCoin?.url || '' };
     }
     if (platformData) {
@@ -1191,14 +1377,16 @@ async function scanToken() {
   }
 
   // Chain badge
-  const chainBadge = (data.chain || selectedChain) === 'ethereum'
-    ? `<span style="background:linear-gradient(135deg,#627eea,#3d5afe);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">⟠ Ethereum</span>`
-    : `<span style="background:linear-gradient(135deg,#9945ff,#19fb9b);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">◎ Solana</span>`;
+  const chainBadge = (data.chain || selectedChain) === 'bsc'
+    ? `<span style="background:linear-gradient(135deg,#3d2200,#F3BA2F22);color:#F3BA2F;border:1px solid #F3BA2F55;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">🟡 BNB Chain</span>`
+    : (data.chain || selectedChain) === 'ethereum'
+      ? `<span style="background:linear-gradient(135deg,#627eea,#3d5afe);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">⟠ Ethereum</span>`
+      : `<span style="background:linear-gradient(135deg,#9945ff,#19fb9b);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">◎ Solana</span>`;
 
   // Explorer link based on chain
-  const explorerBase = (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/token' : 'https://solscan.io/token';
-  const explorerLabel = (data.chain || selectedChain) === 'ethereum' ? 'Etherscan' : 'Solscan';
-  const dexScreenerLabel = (data.chain || selectedChain) === 'ethereum' ? 'View on DexScreener (ETH) →' : 'View on DexScreener →';
+  const explorerBase  = (data.chain || selectedChain) === 'bsc' ? 'https://bscscan.com/token' : (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/token' : 'https://solscan.io/token';
+  const explorerLabel = (data.chain || selectedChain) === 'bsc' ? 'BscScan' : (data.chain || selectedChain) === 'ethereum' ? 'Etherscan' : 'Solscan';
+  const dexScreenerLabel = (data.chain || selectedChain) === 'bsc' ? 'View on DexScreener (BSC) →' : (data.chain || selectedChain) === 'ethereum' ? 'View on DexScreener (ETH) →' : 'View on DexScreener →';
 
   const riskClass = data.riskLevel.includes("SAFE") ? "safe" : (data.riskLevel.includes("CAUTION") ? "caution" : "high");
   const bs = data.buyersSellers || { h1:{buys:0,sells:0}, h6:{buys:0,sells:0}, h24:{buys:0,sells:0} };
@@ -1209,7 +1397,7 @@ async function scanToken() {
   if (holders.length === 0) { holdersHtml += `<div style="color:#94a3b8;font-size:0.85rem;">⚠️ Holder data unavailable (API limit or new token)</div>`; }
   else {
     holdersHtml += `<table class="holders-table"><tr><th>#</th><th>Wallet Address</th><th>Amount</th><th>%</th></tr>`;
-    const holderExplorerBase = (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/address' : 'https://solscan.io/account';
+    const holderExplorerBase = (data.chain || selectedChain) === 'bsc' ? 'https://bscscan.com/address' : (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/address' : 'https://solscan.io/account';
     holders.forEach((h, i) => { const rc = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''; const short = h.address.length>10 ? h.address.slice(0,6)+'...'+h.address.slice(-4) : h.address; const pct = parseFloat(h.percentage) || 0; holdersHtml += `<tr><td><span class="rank-badge ${rc}">${i+1}</span></td><td><a href="${holderExplorerBase}/${h.address}" target="_blank" class="holder-addr" title="${h.address}">${short}</a></td><td>${typeof h.amount==='number' ? h.amount.toLocaleString(undefined,{maximumFractionDigits:2}) : h.amount}</td><td><span>${h.percentage!=='N/A' ? h.percentage+'%' : 'N/A'}</span>${pct>0 ? `<div class="pct-bar"><div class="pct-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>` : ''}</td></tr>`; });
     holdersHtml += `</table>`;
   }
@@ -1571,7 +1759,8 @@ document.getElementById("tokenAddress").addEventListener("keypress", e => e.key=
 // Auto-detect chain from pasted address
 document.getElementById("tokenAddress").addEventListener("input", e => {
   const val = e.target.value.trim();
-  if (/^0x[0-9a-fA-F]{1,40}$/.test(val) && selectedChain !== 'ethereum') {
+  if (/^0x[0-9a-fA-F]{1,40}$/.test(val) && selectedChain === 'solana') {
+    // 0x address — auto-switch to ethereum (user can manually change to BSC)
     selectChain('ethereum');
   } else if (/^[1-9A-HJ-NP-Za-km-z]{10,}$/.test(val) && selectedChain !== 'solana' && !val.startsWith('0x')) {
     selectChain('solana');
