@@ -219,27 +219,40 @@ async function getMarketData(mint, retries = 2) {
 // ========== UNIFIED TOKEN VERIFICATION ==========
 async function verifyTokenDetails(address) {
   try {
+    // Determine expected chain from address format
+    const isEthFormat = /^0x[0-9a-fA-F]{40}$/.test(address);
+    const isSolFormat = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
+    const expectedChain = isEthFormat ? 'ethereum' : (isSolFormat ? 'solana' : null);
+
+    if (!expectedChain) {
+      return { success: false, error: "Invalid address format.", unsupported: false };
+    }
+
     const res = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 8000 });
     const pairs = res.data.pairs || [];
     if (pairs.length === 0) return { success: false, error: "No market data found for this address." };
 
-    // Find the best pair across all chains
-    pairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
-    const p = pairs[0];
-    const chainId = p.chainId.toLowerCase();
+    // Filter pairs to ONLY the expected chain (ethereum or solana)
+    const expectedPairs = pairs.filter(p => p.chainId.toLowerCase() === expectedChain);
 
-    // Check if supported
-    if (chainId !== 'solana' && chainId !== 'ethereum') {
-      return { 
-        success: false, 
-        error: `Unsupported chain: ${chainId.toUpperCase()}`,
+    // If no pairs on expected chain but pairs exist on other chains
+    if (expectedPairs.length === 0) {
+      // Find which chain this address actually belongs to
+      const foundChain = pairs[0].chainId.toUpperCase();
+      return {
+        success: false,
+        error: `❌ Address belongs to *${foundChain}* chain which is not supported.\nOnly Solana and Ethereum are supported.`,
         unsupported: true
       };
     }
 
+    // Use best liquidity pair from the CORRECT chain
+    expectedPairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
+    const p = expectedPairs[0];
+
     return {
       success: true,
-      chain: chainId,
+      chain: expectedChain,
       symbol: p.baseToken?.symbol || "?",
       name: p.baseToken?.name || "",
       market: {
