@@ -241,7 +241,7 @@ async function verifyTokenDetails(address) {
       const foundChain = pairs[0].chainId.toUpperCase();
       return {
         success: false,
-        error: `❌ Address belongs to *${foundChain}* chain which is not supported.\nOnly Solana and Ethereum are supported.`,
+        error: `Address belongs to *${foundChain}* chain.\nOnly Solana and Ethereum are supported.`,
         unsupported: true
       };
     }
