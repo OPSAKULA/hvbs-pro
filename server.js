@@ -1,4 +1,3 @@
-// HVBS Bot v2.1 - Chain Validation Fix (BNB/BSC addresses now rejected)
 import express from "express";
 import cors from "cors";
 import axios from "axios";
@@ -46,6 +45,11 @@ const SOLSCAN_TOPHOLDERS      = "https://api.solscan.io/v2/token/holders?tokenAd
 const DEXSCREENER_ETH_PAIRS   = "https://api.dexscreener.com/token-pairs/v1/ethereum/";
 const GECKO_TERMINAL_ETH_API  = "https://api.geckoterminal.com/api/v2/networks/eth/tokens/";
 const TRENDING_ETH_API        = "https://api.dexscreener.com/latest/dex/search?q=ethereum";
+
+// ========== BNB / BSC CONSTANTS ==========
+const DEXSCREENER_BSC_PAIRS   = "https://api.dexscreener.com/token-pairs/v1/bsc/";
+const GECKO_TERMINAL_BSC_API  = "https://api.geckoterminal.com/api/v2/networks/bsc/tokens/";
+const TRENDING_BSC_API        = "https://api.dexscreener.com/latest/dex/search?q=bsc";
 
 const ALERTS_FILE    = "./alerts.json";
 const WATCHLIST_FILE = "./watchlist.json";
@@ -206,68 +210,72 @@ async function getMarketData(mint, retries = 2) {
         }
       }
     } catch(e) {}
+
+    try {
+      const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${mint}`, { timeout: 6000 });
+      const pairs = searchRes.data.pairs || [];
+      const solPairs = pairs.filter(p => p.chainId === "solana");
+      if (solPairs.length > 0) {
+        const p = solPairs[0];
+        const price = parseFloat(p.priceUsd);
+        if (price && !isNaN(price) && price > 0) {
+          return {
+            price,
+            liquidity:      p.liquidity?.usd      || 0,
+            volume24h:      p.volume?.h24          || 0,
+            priceChange24h: p.priceChange?.h24     || 0,
+            marketCap:      p.marketCap            || 0,
+            symbol:         p.baseToken?.symbol    || "?",
+            name:           p.baseToken?.name      || "",
+            chartUrl:       p.url || `https://dexscreener.com/solana/${mint}`,
+            buyCount:       p.txns?.h24?.buys      || 0,
+            sellCount:      p.txns?.h24?.sells     || 0,
+            pairAddress:    p.pairAddress           || ""
+          };
+        }
+      }
+    } catch(e) {}
+
+    try {
+      const jupRes = await axios.get(`${JUPITER_PRICE_API}${mint}`, { timeout: 5000 });
+      const tokenData = jupRes.data?.data?.[mint];
+      if (tokenData) {
+        const price = parseFloat(tokenData.price);
+        if (price && price > 0) {
+          return {
+            price, liquidity: 0, volume24h: 0, priceChange24h: 0, marketCap: 0,
+            symbol: tokenData.mintSymbol || "?", name: "",
+            chartUrl: `https://dexscreener.com/solana/${mint}`,
+            buyCount: 0, sellCount: 0, pairAddress: ""
+          };
+        }
+      }
+    } catch(e) {}
+
+    try {
+      const geckoRes = await axios.get(`${GECKO_TERMINAL_API}${mint}`, { timeout: 5000 });
+      const attrs = geckoRes.data?.data?.attributes;
+      if (attrs) {
+        const price = parseFloat(attrs.price_usd);
+        if (price && price > 0) {
+          return {
+            price,
+            liquidity:      parseFloat(attrs.total_reserve_in_usd) || 0,
+            volume24h:      parseFloat(attrs.volume_usd?.h24) || 0,
+            priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
+            marketCap:      parseFloat(attrs.market_cap_usd) || 0,
+            symbol:         attrs.symbol || "?",
+            name:           attrs.name || "",
+            chartUrl:       `https://dexscreener.com/solana/${mint}`,
+            buyCount: 0, sellCount: 0, pairAddress: ""
+          };
+        }
+      }
+    } catch(e) {}
+
     if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
   }
   return null;
-}
-
-// ========== UNIFIED TOKEN VERIFICATION ==========
-async function verifyTokenDetails(address) {
-  try {
-    // Determine expected chain from address format
-    const isEthFormat = /^0x[0-9a-fA-F]{40}$/.test(address);
-    const isSolFormat = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
-    const expectedChain = isEthFormat ? 'ethereum' : (isSolFormat ? 'solana' : null);
-
-    if (!expectedChain) {
-      return { success: false, error: "Invalid address format.", unsupported: false };
-    }
-
-    const res = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 8000 });
-    const pairs = res.data.pairs || [];
-    if (pairs.length === 0) return { success: false, error: "No market data found for this address." };
-
-    // Filter pairs to ONLY the expected chain (ethereum or solana)
-    const expectedPairs = pairs.filter(p => p.chainId.toLowerCase() === expectedChain);
-
-    // If no pairs on expected chain but pairs exist on other chains
-    if (expectedPairs.length === 0) {
-      // Find which chain this address actually belongs to
-      const foundChain = pairs[0].chainId.toUpperCase();
-      return {
-        success: false,
-        error: `Address belongs to *${foundChain}* chain.\nOnly Solana and Ethereum are supported.`,
-        unsupported: true
-      };
-    }
-
-    // Use best liquidity pair from the CORRECT chain
-    expectedPairs.sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
-    const p = expectedPairs[0];
-
-    return {
-      success: true,
-      chain: expectedChain,
-      symbol: p.baseToken?.symbol || "?",
-      name: p.baseToken?.name || "",
-      market: {
-        price: parseFloat(p.priceUsd) || 0,
-        liquidity: p.liquidity?.usd || 0,
-        volume24h: p.volume?.h24 || 0,
-        priceChange24h: p.priceChange?.h24 || 0,
-        marketCap: p.marketCap || 0,
-        symbol: p.baseToken?.symbol || "?",
-        name: p.baseToken?.name || "",
-        chartUrl: p.url,
-        buyCount: p.txns?.h24?.buys || 0,
-        sellCount: p.txns?.h24?.sells || 0,
-        pairAddress: p.pairAddress || ""
-      }
-    };
-  } catch (e) {
-    console.error("Verification error:", e.message);
-    return { success: false, error: "Failed to verify token data." };
-  }
 }
 
 // ========== TOP 10 HOLDERS ==========
@@ -402,10 +410,10 @@ async function searchTokenBySymbol(symbol) {
   try {
     const res = await axios.get(`${DEXSCREENER_SEARCH}${symbol}`, { timeout: 6000 });
     if (res.data.pairs) {
-      // Find the first Solana or Ethereum pair
-      const best = res.data.pairs.find(p => p.chainId === "solana" || p.chainId === "ethereum");
-      if (best) {
-        return { address: best.baseToken?.address, symbol: best.baseToken?.symbol, name: best.baseToken?.name, price: best.priceUsd, url: best.url, chain: best.chainId };
+      const solPairs = res.data.pairs.filter(p => p.chainId === "solana");
+      if (solPairs.length > 0) {
+        const best = solPairs[0];
+        return { address: best.baseToken?.address, symbol: best.baseToken?.symbol, name: best.baseToken?.name, price: best.priceUsd, url: best.url };
       }
     }
   } catch(e) {}
@@ -434,11 +442,11 @@ async function checkAllAlerts() {
       // Auto-detect chain: saved chain field OR address format
       const isEthAddress = /^0x[0-9a-fA-F]{40}$/.test(addr);
       const chain = alert.chain || (isEthAddress ? 'ethereum' : 'solana');
-      const chainLabel = chain === 'ethereum' ? '⟠ ETH' : '◎ SOL';
+      const chainLabel = chain === 'bsc' ? '🟡 BNB' : (chain === 'ethereum' ? '⟠ ETH' : '◎ SOL');
 
-      const market = chain === 'ethereum'
-        ? await getMarketDataEth(addr)
-        : await getMarketData(addr);
+      const market = chain === 'bsc'
+        ? await getMarketDataBNB(addr)
+        : (chain === 'ethereum' ? await getMarketDataEth(addr) : await getMarketData(addr));
 
       if (market) {
         let triggered = false;
@@ -449,9 +457,8 @@ async function checkAllAlerts() {
             parse_mode: "Markdown",
             reply_markup: { inline_keyboard: [[{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]] }
           };
-          const icon = chain === 'ethereum' ? '🔹' : '◎';
           bot.sendMessage(chatId,
-            `🚨 *PRICE ALERT!*\nToken [${chainLabel}]: ${icon} \`${addr.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`,
+            `🚨 *PRICE ALERT!*\nToken [${chainLabel}]: \`${addr.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`,
             options
           ).catch(e => console.error("Send message error:", e.message));
           playSound(chatId);
@@ -644,6 +651,188 @@ app.get("/api/token/ethereum/:address", async (req, res) => {
 
 app.get("/api/trending/ethereum", async (req, res) => {
   try { const trending = await getTrendingEthTokens(10); res.json({ success: true, trending }); }
+  catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// ========== BNB MARKET DATA ==========
+async function getMarketDataBNB(address, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await axios.get(`${DEXSCREENER_BSC_PAIRS}${address}`, { timeout: 6000 });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        const p = res.data[0];
+        const price = parseFloat(p.priceUsd);
+        if (price && !isNaN(price) && price > 0) {
+          return {
+            price,
+            liquidity:      p.liquidity?.usd      || 0,
+            volume24h:      p.volume?.h24          || 0,
+            priceChange24h: p.priceChange?.h24     || 0,
+            marketCap:      p.marketCap            || 0,
+            symbol:         p.baseToken?.symbol    || "?",
+            name:           p.baseToken?.name      || "",
+            chartUrl:       p.url || `https://dexscreener.com/bsc/${address}`,
+            buyCount:       p.txns?.h24?.buys      || 0,
+            sellCount:      p.txns?.h24?.sells     || 0,
+            pairAddress:    p.pairAddress           || ""
+          };
+        }
+      }
+    } catch(e) {}
+
+    try {
+      const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 6000 });
+      const pairs = searchRes.data.pairs || [];
+      const bscPairs = pairs.filter(p => p.chainId === "bsc");
+      if (bscPairs.length > 0) {
+        const p = bscPairs[0];
+        const price = parseFloat(p.priceUsd);
+        if (price && !isNaN(price) && price > 0) {
+          return {
+            price,
+            liquidity:      p.liquidity?.usd      || 0,
+            volume24h:      p.volume?.h24          || 0,
+            priceChange24h: p.priceChange?.h24     || 0,
+            marketCap:      p.marketCap            || 0,
+            symbol:         p.baseToken?.symbol    || "?",
+            name:           p.baseToken?.name      || "",
+            chartUrl:       p.url || `https://dexscreener.com/bsc/${address}`,
+            buyCount:       p.txns?.h24?.buys      || 0,
+            sellCount:      p.txns?.h24?.sells     || 0,
+            pairAddress:    p.pairAddress           || ""
+          };
+        }
+      }
+    } catch(e) {}
+
+    try {
+      const geckoRes = await axios.get(`${GECKO_TERMINAL_BSC_API}${address}`, { timeout: 5000 });
+      const attrs = geckoRes.data?.data?.attributes;
+      if (attrs) {
+        const price = parseFloat(attrs.price_usd);
+        if (price && price > 0) {
+          return {
+            price,
+            liquidity:      parseFloat(attrs.total_reserve_in_usd) || 0,
+            volume24h:      parseFloat(attrs.volume_usd?.h24) || 0,
+            priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
+            marketCap:      parseFloat(attrs.market_cap_usd) || 0,
+            symbol:         attrs.symbol || "?",
+            name:           attrs.name || "",
+            chartUrl:       `https://dexscreener.com/bsc/${address}`,
+            buyCount: 0, sellCount: 0, pairAddress: ""
+          };
+        }
+      }
+    } catch(e) {}
+
+    if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
+  }
+  return null;
+}
+
+async function getHolderCountBNB(address) {
+  try {
+    const geckoRes = await axios.get(`${GECKO_TERMINAL_BSC_API}${address}`, { timeout: 5000 });
+    return geckoRes.data?.data?.attributes?.holders || 0;
+  } catch (e) { return 0; }
+}
+
+async function getBuyersSellersB(address) {
+  try {
+    const res = await axios.get(`${DEXSCREENER_BSC_PAIRS}${address}`, { timeout: 6000 });
+    if (Array.isArray(res.data) && res.data.length > 0) {
+      let totalBuys1h = 0, totalSells1h = 0, totalBuys6h = 0, totalSells6h = 0, totalBuys24h = 0, totalSells24h = 0;
+      for (const p of res.data) {
+        totalBuys1h  += p.txns?.h1?.buys   || 0; totalSells1h += p.txns?.h1?.sells  || 0;
+        totalBuys6h  += p.txns?.h6?.buys   || 0; totalSells6h += p.txns?.h6?.sells  || 0;
+        totalBuys24h += p.txns?.h24?.buys  || 0; totalSells24h+= p.txns?.h24?.sells || 0;
+      }
+      return { h1: { buys: totalBuys1h, sells: totalSells1h }, h6: { buys: totalBuys6h, sells: totalSells6h }, h24: { buys: totalBuys24h, sells: totalSells24h } };
+    }
+  } catch(e) {}
+  return { h1: { buys: 0, sells: 0 }, h6: { buys: 0, sells: 0 }, h24: { buys: 0, sells: 0 } };
+}
+
+async function getDEXListingsBNB(tokenAddress) {
+  try {
+    const res = await axios.get(`${DEXSCREENER_SEARCH}${tokenAddress}`, { timeout: 6000 });
+    const pairs = res.data.pairs || [];
+    const exchanges = new Map();
+    for (const pair of pairs) {
+      if (pair.chainId === "bsc" && pair.dexId && !exchanges.has(pair.dexId)) {
+        exchanges.set(pair.dexId, { name: pair.dexId, type: 'DEX', url: pair.url || null, baseToken: pair.baseToken?.symbol || 'N/A', quoteToken: pair.quoteToken?.symbol || 'N/A' });
+      }
+    }
+    return Array.from(exchanges.values());
+  } catch (error) { return []; }
+}
+
+async function getTrendingBNBTokens(limit = 10) {
+  try {
+    const res = await axios.get(TRENDING_BSC_API, { timeout: 8000 });
+    if (res.data.pairs) {
+      let bscPairs = res.data.pairs.filter(p => p.chainId === "bsc" && parseFloat(p.priceUsd) > 0);
+      bscPairs.sort((a, b) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0));
+      return bscPairs.slice(0, limit).map(p => ({ symbol: p.baseToken?.symbol || "?", address: p.baseToken?.address || "", price: p.priceUsd || "0", volume24h: p.volume?.h24 || 0, priceChange: p.priceChange?.h24 || 0, liquidity: p.liquidity?.usd || 0, url: p.url }));
+    }
+  } catch(e) {}
+  return [];
+}
+
+// ========== BNB TOKEN ENDPOINT ==========
+app.get("/api/token/bsc/:address", async (req, res) => {
+  const address = req.params.address;
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    return res.status(400).json({ success: false, error: "Invalid BNB token address. Must be 0x followed by 40 hex characters." });
+  }
+  try {
+    const [market, holderCount, buyersSellers] = await Promise.all([
+      getMarketDataBNB(address),
+      getHolderCountBNB(address),
+      getBuyersSellersB(address)
+    ]);
+    const risk = calculateRiskScore(market, holderCount);
+    let tokenSymbol = market?.symbol || '';
+    let cgDetails = null;
+    if (tokenSymbol) cgDetails = await getCoinGeckoDetails(tokenSymbol);
+    const dexListings = await getDEXListingsBNB(address);
+    let cexListings = [];
+    if (cgDetails?.id) cexListings = await getCEXListings(cgDetails.id);
+    const allExchanges = [...dexListings, ...cexListings];
+    let formattedPrice = "N/A";
+    if (market) {
+      const priceNum = market.price;
+      formattedPrice = priceNum < 0.01 ? `$${priceNum.toFixed(10)}` : `$${priceNum.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
+    }
+    let platformPresence = { coingecko: { listed: !!cgDetails, name: cgDetails?.name || null }, coinmarketcap: { listed: false, name: null } };
+    try {
+      if (tokenSymbol) {
+        const cmcRes = await axios.get(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${tokenSymbol}`, { headers: { 'X-CMC_PRO_API_KEY': CMC_API_KEY }, timeout: 5000 });
+        const cmcData = cmcRes.data?.data?.[tokenSymbol];
+        if (cmcData) platformPresence.coinmarketcap = { listed: true, name: cmcData.name };
+      }
+    } catch(e) {}
+    res.json({
+      success: true, chain: 'bsc', tokenAddress: address,
+      name: market?.name || market?.symbol || address.slice(0,8)+"...",
+      symbol: market?.symbol || "?",
+      price: formattedPrice, rawPrice: market?.price || 0,
+      liquidity: market?.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A",
+      volume24h: market?.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : "N/A",
+      priceChange24h: market?.priceChange24h != null ? `${market.priceChange24h.toFixed(2)}%` : "N/A",
+      marketCap: market?.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : "N/A",
+      holderCount, topHolders: [],
+      buyersSellers, riskScore: risk.score, riskLevel: risk.level, riskReasons: risk.reasons,
+      chartUrl: market?.chartUrl || `https://dexscreener.com/bsc/${address}`,
+      exchanges: allExchanges, socialLinks: cgDetails?.links || {}, logo: cgDetails?.image || null,
+      coingeckoUrl: cgDetails?.coingeckoUrl || null, platformPresence
+    });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.get("/api/trending/bsc", async (req, res) => {
+  try { const trending = await getTrendingBNBTokens(10); res.json({ success: true, trending }); }
   catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
@@ -846,8 +1035,7 @@ function setupBotHandlers() {
       } else {
         let historyMsg = "📜 *Your Last 10 Tokens:*\n\n";
         userHistory.forEach((item, index) => {
-          const icon = item.chain === 'ethereum' ? '🔹' : '◎';
-          historyMsg += `${index + 1}. *${item.symbol}*\n${icon} \`${item.address}\`\n\n`;
+          historyMsg += `${index + 1}. *${item.symbol}*\n\`${item.address}\`\n\n`;
         });
         bot.sendMessage(chatId, historyMsg, { parse_mode: 'Markdown' });
       }
@@ -864,56 +1052,82 @@ function setupBotHandlers() {
         const isEth = /^0x[0-9a-fA-F]{40}$/.test(text);
         if (!isSolana && !isEth) {
           bot.sendMessage(chatId,
-            '❌ *Invalid Address!*\nPlease paste a valid:\n• *Solana* address: `Dfh5DzRgSvvCFDoYc2ciTkMrbDfRKybA4SoFbPmApump`\n• *Ethereum* address: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`',
+            '❌ *Invalid Address!*\nPlease paste a valid:\n• *Solana* address: `Dfh5DzRgSvvCFDoYc2ciTkMrbDfRKybA4SoFbPmApump`\n• *Ethereum* address: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`\n• *BNB Chain* address: `0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82`',
             { parse_mode: 'Markdown' }
           ).catch(e => {});
           return;
         }
+
+        // For 0x addresses, ask user which chain: ETH or BNB
+        if (isEth) {
+          userStates[chatId] = { step: 'waiting_chain', direction: state.direction, address: text };
+          bot.sendMessage(chatId,
+            `✅ *EVM Address detected!*\n\`${text.slice(0,10)}...\`\n\n🔗 Which chain is this token on?`,
+            {
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '⟠ Ethereum', callback_data: 'chain_eth' }, { text: '🟡 BNB Chain', callback_data: 'chain_bsc' }]
+                ]
+              }
+            }
+          ).catch(e => {});
+          return;
+        }
+
+        const chain = 'solana';
+        userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, chain };
+        const chainLabel = '◎ Solana';
+
         // Send "fetching..." message first
         const fetchMsg = await bot.sendMessage(chatId,
-          `⏳ *Analyzing Address...*\nChecking blockchain and live data...`,
+          `✅ *${chainLabel} address accepted!*\n\`${text}\`\n\n⏳ Fetching live price...`,
           { parse_mode: 'Markdown' }
         ).catch(e => {});
 
-        // Fetch and verify token
+        // Fetch live price
         try {
-          const verify = await verifyTokenDetails(text);
-          if (!verify.success) {
+          const market = await getMarketData(text);
+          if (market && market.price) {
+            const priceDisplay = market.price < 0.01
+              ? `$${market.price.toFixed(10)}`
+              : `$${market.price.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
+            const changeEmoji = market.priceChange24h >= 0 ? '📈' : '📉';
+
+            // Update history
+            const symbol = market.symbol || '?';
+            const cid = String(chatId);
+            if (!history[cid]) history[cid] = [];
+            history[cid] = history[cid].filter(h => h.address !== text);
+            history[cid].unshift({ address: text, symbol, chain });
+            if (history[cid].length > 10) history[cid].pop();
+            saveData(HISTORY_FILE, history);
+
             if (fetchMsg) {
-              const errorText = verify.unsupported ? `❌ *Unsupported Chain!*\n${verify.error}` : `❌ *Verification Failed*\n${verify.error}`;
-              bot.editMessageText(errorText, { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }).catch(e => {});
+              bot.editMessageText(
+                `✅ *${chainLabel} — ${symbol}*\n\`${text.slice(0,10)}...\`\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${market.price < 0.01 ? (market.price * 1.2).toFixed(10) : (market.price * 1.2).toFixed(6)}\``,
+                { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }
+              ).catch(e => {});
             }
-            return;
-          }
+          } else {
+            // No price found — still let them proceed
+            if (fetchMsg) {
+              bot.editMessageText(
+                `✅ *${chainLabel} address saved!*\n\`${text.slice(0,10)}...\`\n\n⚠️ Could not fetch live price right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD):\nExample: \`0.02593\``,
+                { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }
+              ).catch(e => {});
+            }
 
-          const { chain, symbol, name, market } = verify;
-          const chainLabel = chain === 'ethereum' ? '⟠ Ethereum' : '◎ Solana';
-          const icon = chain === 'ethereum' ? '🔹' : '◎';
-
-          userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, chain };
-
-          const priceDisplay = market.price < 0.01
-            ? `$${market.price.toFixed(10)}`
-            : `$${market.price.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
-          const changeEmoji = market.priceChange24h >= 0 ? '📈' : '📉';
-
-          // Update history
-          const cid = String(chatId);
-          if (!history[cid]) history[cid] = [];
-          history[cid] = history[cid].filter(h => h.address !== text);
-          history[cid].unshift({ address: text, symbol, chain });
-          if (history[cid].length > 10) history[cid].pop();
-          saveData(HISTORY_FILE, history);
-
-          if (fetchMsg) {
-            bot.editMessageText(
-              `✅ *${name}* | ${chainLabel}\n${icon} \`${text.slice(0,10)}...\` | $${market.price}\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${(market.price * 1.2).toFixed(6)}\``,
-              { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }
-            ).catch(e => {});
+            // Still update history with unknown symbol
+            const cid = String(chatId);
+            if (!history[cid]) history[cid] = [];
+            history[cid] = history[cid].filter(h => h.address !== text);
+            history[cid].unshift({ address: text, symbol: '?', chain });
+            if (history[cid].length > 10) history[cid].pop();
+            saveData(HISTORY_FILE, history);
           }
         } catch(e) {
-          console.error('Unified fetch error in bot:', e.message);
-          if (fetchMsg) bot.editMessageText(`❌ *Error:* Failed to process request.`, { chat_id: chatId, message_id: fetchMsg.message_id }).catch(e=>{});
+          console.error('Price fetch error in bot:', e.message);
         }
         return;
       }
@@ -935,14 +1149,13 @@ function setupBotHandlers() {
         saveData(ALERTS_FILE, alerts);
         delete userStates[chatId];
 
-        const chainLabel = chain === 'ethereum' ? '⟠ ETH' : '◎ SOL';
-        const icon = chain === 'ethereum' ? '🔹' : '◎';
+        const chainLabel = chain === 'bsc' ? '🟡 BNB' : (chain === 'ethereum' ? '⟠ ETH' : '◎ SOL');
         sendMainKeyboard(chatId,
-          `✅ *Alert Set Successfully!*\n\n📍 Token [${chainLabel}]: ${icon} \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
+          `✅ *Alert Set Successfully!*\n\n📍 Token [${chainLabel}]: \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
         );
 
         bot.sendMessage(chatId,
-          `🔔 *Alert Active:*\n${icon} \`${address.slice(0,8)}...\` [${chainLabel}] → *${direction.toUpperCase()}* $${targetPrice}\n\nTap below to cancel it manually anytime:`,
+          `🔔 *Alert Active:*\n\`${address.slice(0,8)}...\` [${chainLabel}] → *${direction.toUpperCase()}* $${targetPrice}\n\nTap below to cancel it manually anytime:`,
           {
             parse_mode: 'Markdown',
             reply_markup: {
@@ -954,7 +1167,7 @@ function setupBotHandlers() {
         ).catch(e => {});
 
         // Check if already triggered
-        const market = chain === 'ethereum' ? await getMarketDataEth(address) : await getMarketData(address);
+        const market = chain === 'bsc' ? await getMarketDataBNB(address) : (chain === 'ethereum' ? await getMarketDataEth(address) : await getMarketData(address));
         if (market) {
           const already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
           if (already) {
@@ -991,8 +1204,7 @@ function setupBotHandlers() {
     const chatId = msg.chat.id;
     const result = await searchTokenBySymbol(match[1].trim());
     if (result?.address) {
-      const icon = result.chain === 'ethereum' ? '🔹' : '◎';
-      bot.sendMessage(chatId, `🔍 *Found:* ${result.symbol}\nAddress: ${icon} \`${result.address}\`\nPrice: $${result.price}\n[View](${result.url})`, { parse_mode: "Markdown" }).catch(e=>{});
+      bot.sendMessage(chatId, `🔍 *Found:* ${result.symbol}\nAddress: \`${result.address}\`\nPrice: $${result.price}\n[View](${result.url})`, { parse_mode: "Markdown" }).catch(e=>{});
     } else {
       bot.sendMessage(chatId, `❌ No token found for "${match[1].trim()}".`).catch(e=>{});
     }
@@ -1085,11 +1297,10 @@ function setupBotHandlers() {
     
     // Send each alert as a separate message with a Cancel button
     bot.sendMessage(chatId, `*🔔 Your Active Alerts (${entries.length}):*`, { parse_mode: "Markdown" }).catch(e=>{});
-    for (let [addr, { price, direction, chain }] of entries) {
+    for (let [addr, { price, direction }] of entries) {
       const dirEmoji = direction === 'above' ? '📈' : '📉';
-      const icon = chain === 'ethereum' ? '🔹' : '◎';
       bot.sendMessage(chatId,
-        `${dirEmoji} *${direction.toUpperCase()}* Alert\n📍 Token: ${icon} \`${addr.slice(0,8)}...\`\n💰 Target: *$${price}*`,
+        `${dirEmoji} *${direction.toUpperCase()}* Alert\n📍 Token: \`${addr.slice(0,8)}...\`\n💰 Target: *$${price}*`,
         {
           parse_mode: "Markdown",
           reply_markup: {
@@ -1116,65 +1327,52 @@ function setupBotHandlers() {
     const chatId = msg.chat.id;
     const parts = match[1].trim().split(/\s+/);
     if (parts.length < 2) return bot.sendMessage(chatId, "❌ Usage: `/alerts <address> <price> [above|below]`", { parse_mode: "Markdown" }).catch(e=>{});
-    
     const address = parts[0];
     const targetPrice = parseFloat(parts[1]);
     let direction = (parts[2] || 'above').toLowerCase();
     if (direction !== 'above' && direction !== 'below') direction = 'above';
     if (isNaN(targetPrice)) return bot.sendMessage(chatId, "❌ Invalid price.").catch(e=>{});
-
-    const msgSend = await bot.sendMessage(chatId, "⏳ Verifying token...");
-    try {
-      const verify = await verifyTokenDetails(address);
-      if (!verify.success) {
-        const errorText = verify.unsupported ? `❌ *Unsupported Chain!*\n${verify.error}` : `❌ *Error:* ${verify.error}`;
-        await bot.editMessageText(errorText, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: 'Markdown' }).catch(e => {});
-        return;
+    const isSolAddr = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
+    const isEthAddr = /^0x[0-9a-fA-F]{40}$/.test(address);
+    if (!isSolAddr && !isEthAddr) return bot.sendMessage(chatId, "❌ Invalid address! Use a Solana (Base58) or Ethereum (0x...) address.").catch(e=>{});
+    if (!alerts[chatId]) alerts[chatId] = {};
+    alerts[chatId][address] = { price: targetPrice, direction };
+    saveData(ALERTS_FILE, alerts);
+    sendNotificationReminder(chatId);
+    bot.sendMessage(chatId, `🔔 Alert set for \`${address.slice(0,6)}...\` at $${targetPrice} (${direction}).`, { parse_mode: "Markdown" }).catch(e=>{});
+    const market = await getMarketData(address);
+    if (market) {
+      let already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
+      if (already) {
+        bot.sendMessage(chatId, `⚠️ Price already meets condition! Current: $${market.price}. Alert triggered.`).catch(e=>{});
+        const options = {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [[{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]]
+          }
+        };
+        bot.sendMessage(chatId, `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`, options).catch(e=>{});
+        playSound(chatId);
+        delete alerts[chatId][address];
+        saveData(ALERTS_FILE, alerts);
       }
-
-      const { chain, symbol } = verify;
-      if (!alerts[chatId]) alerts[chatId] = {};
-      alerts[chatId][address] = { price: targetPrice, direction, chain };
-      saveData(ALERTS_FILE, alerts);
-      
-      const icon = chain === 'ethereum' ? '🔹' : '◎';
-      const chainLabel = chain === 'ethereum' ? 'ETH' : 'SOL';
-      
-      await bot.editMessageText(`✅ *Alert Set Successfully!*\n${icon} \`${address.slice(0,6)}...\` [${chainLabel}]\n💰 Target: $${targetPrice} (${direction})`, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: 'Markdown' }).catch(e=>{});
-      
-      sendNotificationReminder(chatId);
-    } catch(e) {
-      await bot.editMessageText(`❌ *Error:* Failed to verify token.`, { chat_id: chatId, message_id: msgSend.message_id }).catch(e=>{});
     }
   });
   
-  bot.onText(/([1-9A-HJ-NP-Za-km-z]{32,44}|0x[0-9a-fA-F]{40})/, async (msg) => {
+  bot.onText(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, async (msg) => {
     const chatId = msg.chat.id;
     const address = msg.text.trim();
     const msgSend = await bot.sendMessage(chatId, "⏳ Analyzing...");
-    
-    try {
-      const verify = await verifyTokenDetails(address);
-      if (!verify.success) {
-        const errorText = verify.unsupported ? `❌ *Unsupported Chain!*\n${verify.error}` : `❌ *Error:* ${verify.error}`;
-        await bot.editMessageText(errorText, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: 'Markdown' }).catch(e => {});
-        return;
-      }
-
-      const { chain, symbol, name, market } = verify;
-      const risk = calculateRiskScore(market);
-      const icon = chain === 'ethereum' ? '🔹' : '◎';
-      const chainLabel = chain === 'ethereum' ? 'ETH' : 'SOL';
-
-      let response = `${icon} *${name}* | ${chainLabel} | $${market.price} | \`${address.slice(0,6)}...\`\n\n`;
+    const market = await getMarketData(address, 2);
+    const risk = calculateRiskScore(market);
+    let response = `🔍 *Token:* \`${address.slice(0,6)}...\`\n\n`;
+    if (market) {
       response += `💰 Price: $${market.price}\n💧 Liquidity: ${market.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A"}\n📊 24h Vol: ${market.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : "N/A"}\n📈 24h Change: ${market.priceChange24h ? `${market.priceChange24h}%` : "N/A"}\n🏦 Market Cap: ${market.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : "N/A"}\n🟢 Buys 24h: ${market.buyCount}\n🔴 Sells 24h: ${market.sellCount}\n\n`;
-      response += `🎯 Risk: ${risk.score}/100 – ${risk.level}\n📋 ${risk.reasons.join("\n")}\n\n📈 [View Chart](${market.chartUrl})`;
-      
-      await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e=>console.error(e));
-    } catch(e) {
-      console.error('Direct analyzer error:', e.message);
-      await bot.editMessageText(`❌ *Error:* Failed to fetch token data.`, { chat_id: chatId, message_id: msgSend.message_id }).catch(e=>{});
+    } else {
+      response += `❌ No market data found.\n\n`;
     }
+    response += `🎯 Risk: ${risk.score}/100 – ${risk.level}\n📋 ${risk.reasons.join("\n")}\n\n📈 [View Chart](${market?.chartUrl || `https://dexscreener.com/solana/${address}`})`;
+    await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e=>console.error(e));
   });
 
   bot.onText(/\/setalert/, (msg) => {
@@ -1256,6 +1454,60 @@ function setupBotHandlers() {
         { parse_mode: "Markdown" }
       ).catch(e=>{});
       bot.answerCallbackQuery(callbackQuery.id);
+
+    } else if (data === 'chain_eth' || data === 'chain_bsc') {
+      // Chain selection for 0x address
+      const state = userStates[chatId];
+      if (!state || state.step !== 'waiting_chain') {
+        bot.answerCallbackQuery(callbackQuery.id, { text: '⚠️ Session expired. Please start again.' });
+        return;
+      }
+      const chosenChain = data === 'chain_eth' ? 'ethereum' : 'bsc';
+      const chainLabel = data === 'chain_eth' ? '⟠ Ethereum' : '🟡 BNB Chain';
+      const text = state.address;
+      userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, chain: chosenChain };
+
+      // Edit message to show chain confirmed
+      bot.editMessageText(
+        `✅ *${chainLabel} — Address accepted!*\n\`${text.slice(0,10)}...\`\n\n⏳ Fetching live price...`,
+        { chat_id: chatId, message_id: callbackQuery.message.message_id, parse_mode: 'Markdown' }
+      ).catch(e => {});
+      bot.answerCallbackQuery(callbackQuery.id);
+
+      // Fetch live price for chosen chain
+      try {
+        const market = chosenChain === 'bsc' ? await getMarketDataBNB(text) : await getMarketDataEth(text);
+        if (market && market.price) {
+          const priceDisplay = market.price < 0.01
+            ? `$${market.price.toFixed(10)}`
+            : `$${market.price.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
+          const changeEmoji = market.priceChange24h >= 0 ? '📈' : '📉';
+          const symbol = market.symbol || '?';
+
+          const cid = String(chatId);
+          if (!history[cid]) history[cid] = [];
+          history[cid] = history[cid].filter(h => h.address !== text);
+          history[cid].unshift({ address: text, symbol, chain: chosenChain });
+          if (history[cid].length > 10) history[cid].pop();
+          saveData(HISTORY_FILE, history);
+
+          bot.sendMessage(chatId,
+            `✅ *${chainLabel} — ${symbol}*\n\`${text.slice(0,10)}...\`\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${market.price < 0.01 ? (market.price * 1.2).toFixed(10) : (market.price * 1.2).toFixed(6)}\``,
+            { parse_mode: 'Markdown' }
+          ).catch(e => {});
+        } else {
+          bot.sendMessage(chatId,
+            `✅ *${chainLabel} address saved!*\n\`${text.slice(0,10)}...\`\n\n⚠️ Could not fetch live price.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD):\nExample: \`0.02593\``,
+            { parse_mode: 'Markdown' }
+          ).catch(e => {});
+          const cid = String(chatId);
+          if (!history[cid]) history[cid] = [];
+          history[cid] = history[cid].filter(h => h.address !== text);
+          history[cid].unshift({ address: text, symbol: '?', chain: chosenChain });
+          if (history[cid].length > 10) history[cid].pop();
+          saveData(HISTORY_FILE, history);
+        }
+      } catch(e) { console.error('Price fetch error (chain select):', e.message); }
 
     } else if (data === 'setup_sound') {
       const audioPath = './beep.mp3';
