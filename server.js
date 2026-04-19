@@ -182,12 +182,6 @@ function playSound(chatId) {
 }
 
 // ========== MARKET DATA ==========
-    if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
-  }
-  return null;
-}
-
-// ========== MARKET DATA ==========
 async function getMarketData(mint, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
