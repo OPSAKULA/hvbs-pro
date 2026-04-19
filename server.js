@@ -1,3 +1,4 @@
+// HVBS Bot v2.1 - Chain Validation Fix (BNB/BSC addresses now rejected)
 import express from "express";
 import cors from "cors";
 import axios from "axios";
