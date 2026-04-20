@@ -13,6 +13,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static("."));
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -954,6 +955,11 @@ app.get("/health", (req, res) => {
     alertsCount: Object.keys(alerts).length,
     uptime: process.uptime()
   });
+});
+
+// PRO Alerts route
+app.get("/pro-alerts", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "pro-alerts.html"));
 });
 
 // ========== SOUND ENDPOINTS ==========
