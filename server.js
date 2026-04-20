@@ -1636,63 +1636,71 @@ const checkBotInterval = setInterval(() => {
   }
 }, 1000);
 
-// ========== PRO ALERTS API ==========
-const activeProTrackers = {};
+// ========== REAL WHALE ALERTS API ==========
+const gtCache = {};
 
-app.post("/api/start-tracking", (req, res) => {
-  const { token, minBuy, mode } = req.body;
+app.get("/api/whale-alerts", async (req, res) => {
+  const { token, minBuy } = req.query;
   if (!token) return res.status(400).json({ error: "Token is required" });
+  const threshold = parseFloat(minBuy) || 10000;
 
-  if (!activeProTrackers[token]) {
-    activeProTrackers[token] = {
-      token,
-      minBuy: parseInt(minBuy) || 10000,
-      mode,
-      alerts: [],
-      intervalId: null
-    };
+  try {
+    let poolAddress = gtCache[token]?.pool;
+    
+    // 1. Resolve pool address if not cached
+    if (!poolAddress) {
+      const poolRes = await axios.get(`https://api.geckoterminal.com/api/v2/networks/solana/tokens/${token}/pools?page=1`, {
+        timeout: 5000
+      });
+      const pools = poolRes.data.data;
+      if (!pools || pools.length === 0) return res.json({ alerts: [] });
+      poolAddress = pools[0].attributes.address;
+      gtCache[token] = { pool: poolAddress, trades: [], lastFetch: 0 };
+    }
 
-    // Start mock monitoring for this token
-    activeProTrackers[token].intervalId = setInterval(() => {
-      const tracker = activeProTrackers[token];
-      const amount = tracker.minBuy + Math.floor(Math.random() * tracker.minBuy * 2.5);
-      const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-      let wallet = "";
-      for (let i = 0; i < 43; i++) wallet += chars.charAt(Math.floor(Math.random() * chars.length));
+    const cacheEntry = gtCache[token];
+    const now = Date.now();
 
-      const types = [
-        { class: "type-fresh", label: "Fresh Wallet" },
-        { class: "type-smart", label: "Smart Money" },
-        { class: "type-whale", label: "Whale" }
-      ];
-      const type = types[Math.floor(Math.random() * types.length)];
+    // 2. Fetch trades if cache is older than 5 seconds
+    if (now - cacheEntry.lastFetch > 5000) {
+      const tradesRes = await axios.get(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${poolAddress}/trades`, {
+        timeout: 5000
+      });
+      cacheEntry.trades = tradesRes.data.data || [];
+      cacheEntry.lastFetch = now;
+    }
 
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], { hour12: false }) + "." + Math.floor(Math.random() * 999).toString().padStart(3, "0");
+    // 3. Filter and parse trades
+    const alerts = [];
+    cacheEntry.trades.forEach(t => {
+      const attr = t.attributes;
+      if (attr.kind === "buy") {
+        const amount = parseFloat(attr.volume_in_usd);
+        if (amount >= threshold) {
+          const walletRaw = attr.tx_from_address || attr.tx_hash;
+          const displayWallet = walletRaw.substring(0, 6) + "..." + walletRaw.substring(walletRaw.length - 4);
+          
+          let typeLabel = "Fresh Wallet";
+          let typeClass = "type-fresh";
+          if (amount >= 50000) { typeLabel = "Whale"; typeClass = "type-whale"; }
+          else if (amount >= 20000) { typeLabel = "Smart Money"; typeClass = "type-smart"; }
 
-      tracker.alerts.push({ amount, wallet, type, time: timeStr });
+          alerts.push({
+            id: attr.tx_hash,
+            amount: amount,
+            wallet: displayWallet,
+            type: { label: typeLabel, class: typeClass },
+            time: new Date(attr.block_timestamp).toLocaleTimeString([], { hour12: false })
+          });
+        }
+      }
+    });
 
-      // Keep only the last 20 alerts
-      if (tracker.alerts.length > 20) tracker.alerts.shift();
-    }, Math.random() * 5000 + 3000);
+    res.json({ alerts });
+  } catch (err) {
+    console.error("Error fetching real trades:", err.message);
+    res.json({ alerts: gtCache[token]?.trades ? [] : [] }); // Return empty on error to avoid crash
   }
-
-  res.json({ success: true, message: `Started tracking ${token}` });
-});
-
-app.get("/api/live-alerts/:token", (req, res) => {
-  const token = req.params.token;
-  if (!activeProTrackers[token]) return res.json({ alerts: [] });
-  res.json({ alerts: activeProTrackers[token].alerts });
-});
-
-app.post("/api/stop-tracking", (req, res) => {
-  const { token } = req.body;
-  if (activeProTrackers[token]) {
-    clearInterval(activeProTrackers[token].intervalId);
-    delete activeProTrackers[token];
-  }
-  res.json({ success: true });
 });
 
 app.get("*", (req, res) => {
