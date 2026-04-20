@@ -959,7 +959,7 @@ app.get("/health", (req, res) => {
 
 // PRO Alerts route
 app.get("/pro-alerts", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "pro-alerts.html"));
+  res.sendFile(process.cwd() + "/pro-alerts.html");
 });
 
 // ========== SOUND ENDPOINTS ==========
@@ -1695,9 +1695,15 @@ app.post("/api/stop-tracking", (req, res) => {
   res.json({ success: true });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+app.get("*", (req, res) => {
+  res.sendFile(process.cwd() + "/index.html");
+});
+
+process.on("uncaughtException", console.error);
+process.on("unhandledRejection", console.error);
+
+app.listen(3000, () => {
+  console.log("Server running on http://localhost:3000");
   if (!fs.existsSync("./sounds")) fs.mkdirSync("./sounds");
   console.log("✅ APIs ready");
   console.log("✅ Health check at /health");
