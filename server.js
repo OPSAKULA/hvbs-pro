@@ -1636,6 +1636,65 @@ const checkBotInterval = setInterval(() => {
   }
 }, 1000);
 
+// ========== PRO ALERTS API ==========
+const activeProTrackers = {};
+
+app.post("/api/start-tracking", (req, res) => {
+  const { token, minBuy, mode } = req.body;
+  if (!token) return res.status(400).json({ error: "Token is required" });
+
+  if (!activeProTrackers[token]) {
+    activeProTrackers[token] = {
+      token,
+      minBuy: parseInt(minBuy) || 10000,
+      mode,
+      alerts: [],
+      intervalId: null
+    };
+
+    // Start mock monitoring for this token
+    activeProTrackers[token].intervalId = setInterval(() => {
+      const tracker = activeProTrackers[token];
+      const amount = tracker.minBuy + Math.floor(Math.random() * tracker.minBuy * 2.5);
+      const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+      let wallet = "";
+      for (let i = 0; i < 43; i++) wallet += chars.charAt(Math.floor(Math.random() * chars.length));
+
+      const types = [
+        { class: "type-fresh", label: "Fresh Wallet" },
+        { class: "type-smart", label: "Smart Money" },
+        { class: "type-whale", label: "Whale" }
+      ];
+      const type = types[Math.floor(Math.random() * types.length)];
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour12: false }) + "." + Math.floor(Math.random() * 999).toString().padStart(3, "0");
+
+      tracker.alerts.push({ amount, wallet, type, time: timeStr });
+
+      // Keep only the last 20 alerts
+      if (tracker.alerts.length > 20) tracker.alerts.shift();
+    }, Math.random() * 5000 + 3000);
+  }
+
+  res.json({ success: true, message: `Started tracking ${token}` });
+});
+
+app.get("/api/live-alerts/:token", (req, res) => {
+  const token = req.params.token;
+  if (!activeProTrackers[token]) return res.json({ alerts: [] });
+  res.json({ alerts: activeProTrackers[token].alerts });
+});
+
+app.post("/api/stop-tracking", (req, res) => {
+  const { token } = req.body;
+  if (activeProTrackers[token]) {
+    clearInterval(activeProTrackers[token].intervalId);
+    delete activeProTrackers[token];
+  }
+  res.json({ success: true });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
