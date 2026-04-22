@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Panel – HVBS Alert System</title>
+<meta name="description" content="HVBS Admin Panel – manage subscriptions and burn queue."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --bg:#0a0a0f;--card:#12121c;--card2:#1a1a28;
+    --purple:#a855f7;--purple2:#7c3aed;--green:#10b981;
+    --gold:#f59e0b;--red:#ef4444;--blue:#3b82f6;
+    --text:#e2e8f0;--muted:#64748b;--border:rgba(168,85,247,.2);
+  }
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  .bg-grid{position:fixed;inset:0;background:radial-gradient(circle at 20% 20%,rgba(168,85,247,.06),transparent 50%);pointer-events:none;z-index:0;}
+
+  /* NAV */
+  nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(10,10,15,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+  .nav-logo{font-size:18px;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .nav-badge{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#f87171;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:.1em;}
+  .btn-sm{padding:8px 16px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;}
+  .btn-connect{background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;}
+  .btn-connect:hover{opacity:.9;}
+
+  /* AUTH GATE */
+  #auth-gate{position:relative;z-index:1;max-width:500px;margin:80px auto;text-align:center;padding:48px;background:var(--card);border:1px solid var(--border);border-radius:24px;}
+  #auth-gate h2{font-size:28px;font-weight:800;margin-bottom:12px;}
+  #auth-gate p{color:var(--muted);margin-bottom:28px;font-size:15px;}
+  .btn-auth{width:100%;padding:16px;background:linear-gradient(135deg,var(--purple),var(--purple2));border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:.2s;}
+  .btn-auth:hover{opacity:.9;transform:translateY(-1px);}
+
+  /* LAYOUT */
+  #admin-panel{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 20px 80px;display:none;}
+  h2.section-title{font-size:22px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+  h2.section-title span{font-size:20px;}
+
+  /* STATS ROW */
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:36px;}
+  @media(max-width:768px){.stats-row{grid-template-columns:1fr 1fr;}}
+  @media(max-width:400px){.stats-row{grid-template-columns:1fr;}}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden;}
+  .stat-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(168,85,247,.04),transparent);pointer-events:none;}
+  .stat-num{font-size:32px;font-weight:900;color:var(--purple);}
+  .stat-lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+  .stat-sub{font-size:13px;color:var(--text);margin-top:8px;}
+
+  /* CARD */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;margin-bottom:28px;}
+
+  /* TABLE */
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th{text-align:left;padding:10px 14px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);}
+  td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);}
+  tr:hover td{background:rgba(255,255,255,.02);}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+  .badge-active{background:rgba(16,185,129,.15);color:#34d399;}
+  .badge-expired{background:rgba(239,68,68,.12);color:#f87171;}
+  .badge-queued{background:rgba(245,158,11,.12);color:#fbbf24;}
+  .badge-done{background:rgba(59,130,246,.12);color:#60a5fa;}
+
+  /* ACTIONS */
+  .action-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px;}
+  .btn-action{padding:12px 22px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;}
+  .btn-burn{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;}
+  .btn-burn:hover{opacity:.9;transform:translateY(-1px);}
+  .btn-refresh{background:var(--card2);border:1px solid var(--border);color:var(--text);}
+  .btn-refresh:hover{border-color:var(--purple);}
+  .btn-override{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;}
+  .btn-override:hover{opacity:.9;}
+
+  /* OVERRIDE FORM */
+  .override-form{display:none;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:16px;}
+  .override-form.show{display:block;}
+  .form-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+  .form-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;min-width:200px;outline:none;}
+  .form-input:focus{border-color:var(--purple);}
+  .btn-submit{padding:11px 24px;background:linear-gradient(135deg,var(--purple),var(--purple2));border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
+
+  /* BURN HISTORY */
+  .burn-item{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+  .burn-item:last-child{border-bottom:none;}
+  .burn-amount{font-weight:700;color:var(--purple);}
+  .burn-meta{font-size:13px;color:var(--muted);}
+  .burn-tx a{font-size:12px;color:var(--blue);text-decoration:none;}
+  .burn-tx a:hover{text-decoration:underline;}
+
+  /* LOG */
+  .log-box{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;font-family:monospace;font-size:12px;max-height:200px;overflow-y:auto;color:#94a3b8;}
+  .log-line{margin-bottom:6px;}
+  .log-line.ok{color:#34d399;}
+  .log-line.err{color:#f87171;}
+
+  /* SPINNER */
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<!-- NAV -->
+<nav>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <a href="/" class="nav-logo">⚡ HVBS PRO</a>
+    <span class="nav-badge">ADMIN PANEL</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="admin-wallet-display" style="font-size:13px;color:var(--muted);font-family:monospace;"></span>
+    <button class="btn-sm btn-connect" data-connect-btn id="admin-connect-btn">Connect Wallet</button>
+  </div>
+</nav>
+
+<!-- AUTH GATE -->
+<div id="auth-gate">
+  <div style="font-size:48px;margin-bottom:16px;">🔐</div>
+  <h2>Admin Access Required</h2>
+  <p>Connect your admin wallet and sign a message to access the control panel.</p>
+  <button class="btn-auth" onclick="adminAuth()">
+    Connect &amp; Sign as Admin
+  </button>
+  <p id="auth-error" style="color:#f87171;margin-top:16px;font-size:14px;"></p>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel">
+
+  <!-- STATS -->
+  <h2 class="section-title"><span>📊</span> Overview</h2>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num" id="stat-total-subs">—</div>
+      <div class="stat-lbl">Total Subscribers</div>
+      <div class="stat-sub" id="stat-active-subs" style="color:var(--green);">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--red);" id="stat-total-burned">—</div>
+      <div class="stat-lbl">ALERT Burned</div>
+      <div class="stat-sub" id="stat-burned-usd">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--gold);" id="stat-revenue">—</div>
+      <div class="stat-lbl">Revenue (USD)</div>
+      <div class="stat-sub" id="stat-burn-count">— burns</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--blue);" id="stat-expiring">—</div>
+      <div class="stat-lbl">Expiring Soon</div>
+      <div class="stat-sub">within 7 days</div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="action-row">
+    <button class="btn-action btn-burn" onclick="triggerBurn()">🔥 Trigger Burn Now</button>
+    <button class="btn-action btn-refresh" onclick="loadAdminData()">🔄 Refresh Data</button>
+    <button class="btn-action btn-override" onclick="toggleOverride()">⚙️ Override Subscription</button>
+  </div>
+
+  <!-- OVERRIDE FORM -->
+  <div class="override-form" id="override-form">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">Override Subscription</h3>
+    <div class="form-row">
+      <input class="form-input" id="ov-wallet" placeholder="Wallet address…"/>
+      <input class="form-input" id="ov-days" type="number" placeholder="Days (e.g. 30)" value="30" style="max-width:120px;"/>
+      <button class="btn-submit" onclick="submitOverride()">Apply</button>
+    </div>
+    <div id="ov-status" style="font-size:13px;margin-top:8px;"></div>
+  </div>
+
+  <!-- SUBSCRIPTIONS TABLE -->
+  <div class="card">
+    <h2 class="section-title"><span>👥</span> Subscriptions</h2>
+    <div class="table-wrap">
+      <table id="subs-table">
+        <thead>
+          <tr>
+            <th>Wallet</th>
+            <th>Status</th>
+            <th>Started</th>
+            <th>Expires</th>
+            <th>Currency</th>
+            <th>Tx</th>
+          </tr>
+        </thead>
+        <tbody id="subs-tbody">
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- BURN HISTORY -->
+  <div class="card">
+    <h2 class="section-title"><span>🔥</span> Burn History</h2>
+    <div id="burn-history">
+      <div style="text-align:center;color:var(--muted);padding:24px;">Loading…</div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY LOG -->
+  <div class="card">
+    <h2 class="section-title"><span>📋</span> System Log</h2>
+    <div class="log-box" id="system-log">
+      <div class="log-line">Waiting for data…</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="subscription.js"></script>
+<script>
+let adminAuthToken = null;
+
+// ─── ADMIN AUTH ───────────────────────────────────────────────────────────────
+async function adminAuth() {
+  const wallet = window.HVBS.walletAddress;
+  if (!wallet) {
+    await window.HVBS.connectWallet();
+    await new Promise(r => setTimeout(r, 600));
+  }
+
+  const addr = window.HVBS.walletAddress;
+  const ADMIN_WALLET = "FoEd1FMU2ZCaYEatWKj2mRYqpUuWB3vUAtQnThn2p54V";
+  if (addr !== ADMIN_WALLET) {
+    document.getElementById("auth-error").textContent = `❌ Not admin wallet. Connected: ${addr?.slice(0,8)}…`;
+    return;
+  }
+
+  const authData = await window.HVBS.signAdminMessage();
+  if (!authData) return;
+
+  // Verify with backend
+  const res = await fetch("/admin/verify-auth", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(authData)
+  });
+  const data = await res.json();
+  if (data.success) {
+    adminAuthToken = data.token;
+    document.getElementById("auth-gate").style.display = "none";
+    document.getElementById("admin-panel").style.display = "block";
+    document.getElementById("admin-wallet-display").textContent = addr.slice(0,6)+"…"+addr.slice(-4);
+    loadAdminData();
+    log("✅ Admin authenticated");
+  } else {
+    document.getElementById("auth-error").textContent = "❌ " + (data.error || "Auth failed");
+  }
+}
+
+// ─── LOAD ADMIN DATA ──────────────────────────────────────────────────────────
+async function loadAdminData() {
+  await Promise.all([loadSubscriptions(), loadBurnStats()]);
+}
+
+async function loadSubscriptions() {
+  try {
+    const res  = await fetch("/admin/subscriptions", {
+      headers: { "X-Admin-Token": adminAuthToken }
+    });
+    const data = await res.json();
+    const subs = data.subscriptions || [];
+
+    // Update stats
+    const active  = subs.filter(s => s.active).length;
+    const expiring = subs.filter(s => {
+      const d = new Date(s.expiresAt) - Date.now();
+      return s.active && d > 0 && d < 7 * 86400000;
+    }).length;
+    document.getElementById("stat-total-subs").textContent = subs.length;
+    document.getElementById("stat-active-subs").textContent = `${active} active`;
+    document.getElementById("stat-expiring").textContent = expiring;
+
+    // Build table
+    const tbody = document.getElementById("subs-tbody");
+    if (!subs.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">No subscribers yet</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = subs.map(s => `
+      <tr>
+        <td style="font-family:monospace;font-size:12px;">${s.wallet.slice(0,6)}…${s.wallet.slice(-4)}</td>
+        <td><span class="badge ${s.active ? 'badge-active':'badge-expired'}">${s.active ? 'Active':'Expired'}</span></td>
+        <td style="font-size:13px;color:var(--muted);">${new Date(s.startedAt).toLocaleDateString()}</td>
+        <td style="font-size:13px;">${new Date(s.expiresAt).toLocaleDateString()}</td>
+        <td style="font-size:13px;">${s.currency || 'SOL'}</td>
+        <td><a href="https://solscan.io/tx/${s.txSignature}" target="_blank" style="font-size:12px;color:#60a5fa;text-decoration:none;">${s.txSignature ? s.txSignature.slice(0,8)+'…' : '—'}</a></td>
+      </tr>
+    `).join("");
+    log(`✅ Loaded ${subs.length} subscribers`);
+  } catch (e) { log("❌ Subs load error: " + e.message, true); }
+}
+
+async function loadBurnStats() {
+  try {
+    const res  = await fetch("/burn-stats");
+    const data = await res.json();
+    document.getElementById("stat-total-burned").textContent = Number(data.totalBurned || 0).toLocaleString();
+    document.getElementById("stat-burned-usd").textContent   = "$" + Number(data.totalUsdBurned || 0).toFixed(2);
+    document.getElementById("stat-revenue").textContent      = "$" + Number(data.totalRevenue  || 0).toFixed(2);
+    document.getElementById("stat-burn-count").textContent   = (data.burnCount || 0) + " burns";
+
+    // Burn history
+    const history = data.history || [];
+    const histEl  = document.getElementById("burn-history");
+    if (!history.length) {
+      histEl.innerHTML = `<div style="text-align:center;color:var(--muted);padding:24px;">No burns yet</div>`;
+      return;
+    }
+    histEl.innerHTML = history.slice(0,15).map(h => `
+      <div class="burn-item">
+        <div>
+          <div class="burn-amount">🔥 ${Number(h.amount || 0).toLocaleString()} ALERT</div>
+          <div class="burn-meta">${new Date(h.timestamp).toLocaleString()}</div>
+        </div>
+        <div class="burn-tx">
+          <span class="badge ${h.status === 'done' ? 'badge-done':'badge-queued'}">${h.status || 'queued'}</span>
+          ${h.txSignature ? `<br/><a href="https://solscan.io/tx/${h.txSignature}" target="_blank">${h.txSignature.slice(0,10)}…</a>` : ''}
+        </div>
+      </div>
+    `).join("");
+    log("✅ Burn stats loaded");
+  } catch (e) { log("❌ Burn stats error: " + e.message, true); }
+}
+
+// ─── TRIGGER BURN ─────────────────────────────────────────────────────────────
+async function triggerBurn() {
+  const btn = document.querySelector(".btn-burn");
+  btn.innerHTML = '<span class="spin"></span>Burning…';
+  btn.disabled  = true;
+  log("🔥 Triggering manual burn…");
+
+  try {
+    const res  = await fetch("/admin/trigger-burn", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Admin-Token": adminAuthToken }
+    });
+    const data = await res.json();
+    if (data.success) {
+      log(`✅ Burn triggered! TX: ${data.txSignature || 'queued'}`);
+      showToast("🔥 Burn triggered successfully!", "success");
+      await loadBurnStats();
+    } else {
+      log("❌ Burn failed: " + (data.error || "Unknown"), true);
+      showToast("❌ " + (data.error || "Burn failed"), "error");
+    }
+  } catch (e) {
+    log("❌ " + e.message, true);
+    showToast("❌ Network error", "error");
+  }
+
+  btn.innerHTML = "🔥 Trigger Burn Now";
+  btn.disabled  = false;
+}
+
+// ─── OVERRIDE ─────────────────────────────────────────────────────────────────
+function toggleOverride() {
+  const form = document.getElementById("override-form");
+  form.classList.toggle("show");
+}
+
+async function submitOverride() {
+  const wallet = document.getElementById("ov-wallet").value.trim();
+  const days   = parseInt(document.getElementById("ov-days").value) || 30;
+  const status = document.getElementById("ov-status");
+
+  if (!wallet) { status.textContent = "⚠️ Enter a wallet address"; status.style.color = "#f59e0b"; return; }
+
+  try {
+    const res  = await fetch("/admin/override-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Admin-Token": adminAuthToken },
+      body: JSON.stringify({ wallet, days })
+    });
+    const data = await res.json();
+    if (data.success) {
+      status.textContent = `✅ Subscription applied for ${wallet.slice(0,8)}… for ${days} days`;
+      status.style.color = "#34d399";
+      log(`✅ Override: ${wallet.slice(0,8)}… → ${days} days`);
+      await loadSubscriptions();
+    } else {
+      status.textContent = "❌ " + (data.error || "Failed");
+      status.style.color = "#f87171";
+    }
+  } catch (e) {
+    status.textContent = "❌ " + e.message;
+    status.style.color = "#f87171";
+  }
+}
+
+// ─── LOG ──────────────────────────────────────────────────────────────────────
+function log(msg, isErr = false) {
+  const box = document.getElementById("system-log");
+  const line = document.createElement("div");
+  line.className = "log-line " + (isErr ? "err" : "ok");
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function showToast(message, type) {
+  if (window.HVBS) return; // use subscription.js version
+  alert(message);
+}
+
+// Auto-refresh every 60s if panel is open
+setInterval(() => {
+  if (document.getElementById("admin-panel").style.display !== "none") loadAdminData();
+}, 60000);
+</script>
+</body>
+</html>

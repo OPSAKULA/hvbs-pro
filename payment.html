@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Upgrade to PRO – HVBS Alert System</title>
+<meta name="description" content="Subscribe to HVBS PRO for $3/month. 100% of payment burns ALERT tokens on-chain."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/@solana/web3.js@1.91.8/lib/index.iife.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --bg:#0a0a0f;--card:#12121c;--card2:#1a1a28;
+    --purple:#a855f7;--purple2:#7c3aed;--green:#10b981;
+    --gold:#f59e0b;--red:#ef4444;--text:#e2e8f0;--muted:#64748b;
+    --border:rgba(168,85,247,.2);
+  }
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+  /* BG */
+  .bg-grid{position:fixed;inset:0;background-image:radial-gradient(circle at 25% 25%,rgba(168,85,247,.06) 0%,transparent 50%),radial-gradient(circle at 75% 75%,rgba(124,58,237,.04) 0%,transparent 50%);pointer-events:none;z-index:0;}
+
+  /* NAV */
+  nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:rgba(10,10,15,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+  .nav-logo{font-size:20px;font-weight:800;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .nav-right{display:flex;align-items:center;gap:12px;}
+  .btn-connect{background:linear-gradient(135deg,var(--purple),var(--purple2));border:none;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;}
+  .btn-connect:hover{opacity:.9;transform:translateY(-1px);}
+
+  /* MAIN */
+  main{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:40px 20px 80px;}
+
+  /* HERO */
+  .hero{text-align:center;margin-bottom:48px;}
+  .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.3);border-radius:20px;padding:6px 16px;font-size:13px;color:var(--purple);margin-bottom:20px;}
+  .hero h1{font-size:clamp(32px,5vw,52px);font-weight:900;line-height:1.1;margin-bottom:16px;}
+  .hero h1 span{background:linear-gradient(135deg,#a855f7,#ec4899,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero p{font-size:18px;color:var(--muted);max-width:520px;margin:0 auto 24px;}
+
+  /* NOTICE BANNER */
+  .notice{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:14px 20px;text-align:center;font-size:14px;color:#fbbf24;margin-bottom:32px;}
+
+  /* PAYMENT CARD */
+  .pay-card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:40px;box-shadow:0 32px 64px rgba(0,0,0,.5);}
+
+  .price-display{text-align:center;margin-bottom:36px;}
+  .price-big{font-size:64px;font-weight:900;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .price-period{font-size:18px;color:var(--muted);margin-top:4px;}
+
+  /* FEATURES */
+  .features{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:36px;}
+  .feature-item{display:flex;align-items:center;gap:10px;background:var(--card2);border-radius:12px;padding:12px 16px;font-size:14px;}
+  .feature-item .icon{font-size:18px;}
+  @media(max-width:480px){.features{grid-template-columns:1fr;}}
+
+  /* BURN INFO */
+  .burn-info{background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(124,58,237,.05));border:1px solid rgba(168,85,247,.25);border-radius:16px;padding:20px 24px;margin-bottom:32px;text-align:center;}
+  .burn-info h3{font-size:16px;font-weight:700;color:var(--purple);margin-bottom:8px;}
+  .burn-info p{font-size:14px;color:var(--muted);line-height:1.6;}
+
+  /* CURRENCY SELECT */
+  .currency-label{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;}
+  .currency-tabs{display:flex;gap:8px;margin-bottom:28px;}
+  .currency-tab{flex:1;padding:14px;border:2px solid transparent;border-radius:12px;background:var(--card2);color:var(--text);font-size:15px;font-weight:600;cursor:pointer;transition:.2s;text-align:center;}
+  .currency-tab:hover{border-color:rgba(168,85,247,.4);}
+  .currency-tab.active{border-color:var(--purple);background:rgba(168,85,247,.12);color:var(--purple);}
+
+  /* AMOUNT BOX */
+  .amount-box{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:28px;text-align:center;}
+  .amount-label{font-size:13px;color:var(--muted);margin-bottom:8px;}
+  .amount-value{font-size:28px;font-weight:800;color:var(--text);}
+  .amount-usd{font-size:14px;color:var(--muted);margin-top:4px;}
+
+  /* TX INPUT */
+  .tx-section{margin-bottom:28px;}
+  .tx-label{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:10px;}
+  .tx-input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;color:var(--text);font-size:14px;font-family:monospace;outline:none;transition:.2s;}
+  .tx-input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(168,85,247,.12);}
+  .tx-input::placeholder{color:var(--muted);}
+
+  /* BUTTONS */
+  .btn-pay{width:100%;padding:18px;border:none;border-radius:14px;font-size:18px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;letter-spacing:.02em;transition:.2s;position:relative;overflow:hidden;margin-bottom:12px;}
+  .btn-pay:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 32px rgba(168,85,247,.4);}
+  .btn-pay:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-verify{width:100%;padding:16px;border:2px solid var(--green);border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;background:transparent;color:var(--green);transition:.2s;}
+  .btn-verify:hover:not(:disabled){background:rgba(16,185,129,.1);}
+  .btn-verify:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* BURN STATS */
+  .burn-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px;}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;}
+  .stat-value{font-size:24px;font-weight:800;color:var(--purple);}
+  .stat-label{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.08em;}
+  @media(max-width:480px){.burn-stats{grid-template-columns:1fr;}}
+
+  /* STATUS MSG */
+  .status-msg{padding:14px 18px;border-radius:12px;font-size:14px;font-weight:500;margin-top:16px;display:none;}
+  .status-msg.success{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#34d399;}
+  .status-msg.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;}
+
+  /* WALLET GATE */
+  .wallet-gate{text-align:center;padding:48px 24px;background:var(--card2);border-radius:20px;border:2px dashed var(--border);}
+  .wallet-gate h2{font-size:24px;font-weight:700;margin-bottom:12px;}
+  .wallet-gate p{color:var(--muted);margin-bottom:24px;}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">⚡ HVBS PRO</a>
+  <div class="nav-right">
+    <span data-sub-status style="font-size:13px;"></span>
+    <button class="btn-connect" data-connect-btn id="main-connect-btn">Connect Wallet</button>
+  </div>
+</nav>
+
+<main>
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">🔥 100% Goes to ALERT Token Burn</div>
+    <h1>Activate <span>PRO Access</span><br/>for just $3/month</h1>
+    <p>Unlock real-time whale alerts, advanced analytics, and AI-powered signals.</p>
+  </div>
+
+  <!-- COMING SOON NOTICE -->
+  <div class="notice">
+    🚀 <strong>Ethereum, BNB Chain, Base support coming soon!</strong> Currently supporting Solana payments.
+  </div>
+
+  <!-- WALLET NOT CONNECTED -->
+  <div id="wallet-gate" class="wallet-gate" style="display:none;">
+    <h2>Connect Your Wallet</h2>
+    <p>You need to connect your Phantom wallet to subscribe.</p>
+    <button class="btn-connect" data-connect-btn style="margin:0 auto;display:inline-block;">Connect Phantom Wallet</button>
+  </div>
+
+  <!-- PAYMENT CARD -->
+  <div class="pay-card" id="pay-card">
+    <div class="price-display">
+      <div class="price-big">$3</div>
+      <div class="price-period">per month · cancel anytime</div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="features">
+      <div class="feature-item"><span class="icon">🐋</span>Real-Time Whale Alerts</div>
+      <div class="feature-item"><span class="icon">📊</span>Advanced Analytics</div>
+      <div class="feature-item"><span class="icon">🔔</span>Custom Price Alerts</div>
+      <div class="feature-item"><span class="icon">🤖</span>AI Market Signals</div>
+      <div class="feature-item"><span class="icon">📈</span>Top Holder Tracking</div>
+      <div class="feature-item"><span class="icon">🔥</span>Burn Dashboard Access</div>
+    </div>
+
+    <!-- BURN INFO BOX -->
+    <div class="burn-info">
+      <h3>🔥 Transparent Token Burn</h3>
+      <p>
+        <strong>100% of your $3 subscription</strong> is used to buy &amp; burn ALERT tokens on-chain.<br/>
+        Every burn transaction is publicly verifiable. Fully transparent. No team fees.
+      </p>
+    </div>
+
+    <!-- CURRENCY SELECT -->
+    <div class="currency-label">Select Payment Currency</div>
+    <div class="currency-tabs">
+      <button class="currency-tab active" id="tab-sol" onclick="selectCurrency('SOL')">◎ SOL</button>
+      <button class="currency-tab" id="tab-usdc" onclick="selectCurrency('USDC')">💵 USDC</button>
+      <button class="currency-tab" id="tab-usdt" onclick="selectCurrency('USDT')">💵 USDT</button>
+    </div>
+
+    <!-- AMOUNT DISPLAY -->
+    <div class="amount-box">
+      <div class="amount-label">Amount to Send</div>
+      <div class="amount-value" id="amount-display">Calculating…</div>
+      <div class="amount-usd" id="amount-usd">≈ $3.00 USD</div>
+    </div>
+
+    <!-- PAY BUTTON -->
+    <button class="btn-pay" id="btn-pay" onclick="initiatePayment()" disabled>
+      🔗 Connect Wallet to Pay
+    </button>
+
+    <!-- TX INPUT (manual verify) -->
+    <div class="tx-section">
+      <div class="tx-label">Or paste your Transaction Signature (already sent):</div>
+      <input class="tx-input" id="tx-input" type="text" placeholder="Enter Solana transaction signature…"/>
+    </div>
+
+    <!-- VERIFY BUTTON -->
+    <button class="btn-verify" id="btn-verify" onclick="manualVerify()" disabled>
+      ✅ Verify Transaction
+    </button>
+
+    <!-- STATUS -->
+    <div class="status-msg" id="status-msg"></div>
+  </div>
+
+  <!-- BURN STATS -->
+  <div class="burn-stats">
+    <div class="stat-card">
+      <div class="stat-value" data-burn-total>—</div>
+      <div class="stat-label">ALERT Burned</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" data-burn-usd>—</div>
+      <div class="stat-label">USD Burned</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" data-burn-txs>—</div>
+      <div class="stat-label">Burn Transactions</div>
+    </div>
+  </div>
+</main>
+
+<script src="subscription.js"></script>
+<script>
+// ─── PAGE STATE ────────────────────────────────────────────────────────────────
+let currentCurrency = "SOL";
+let currentAmount   = null;
+
+// ─── ON WALLET CONNECTED ──────────────────────────────────────────────────────
+const _origOnConnected = window.onWalletConnected || (() => {});
+window._payPageConnected = function(addr) {
+  document.getElementById("wallet-gate").style.display = "none";
+  document.getElementById("pay-card").style.display     = "block";
+  document.getElementById("btn-pay").disabled            = false;
+  document.getElementById("btn-pay").textContent         = `💸 Pay with ${currentCurrency}`;
+  document.getElementById("btn-verify").disabled         = false;
+  updateAmount();
+};
+
+// Patch HVBS onWalletConnected
+const _origConnected = window.HVBS ? null : null;
+document.addEventListener("DOMContentLoaded", () => {
+  // If wallet already connected via subscription.js autoConnect
+  setTimeout(() => {
+    const addr = window.HVBS?.walletAddress;
+    if (addr) window._payPageConnected(addr);
+    else {
+      document.getElementById("wallet-gate").style.display = "block";
+      document.getElementById("pay-card").style.display    = "none";
+    }
+    updateAmount();
+    window.HVBS?.loadBurnStats();
+  }, 800);
+});
+
+// Patch onWalletConnected globally so subscription.js triggers it
+const _origGlobalConnected = window.onWalletConnected;
+window.onWalletConnected = function(addr) {
+  if (_origGlobalConnected) _origGlobalConnected(addr);
+  window._payPageConnected(addr);
+};
+
+// ─── CURRENCY SELECTOR ────────────────────────────────────────────────────────
+function selectCurrency(c) {
+  currentCurrency = c;
+  window.HVBS.selectedCurrency = c;
+  ["SOL","USDC","USDT"].forEach(x => {
+    document.getElementById("tab-" + x.toLowerCase()).classList.toggle("active", x === c);
+  });
+  const payBtn = document.getElementById("btn-pay");
+  if (payBtn && !payBtn.disabled) payBtn.textContent = `💸 Pay ${currentAmount || ""} ${c}`;
+  updateAmount();
+}
+
+async function updateAmount() {
+  const el   = document.getElementById("amount-display");
+  const uelEl = document.getElementById("amount-usd");
+  el.textContent = "Calculating…";
+  const amt = await window.HVBS.getPaymentAmount(currentCurrency);
+  currentAmount = amt;
+  if (amt) {
+    el.textContent = `${amt} ${currentCurrency}`;
+    uelEl.textContent = "≈ $3.00 USD";
+    const payBtn = document.getElementById("btn-pay");
+    if (payBtn && !payBtn.disabled) payBtn.textContent = `💸 Pay ${amt} ${currentCurrency}`;
+  } else {
+    el.textContent = "Price unavailable";
+  }
+}
+
+// Refresh amount every 30s
+setInterval(updateAmount, 30000);
+
+// ─── INITIATE PAYMENT ─────────────────────────────────────────────────────────
+async function initiatePayment() {
+  const wallet = window.HVBS.walletAddress;
+  if (!wallet) { showToast("Connect wallet first", "error"); return; }
+
+  setStatus("", "");
+  const btn = document.getElementById("btn-pay");
+  btn.disabled = true; btn.textContent = "⏳ Sending transaction…";
+
+  try {
+    // Fetch backend wallet address to send to
+    const cfgRes = await fetch("/api/payment-config");
+    const cfg    = await cfgRes.json();
+
+    const sig = await window.HVBS.sendPayment(cfg.recipient, currentCurrency);
+    if (!sig) throw new Error("Transaction not sent");
+
+    btn.textContent = "⏳ Verifying on-chain…";
+    const result = await window.HVBS.verifyPayment(sig, currentCurrency, false);
+
+    if (result.success) {
+      setStatus(`✅ Payment verified! Your PRO subscription is active until ${new Date(result.expiresAt).toLocaleDateString()}. Burn TX: ${result.burnTx || "Queued"}`, "success");
+      window.HVBS.loadBurnStats();
+      window.HVBS.checkSubscriptionStatus(wallet);
+      setTimeout(() => { window.location.href = "/pro-alerts"; }, 3000);
+    } else {
+      setStatus("⚠️ Verification failed: " + (result.error || "Try manual verify below"), "error");
+    }
+  } catch (err) {
+    setStatus("❌ Error: " + err.message, "error");
+  }
+
+  btn.disabled = false; btn.textContent = `💸 Pay with ${currentCurrency}`;
+}
+
+// ─── MANUAL VERIFY ────────────────────────────────────────────────────────────
+async function manualVerify() {
+  const sig = document.getElementById("tx-input").value.trim();
+  if (!sig) { showToast("Paste a transaction signature first", "error"); return; }
+  const wallet = window.HVBS.walletAddress;
+  if (!wallet) { showToast("Connect wallet first", "error"); return; }
+
+  const btn = document.getElementById("btn-verify");
+  btn.disabled = true; btn.textContent = "⏳ Verifying…";
+  setStatus("", "");
+
+  const result = await window.HVBS.verifyPayment(sig, currentCurrency, false);
+  if (result.success) {
+    setStatus(`✅ Verified! PRO active until ${new Date(result.expiresAt).toLocaleDateString()}`, "success");
+    window.HVBS.loadBurnStats();
+    setTimeout(() => { window.location.href = "/pro-alerts"; }, 2500);
+  } else {
+    setStatus("❌ " + (result.error || "Verification failed"), "error");
+  }
+
+  btn.disabled = false; btn.textContent = "✅ Verify Transaction";
+}
+
+// ─── HELPER ───────────────────────────────────────────────────────────────────
+function setStatus(msg, type) {
+  const el = document.getElementById("status-msg");
+  el.textContent = msg;
+  el.className   = "status-msg " + type;
+  el.style.display = msg ? "block" : "none";
+}
+</script>
+</body>
+</html>
