@@ -215,8 +215,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
-// 🔐 TELEGRAM BOT TOKEN
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8550627220:AAFttBqsomvRonARz7cWsvP5vki4UJ3vONM";
+// 🔐 TELEGRAM BOT TOKEN (fixed — do not use env var to avoid Render override conflict)
+const TELEGRAM_BOT_TOKEN = "8550627220:AAFttBqsomvRonARz7cWsvP5vki4UJ3vONM";
 const CMC_API_KEY = "2e4699c5c9614df5801eed04b36ba057";
 
 const DEXSCREENER_TOKEN_PAIRS = "https://api.dexscreener.com/token-pairs/v1/solana/";
