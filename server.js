@@ -215,8 +215,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
-// 🔐 YOUR NEW TELEGRAM BOT TOKEN (updated)
-const TELEGRAM_BOT_TOKEN = "8550627220:AAG2mrcZRrCsrRWNjX13TfFDaNN-yarMOw4";
+// 🔐 TELEGRAM BOT TOKEN — loaded from .env
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const CMC_API_KEY = "2e4699c5c9614df5801eed04b36ba057";
 
 const DEXSCREENER_TOKEN_PAIRS = "https://api.dexscreener.com/token-pairs/v1/solana/";
@@ -275,8 +275,8 @@ let botInitialized = false;
 function initBot() {
   if (botInitialized) return;
   try {
-    if (TELEGRAM_BOT_TOKEN === "YOUR_BOT_TOKEN_HERE") {
-      console.error("❌ Telegram bot token not set!");
+    if (!TELEGRAM_BOT_TOKEN) {
+      console.error("❌ Telegram bot token not set! Add TELEGRAM_BOT_TOKEN to .env");
       return;
     }
     bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { 
