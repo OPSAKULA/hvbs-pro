@@ -1475,6 +1475,69 @@ function setupBotHandlers() {
         return;
       }
     }
+
+    // ===== FALLBACK: User sent address directly (no state) =====
+    const isSolAddr = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text);
+    const isEthAddr = /^0x[0-9a-fA-F]{40}$/.test(text);
+
+    if (isSolAddr || isEthAddr) {
+      userStates[chatId] = { step: 'waiting_price_with_direction', address: text, chain: isEthAddr ? null : 'solana' };
+
+      const fetchMsg = await bot.sendMessage(chatId,
+        `🔍 *Address detected!*\n\`${text.slice(0,12)}...\`\n\n⏳ Fetching live price...`,
+        { parse_mode: 'Markdown' }
+      ).catch(e => null);
+
+      let market = null;
+      let chainLabel = '◎ Solana';
+      let chain = 'solana';
+
+      if (isEthAddr) {
+        const detected = await detectEVMChain(text);
+        chain = detected.chain || 'ethereum';
+        chainLabel = CHAIN_LABELS[chain] || '⟠ ETH';
+        userStates[chatId].chain = chain;
+        market = chain === 'bsc' ? await getMarketDataBNB(text) : await getMarketDataEth(text);
+      } else {
+        market = await getMarketData(text);
+      }
+
+      const cid = String(chatId);
+      if (!history[cid]) history[cid] = [];
+      history[cid] = history[cid].filter(h => h.address !== text);
+      history[cid].unshift({ address: text, symbol: market?.symbol || '?', chain });
+      if (history[cid].length > 10) history[cid].pop();
+      saveData(HISTORY_FILE, history);
+
+      let priceInfo = '';
+      if (market && market.price) {
+        const pd = market.price < 0.01 ? `$${market.price.toFixed(10)}` : `$${market.price.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
+        const ce = (market.priceChange24h || 0) >= 0 ? '📈' : '📉';
+        priceInfo = `\n💰 *Live Price:* ${pd}\n${ce} 24h Change: ${(market.priceChange24h || 0).toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}`;
+      } else {
+        priceInfo = '\n⚠️ Price not found right now.';
+      }
+
+      if (fetchMsg) {
+        bot.editMessageText(
+          `✅ *${chainLabel} — ${market?.symbol || '?'}*\n\`${text.slice(0,12)}...\`${priceInfo}\n\n📌 Choose alert direction:`,
+          {
+            chat_id: chatId,
+            message_id: fetchMsg.message_id,
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '📈 Alert Above', callback_data: `dir_above:${text}` },
+                  { text: '📉 Alert Below', callback_data: `dir_below:${text}` }
+                ]
+              ]
+            }
+          }
+        ).catch(e => {});
+      }
+      return;
+    }
   });
   
   bot.onText(/\/help/, (msg) => {
@@ -1808,6 +1871,29 @@ function setupBotHandlers() {
         ).catch(e=>{});
       }
       if (soundExists) bot.sendMessage(chatId, guideMsg, { parse_mode: "Markdown" }).catch(e=>{});
+      bot.answerCallbackQuery(callbackQuery.id);
+
+    } else if (data.startsWith('dir_above:') || data.startsWith('dir_below:')) {
+      // ===== DIRECTION SELECTION for direct-address fallback flow =====
+      const direction = data.startsWith('dir_above:') ? 'above' : 'below';
+      const address = data.replace('dir_above:', '').replace('dir_below:', '');
+      const state = userStates[chatId];
+      const chain = state?.chain || 'solana';
+
+      userStates[chatId] = { step: 'waiting_price', direction, address, chain };
+
+      const chainLabel = chain === 'bsc' ? '🟡 BNB' : chain === 'ethereum' ? '⟠ ETH' : '◎ SOL';
+      const dirEmoji = direction === 'above' ? '📈' : '📉';
+
+      bot.editMessageText(
+        `${dirEmoji} *${direction.toUpperCase()} alert selected!*\n[${chainLabel}] \`${address.slice(0,12)}...\`\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`0.00025\``,
+        {
+          chat_id: chatId,
+          message_id: callbackQuery.message.message_id,
+          parse_mode: 'Markdown',
+          reply_markup: { inline_keyboard: [] }
+        }
+      ).catch(e => {});
       bot.answerCallbackQuery(callbackQuery.id);
     }
   });
