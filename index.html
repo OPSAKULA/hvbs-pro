@@ -86,6 +86,7 @@
     .chain-btn-active { background: linear-gradient(135deg,#064e3b,#065f46) !important; border-color: #10b981 !important; color: #10b981 !important; box-shadow: 0 0 12px rgba(16,185,129,0.3); }
     #chainBtnEthereum.chain-btn-active { background: linear-gradient(135deg,#1e1b4b,#1e3a8a) !important; border-color: #627eea !important; color: #627eea !important; box-shadow: 0 0 12px rgba(98,126,234,0.3); }
     #chainBtnBSC.chain-btn-active { background: linear-gradient(135deg,#2a1800,#3d2200) !important; border-color: #F3BA2F !important; color: #F3BA2F !important; box-shadow: 0 0 12px rgba(243,186,47,0.3); }
+    #chainBtnBase.chain-btn-active { background: linear-gradient(135deg,#00143d,#001f6b) !important; border-color: #0052FF !important; color: #0052FF !important; box-shadow: 0 0 12px rgba(0,82,255,0.3); }
     .result-card { padding: 1.8rem; margin-top: 1.5rem; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
     .token-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #334155; }
@@ -202,7 +203,7 @@
     .chain-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 0; }
     .chain-card-wrapper { perspective: 800px; perspective-origin: 50% 50%; }
     .chain-card { background: rgba(15,23,42,0.85); backdrop-filter: blur(8px); border-radius: 1.5rem; padding: 1.2rem; text-align: center; border: 1px solid #334155; transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; transform-style: preserve-3d; will-change: transform; position: relative; }
-    .chain-card-wrapper:not(.solana-wrapper):not(.ethereum-wrapper):not(.bnb-wrapper):hover .chain-card { transform: rotateX(-6deg) rotateY(6deg) translateY(-6px); border-color: #10b981; box-shadow: 8px 8px 24px rgba(16,185,129,0.15), -2px -2px 12px rgba(139,92,246,0.1); }
+    .chain-card-wrapper:not(.solana-wrapper):not(.ethereum-wrapper):not(.bnb-wrapper):not(.base-wrapper):hover .chain-card { transform: rotateX(-6deg) rotateY(6deg) translateY(-6px); border-color: #10b981; box-shadow: 8px 8px 24px rgba(16,185,129,0.15), -2px -2px 12px rgba(139,92,246,0.1); }
     @keyframes solanaSpin3D {
       0%   { transform: perspective(500px) rotateY(0deg)   scale(1);    box-shadow: 0 0 12px rgba(20,241,149,0.2); }
       6%   { transform: perspective(500px) rotateY(90deg)  scale(1.06); box-shadow: 0 0 35px rgba(20,241,149,0.6); }
@@ -239,7 +240,19 @@
     @keyframes bnbFlash { 0%{opacity:0;} 6%{opacity:0;} 13%{opacity:0.22;} 22%{opacity:0.06;} 36%{opacity:0;} 100%{opacity:0;} }
     .bnb-card { animation: bnbSpin3D 5s ease-in-out infinite; border-color: #F3BA2F !important; box-shadow: 0 0 12px rgba(243,186,47,0.2); }
     .bnb-card::before { content:''; position:absolute; inset:0; border-radius:1.5rem; background:radial-gradient(circle at center,rgba(243,186,47,0.5),rgba(243,186,47,0.25)); animation:bnbFlash 5s ease-in-out infinite; pointer-events:none; z-index:1; }
-    .chain-card-wrapper:not(.solana-wrapper):not(.ethereum-wrapper):not(.bnb-wrapper):hover .chain-card { transform: rotateX(-6deg) rotateY(6deg) translateY(-6px); border-color: #10b981; box-shadow: 8px 8px 24px rgba(16,185,129,0.15), -2px -2px 12px rgba(139,92,246,0.1); }
+    @keyframes baseSpin3D {
+      0%   { transform: perspective(500px) rotateY(0deg)   scale(1);    box-shadow: 0 0 12px rgba(0,82,255,0.2); }
+      6%   { transform: perspective(500px) rotateY(90deg)  scale(1.06); box-shadow: 0 0 35px rgba(0,82,255,0.6); }
+      13%  { transform: perspective(500px) rotateY(180deg) scale(1.1);  box-shadow: 0 0 55px rgba(0,82,255,0.7), 0 0 90px rgba(0,82,255,0.35); }
+      20%  { transform: perspective(500px) rotateY(270deg) scale(1.06); box-shadow: 0 0 35px rgba(0,82,255,0.6); }
+      28%  { transform: perspective(500px) rotateY(360deg) scale(1.02); box-shadow: 0 0 18px rgba(0,82,255,0.3); }
+      36%  { transform: perspective(500px) rotateY(360deg) scale(1);    box-shadow: 0 0 12px rgba(0,82,255,0.2); }
+      100% { transform: perspective(500px) rotateY(360deg) scale(1);    box-shadow: 0 0 12px rgba(0,82,255,0.2); }
+    }
+    @keyframes baseFlash { 0%{opacity:0;} 6%{opacity:0;} 13%{opacity:0.22;} 22%{opacity:0.06;} 36%{opacity:0;} 100%{opacity:0;} }
+    .base-card { animation: baseSpin3D 5s ease-in-out infinite; border-color: #0052FF !important; box-shadow: 0 0 12px rgba(0,82,255,0.2); }
+    .base-card::before { content:''; position:absolute; inset:0; border-radius:1.5rem; background:radial-gradient(circle at center,rgba(0,82,255,0.5),rgba(0,82,255,0.25)); animation:baseFlash 5s ease-in-out infinite; pointer-events:none; z-index:1; }
+    .chain-card-wrapper:not(.solana-wrapper):not(.ethereum-wrapper):not(.bnb-wrapper):not(.base-wrapper):hover .chain-card { transform: rotateX(-6deg) rotateY(6deg) translateY(-6px); border-color: #10b981; box-shadow: 8px 8px 24px rgba(16,185,129,0.15), -2px -2px 12px rgba(139,92,246,0.1); }
     .chain-logo { width:72px; height:72px; margin:0 auto 0.8rem; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#0f172a; padding:10px; position:relative; z-index:2; overflow:hidden; }
     .chain-logo svg, .chain-logo img { width:52px; height:52px; object-fit:contain; }
     .chain-logo .bnb-logo-img { width:62px; height:62px; object-fit:contain; border-radius:4px; }
@@ -543,6 +556,7 @@
       <button id="chainBtnSolana" onclick="selectChain('solana')" class="chain-btn-active" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #10b981;background:linear-gradient(135deg,#064e3b,#065f46);color:#10b981;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">◎ Solana</button>
       <button id="chainBtnEthereum" onclick="selectChain('ethereum')" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #334155;background:#0f172a;color:#94a3b8;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">⟠ Ethereum</button>
       <button id="chainBtnBSC" onclick="selectChain('bsc')" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #334155;background:#0f172a;color:#94a3b8;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">🟡 BNB Chain</button>
+      <button id="chainBtnBase" onclick="selectChain('base')" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #334155;background:#0f172a;color:#94a3b8;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">🔵 Base</button>
     </div>
     <div id="chainInputHint" style="font-size:0.78rem;color:#64748b;margin-bottom:0.8rem;">💡 Example: <span style="color:#10b981;font-family:monospace;">EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v</span></div>
     <div class="input-group">
@@ -607,7 +621,7 @@
     <p style="color:#c4b5fd;font-size:0.92rem;margin-bottom:0.5rem;line-height:1.6;">Unlock <strong style="color:#a78bfa;">unlimited</strong> real-time price alerts, multi-chain monitoring, priority Telegram notifications, and advanced analytics — all in one PRO dashboard.</p>
     <ul style="color:#c4b5fd;font-size:0.86rem;list-style:none;padding:0;margin:0.8rem 0 1.4rem;display:flex;flex-wrap:wrap;gap:0.5rem 1.5rem;">
       <li>✅ Unlimited alerts</li>
-      <li>✅ Multi-chain (SOL, ETH, BNB)</li>
+      <li>✅ Multi-chain (SOL, ETH, BNB, Base)</li>
       <li>✅ Priority Telegram alerts</li>
       <li>✅ Advanced token analytics</li>
     </ul>
@@ -742,17 +756,17 @@
           <div class="chain-desc">Fully integrated • Scanner, alerts, anti‑scam shield</div>
         </div>
       </div>
-      <div class="chain-card-wrapper">
-        <div class="chain-card">
+      <div class="chain-card-wrapper base-wrapper">
+        <div class="chain-card base-card">
           <div class="chain-logo">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="56" height="56">
               <circle cx="50" cy="50" r="48" fill="white"/>
               <rect x="8" y="42" width="84" height="16" rx="8" fill="#0052FF"/>
             </svg>
           </div>
-          <div class="chain-name">Base</div>
-          <div class="chain-status status-coming">⏳ Coming Soon</div>
-          <div class="chain-desc">Q3 2026 • Full expansion roadmap</div>
+          <div class="chain-name" style="color:#0052FF;">Base</div>
+          <div class="chain-status status-live">✅ Live</div>
+          <div class="chain-desc">Fully integrated • Scanner, alerts, anti‑scam shield</div>
         </div>
       </div>
     </div>
@@ -1249,6 +1263,7 @@ function selectChain(chain) {
   document.getElementById('chainBtnSolana').classList.toggle('chain-btn-active', chain === 'solana');
   document.getElementById('chainBtnEthereum').classList.toggle('chain-btn-active', chain === 'ethereum');
   document.getElementById('chainBtnBSC').classList.toggle('chain-btn-active', chain === 'bsc');
+  document.getElementById('chainBtnBase').classList.toggle('chain-btn-active', chain === 'base');
   const input = document.getElementById('tokenAddress');
   const hint  = document.getElementById('chainInputHint');
   if (chain === 'solana') {
@@ -1257,6 +1272,9 @@ function selectChain(chain) {
   } else if (chain === 'ethereum') {
     input.placeholder = '🔍 Enter Ethereum Token Address (0x...)...';
     hint.innerHTML = '💡 Example: <span style="color:#627eea;font-family:monospace;">0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48</span> (USDC)';
+  } else if (chain === 'base') {
+    input.placeholder = '🔍 Enter Base Token Address (0x...)...';
+    hint.innerHTML = '💡 Example: <span style="color:#0052FF;font-family:monospace;">0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</span> (USDC on Base)';
   } else {
     input.placeholder = '🔍 Enter BNB Chain Token Address (0x...)...';
     hint.innerHTML = '💡 Example: <span style="color:#F3BA2F;font-family:monospace;">0x55d398326f99059fF775485246999027B3197955</span> (USDT BSC)';
@@ -1288,12 +1306,16 @@ async function autoDetectChain(val) {
         if (!liq[p.chainId]) liq[p.chainId] = 0;
         liq[p.chainId] += (p.liquidity?.usd || 0);
       }
-      if ((liq['bsc'] || 0) > (liq['ethereum'] || 0)) {
+      if ((liq['bsc'] || 0) > (liq['ethereum'] || 0) && (liq['bsc'] || 0) > (liq['base'] || 0)) {
         selectChain('bsc');
+      } else if ((liq['base'] || 0) > (liq['ethereum'] || 0) && (liq['base'] || 0) > (liq['bsc'] || 0)) {
+        selectChain('base');
       } else if ((liq['ethereum'] || 0) > 0) {
         selectChain('ethereum');
       } else if (liq['bsc']) {
         selectChain('bsc');
+      } else if (liq['base']) {
+        selectChain('base');
       } else {
         if (selectedChain === 'solana') selectChain('ethereum');
       }
@@ -1305,8 +1327,8 @@ async function autoDetectChain(val) {
 
 async function cgFetchByContract(mintAddress) {
   try {
-    // Support both Solana and Ethereum
-    const network = selectedChain === 'ethereum' ? 'ethereum' : 'solana';
+    // Support Solana, Ethereum, BSC, and Base
+    const network = selectedChain === 'ethereum' ? 'ethereum' : selectedChain === 'bsc' ? 'binance-smart-chain' : selectedChain === 'base' ? 'base' : 'solana';
     const r = await fetch(`https://api.coingecko.com/api/v3/coins/${network}/contract/${mintAddress}`, { signal: AbortSignal.timeout(10000) });
     if (r.status !== 200) return null;
     return await r.json();
@@ -1324,7 +1346,7 @@ async function cgFetchTickers(cgId) {
 
 async function dexFetchPairs(mintAddress) {
   try {
-    const network = selectedChain === 'ethereum' ? 'ethereum' : 'solana';
+    const network = selectedChain === 'ethereum' ? 'ethereum' : selectedChain === 'bsc' ? 'bsc' : selectedChain === 'base' ? 'base' : 'solana';
     const r = await fetch(`https://api.dexscreener.com/token-pairs/v1/${network}/${mintAddress}`, { signal: AbortSignal.timeout(10000) });
     if (!r.ok) return [];
     const d = await r.json();
@@ -1341,7 +1363,10 @@ const DEX_NAMES = {
   // Ethereum DEXes
   uniswap: 'Uniswap', sushiswap: 'SushiSwap', curve: 'Curve',
   balancer: 'Balancer', pancakeswap: 'PancakeSwap', dodo: 'DODO',
-  kyberswap: 'KyberSwap', bancor: 'Bancor', 'trader-joe': 'Trader Joe'
+  kyberswap: 'KyberSwap', bancor: 'Bancor', 'trader-joe': 'Trader Joe',
+  // Base DEXes
+  aerodrome: 'Aerodrome', baseswap: 'BaseSwap', alienbase: 'AlienBase',
+  swapbased: 'SwapBased', synthswap: 'SynthSwap', rocketswap: 'RocketSwap'
 };
 
 const KNOWN_CEX = [
@@ -1352,14 +1377,14 @@ const KNOWN_CEX = [
 
 async function enrichPlatformData(mintAddress) {
   const [pairs, cgCoin] = await Promise.all([dexFetchPairs(mintAddress), cgFetchByContract(mintAddress)]);
-  const chainId = selectedChain === 'ethereum' ? 'ethereum' : 'solana';
+  const chainId = selectedChain === 'ethereum' ? 'ethereum' : selectedChain === 'bsc' ? 'bsc' : selectedChain === 'base' ? 'base' : 'solana';
   const dexMap = {};
   for (const pair of pairs) {
     if (pair.chainId && pair.chainId !== chainId) continue; // filter correct chain
     const rawId = (pair.dexId || '').toLowerCase();
     const name = DEX_NAMES[rawId] || (rawId.charAt(0).toUpperCase() + rawId.slice(1)) || 'Unknown DEX';
     if (!dexMap[name]) {
-      const baseUrl = selectedChain === 'ethereum' ? `https://dexscreener.com/ethereum/${mintAddress}` : `https://dexscreener.com/solana/${mintAddress}`;
+      const baseUrl = selectedChain === 'ethereum' ? `https://dexscreener.com/ethereum/${mintAddress}` : selectedChain === 'bsc' ? `https://dexscreener.com/bsc/${mintAddress}` : selectedChain === 'base' ? `https://dexscreener.com/base/${mintAddress}` : `https://dexscreener.com/solana/${mintAddress}`;
       dexMap[name] = { name, type: 'DEX', baseToken: pair.baseToken?.symbol || '?', quoteToken: pair.quoteToken?.symbol || '?', url: pair.url || baseUrl, volume24h: pair.volume?.h24 || 0, liquidity: pair.liquidity?.usd || 0 };
     }
   }
@@ -1405,12 +1430,12 @@ function buildExchangesHtml(platform, mintAddress) {
 
 async function scanToken() {
   const addr = document.getElementById("tokenAddress").value.trim();
-  if (!addr) return alert(selectedChain === 'bsc' ? 'Enter a BNB Chain token address (0x...)' : selectedChain === 'ethereum' ? 'Enter an Ethereum token address (0x...)' : 'Enter a Solana token address');
+  if (!addr) return alert(selectedChain === 'bsc' ? 'Enter a BNB Chain token address (0x...)' : selectedChain === 'base' ? 'Enter a Base token address (0x...)' : selectedChain === 'ethereum' ? 'Enter an Ethereum token address (0x...)' : 'Enter a Solana token address');
 
   // Validate based on chain
-  if (selectedChain === 'ethereum' || selectedChain === 'bsc') {
+  if (selectedChain === 'ethereum' || selectedChain === 'bsc' || selectedChain === 'base') {
     if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
-      return alert(`❌ Invalid ${selectedChain === 'bsc' ? 'BNB Chain' : 'Ethereum'} address!\nMust start with 0x followed by 40 hex characters.`);
+      return alert(`❌ Invalid ${selectedChain === 'bsc' ? 'BNB Chain' : selectedChain === 'base' ? 'Base' : 'Ethereum'} address!\nMust start with 0x followed by 40 hex characters.`);
     }
   } else {
     if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr)) {
@@ -1420,16 +1445,18 @@ async function scanToken() {
 
   const card = document.getElementById("resultCard");
   card.style.display = "block";
-  const chainLabel = selectedChain === 'bsc' ? '🟡 BNB Chain' : selectedChain === 'ethereum' ? '⟠ Ethereum' : '◎ Solana';
-  const chainColor  = selectedChain === 'bsc' ? '#F3BA2F'     : selectedChain === 'ethereum' ? '#627eea'    : '#9945ff';
+  const chainLabel = selectedChain === 'bsc' ? '🟡 BNB Chain' : selectedChain === 'base' ? '🔵 Base' : selectedChain === 'ethereum' ? '⟠ Ethereum' : '◎ Solana';
+  const chainColor  = selectedChain === 'bsc' ? '#F3BA2F'     : selectedChain === 'base' ? '#0052FF'  : selectedChain === 'ethereum' ? '#627eea'    : '#9945ff';
   card.innerHTML = `<div style="text-align:center;padding:2rem;"><div style="font-size:2rem;">⏳</div><div style="margin-top:0.5rem;color:#94a3b8;">Scanning <span style="color:${chainColor};font-weight:700;">${chainLabel}</span> token... (cold start may take 50s)</div></div>`;
   let data = null, platformData = null;
   try {
     const apiEndpoint = selectedChain === 'bsc'
       ? `${BACKEND}/api/token/bsc/${addr}`
-      : selectedChain === 'ethereum'
-        ? `${BACKEND}/api/token/ethereum/${addr}`
-        : `${BACKEND}/api/token/${addr}`;
+      : selectedChain === 'base'
+        ? `${BACKEND}/api/token/base/${addr}`
+        : selectedChain === 'ethereum'
+          ? `${BACKEND}/api/token/ethereum/${addr}`
+          : `${BACKEND}/api/token/${addr}`;
     const [backendRes, platData] = await Promise.allSettled([
       (async () => { const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 70000); const res = await fetch(apiEndpoint, { signal: controller.signal }); clearTimeout(timeoutId); const d = await res.json(); if (!d.success) throw new Error(d.error); return d; })(),
       enrichPlatformData(addr)
@@ -1440,7 +1467,7 @@ async function scanToken() {
       const pairs = platformData?.exchanges?.filter(e => e.type === 'DEX') || [];
       if (pairs.length === 0 && !platformData?.coingecko?.listed) throw new Error("Token not found — Backend offline and no on-chain data available.");
       const cgCoin = platformData?.coingecko;
-      const baseChartUrl = selectedChain === 'bsc' ? `https://dexscreener.com/bsc/${addr}` : selectedChain === 'ethereum' ? `https://dexscreener.com/ethereum/${addr}` : `https://dexscreener.com/solana/${addr}`;
+      const baseChartUrl = selectedChain === 'bsc' ? `https://dexscreener.com/bsc/${addr}` : selectedChain === 'base' ? `https://dexscreener.com/base/${addr}` : selectedChain === 'ethereum' ? `https://dexscreener.com/ethereum/${addr}` : `https://dexscreener.com/solana/${addr}`;
       data = { success: true, chain: selectedChain, tokenAddress: addr, name: cgCoin?.name || 'Unknown Token', symbol: cgCoin?.symbol || '???', logo: cgCoin?.image || '', price: 'Fetching...', liquidity: 'N/A', volume24h: 'N/A', priceChange24h: 'N/A', marketCap: 'N/A', holderCount: 0, riskScore: 50, riskLevel: 'UNKNOWN — Backend Offline', riskReasons: ['⚠️ Backend server offline — full risk scan unavailable', '✅ Token found on CoinGecko/DEX'], buyersSellers: { h1:{buys:0,sells:0}, h6:{buys:0,sells:0}, h24:{buys:0,sells:0} }, topHolders: [], chartUrl: baseChartUrl, exchanges: platformData?.exchanges || [], socialLinks: platformData?.socialLinks || {}, platformPresence: platformData || {}, coingeckoUrl: cgCoin?.url || '' };
     }
     if (platformData) {
@@ -1458,14 +1485,16 @@ async function scanToken() {
   // Chain badge
   const chainBadge = (data.chain || selectedChain) === 'bsc'
     ? `<span style="background:linear-gradient(135deg,#3d2200,#F3BA2F22);color:#F3BA2F;border:1px solid #F3BA2F55;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">🟡 BNB Chain</span>`
-    : (data.chain || selectedChain) === 'ethereum'
-      ? `<span style="background:linear-gradient(135deg,#627eea,#3d5afe);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">⟠ Ethereum</span>`
-      : `<span style="background:linear-gradient(135deg,#9945ff,#19fb9b);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">◎ Solana</span>`;
+    : (data.chain || selectedChain) === 'base'
+      ? `<span style="background:linear-gradient(135deg,#001a7f,#0052FF22);color:#0052FF;border:1px solid #0052FF55;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">🔵 Base</span>`
+      : (data.chain || selectedChain) === 'ethereum'
+        ? `<span style="background:linear-gradient(135deg,#627eea,#3d5afe);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">⟠ Ethereum</span>`
+        : `<span style="background:linear-gradient(135deg,#9945ff,#19fb9b);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">◎ Solana</span>`;
 
   // Explorer link based on chain
-  const explorerBase  = (data.chain || selectedChain) === 'bsc' ? 'https://bscscan.com/token' : (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/token' : 'https://solscan.io/token';
-  const explorerLabel = (data.chain || selectedChain) === 'bsc' ? 'BscScan' : (data.chain || selectedChain) === 'ethereum' ? 'Etherscan' : 'Solscan';
-  const dexScreenerLabel = (data.chain || selectedChain) === 'bsc' ? 'View on DexScreener (BSC) →' : (data.chain || selectedChain) === 'ethereum' ? 'View on DexScreener (ETH) →' : 'View on DexScreener →';
+  const explorerBase  = (data.chain || selectedChain) === 'bsc' ? 'https://bscscan.com/token' : (data.chain || selectedChain) === 'base' ? 'https://basescan.org/token' : (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/token' : 'https://solscan.io/token';
+  const explorerLabel = (data.chain || selectedChain) === 'bsc' ? 'BscScan' : (data.chain || selectedChain) === 'base' ? 'BaseScan' : (data.chain || selectedChain) === 'ethereum' ? 'Etherscan' : 'Solscan';
+  const dexScreenerLabel = (data.chain || selectedChain) === 'bsc' ? 'View on DexScreener (BSC) →' : (data.chain || selectedChain) === 'base' ? 'View on DexScreener (Base) →' : (data.chain || selectedChain) === 'ethereum' ? 'View on DexScreener (ETH) →' : 'View on DexScreener →';
 
   const riskClass = data.riskLevel.includes("SAFE") ? "safe" : (data.riskLevel.includes("CAUTION") ? "caution" : "high");
   const bs = data.buyersSellers || { h1:{buys:0,sells:0}, h6:{buys:0,sells:0}, h24:{buys:0,sells:0} };
@@ -1476,7 +1505,7 @@ async function scanToken() {
   if (holders.length === 0) { holdersHtml += `<div style="color:#94a3b8;font-size:0.85rem;">⚠️ Holder data unavailable (API limit or new token)</div>`; }
   else {
     holdersHtml += `<table class="holders-table"><tr><th>#</th><th>Wallet Address</th><th>Amount</th><th>%</th></tr>`;
-    const holderExplorerBase = (data.chain || selectedChain) === 'bsc' ? 'https://bscscan.com/address' : (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/address' : 'https://solscan.io/account';
+    const holderExplorerBase = (data.chain || selectedChain) === 'bsc' ? 'https://bscscan.com/address' : (data.chain || selectedChain) === 'base' ? 'https://basescan.org/address' : (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/address' : 'https://solscan.io/account';
     holders.forEach((h, i) => { const rc = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''; const short = h.address.length>10 ? h.address.slice(0,6)+'...'+h.address.slice(-4) : h.address; const pct = parseFloat(h.percentage) || 0; holdersHtml += `<tr><td><span class="rank-badge ${rc}">${i+1}</span></td><td><a href="${holderExplorerBase}/${h.address}" target="_blank" class="holder-addr" title="${h.address}">${short}</a></td><td>${typeof h.amount==='number' ? h.amount.toLocaleString(undefined,{maximumFractionDigits:2}) : h.amount}</td><td><span>${h.percentage!=='N/A' ? h.percentage+'%' : 'N/A'}</span>${pct>0 ? `<div class="pct-bar"><div class="pct-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>` : ''}</td></tr>`; });
     holdersHtml += `</table>`;
   }
@@ -1598,11 +1627,24 @@ async function fetchDexPrice(address) {
         }
       } catch(e) {}
 
-      // Step 3: DexScreener search — pick best liquidity pair (ETH or BSC)
+      // Step 2b: Try Base pairs
+      const baseUrl2 = `https://api.dexscreener.com/token-pairs/v1/base/${address.trim()}`;
+      try {
+        const r = await fetch(baseUrl2, { signal: AbortSignal.timeout(6000) });
+        if (r.ok) {
+          const d = await r.json();
+          if (Array.isArray(d) && d.length > 0 && d[0].priceUsd) {
+            const p = parseFloat(d[0].priceUsd);
+            if (!isNaN(p) && p > 0) return p;
+          }
+        }
+      } catch(e) {}
+
+      // Step 3: DexScreener search — pick best liquidity pair (ETH, BSC, or Base)
       try {
         const sr = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${address}`, { signal: AbortSignal.timeout(7000) });
         const sd = await sr.json();
-        const pairs = (sd.pairs || []).filter(p => (p.chainId === 'ethereum' || p.chainId === 'bsc') && p.priceUsd);
+        const pairs = (sd.pairs || []).filter(p => (p.chainId === 'ethereum' || p.chainId === 'bsc' || p.chainId === 'base') && p.priceUsd);
         pairs.sort((a,b) => (b.liquidity?.usd||0) - (a.liquidity?.usd||0));
         if (pairs.length > 0) return parseFloat(pairs[0].priceUsd);
       } catch(e) {}
@@ -1620,6 +1662,16 @@ async function fetchDexPrice(address) {
       // Step 5: GeckoTerminal BSC
       try {
         const gr = await fetch(`https://api.geckoterminal.com/api/v2/networks/bsc/tokens/${address}`, { signal: AbortSignal.timeout(5000) });
+        if (gr.ok) {
+          const gd = await gr.json();
+          const gp = parseFloat(gd?.data?.attributes?.price_usd);
+          if (!isNaN(gp) && gp > 0) return gp;
+        }
+      } catch(e) {}
+
+      // Step 6: GeckoTerminal Base
+      try {
+        const gr = await fetch(`https://api.geckoterminal.com/api/v2/networks/base/tokens/${address}`, { signal: AbortSignal.timeout(5000) });
         if (gr.ok) {
           const gd = await gr.json();
           const gp = parseFloat(gd?.data?.attributes?.price_usd);
@@ -1966,6 +2018,205 @@ document.getElementById("tokenAddress").addEventListener("input", e => {
     cw = mCanvas.width = window.innerWidth;
     ch = mCanvas.height = window.innerHeight;
     initDrops();
+  });
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HVBS SUBSCRIPTION SYSTEM — injected after existing code
+     ═══════════════════════════════════════════════════════════ -->
+<style>
+/* PRO Upgrade Banner */
+#hvbs-pro-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:9999;
+  background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+  border-top:2px solid rgba(168,85,247,.5);
+  padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  transform:translateY(100%);transition:transform .4s cubic-bezier(.4,0,.2,1);
+  font-family:'Inter',sans-serif;
+}
+#hvbs-pro-banner.show{transform:translateY(0);}
+.hvbs-banner-text{flex:1;min-width:220px;}
+.hvbs-banner-text strong{display:block;font-size:15px;font-weight:700;color:#e2e8f0;margin-bottom:3px;}
+.hvbs-banner-text span{font-size:13px;color:#94a3b8;line-height:1.4;}
+.hvbs-banner-btns{display:flex;gap:10px;align-items:center;flex-shrink:0;}
+.hvbs-btn-upgrade{
+  background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;
+  color:#fff;padding:10px 22px;border-radius:10px;font-size:14px;font-weight:700;
+  cursor:pointer;transition:.2s;white-space:nowrap;
+}
+.hvbs-btn-upgrade:hover{opacity:.9;transform:translateY(-1px);}
+.hvbs-btn-close{
+  background:transparent;border:1px solid rgba(255,255,255,.15);
+  color:#94a3b8;padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;
+  transition:.2s;white-space:nowrap;
+}
+.hvbs-btn-close:hover{border-color:rgba(255,255,255,.3);color:#e2e8f0;}
+.hvbs-coming-soon{font-size:12px;color:#f59e0b;margin-top:4px;display:block;}
+
+/* PRO Access Gate Modal */
+#hvbs-gate-modal{
+  display:none;position:fixed;inset:0;z-index:99999;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;
+}
+#hvbs-gate-modal.show{display:flex;}
+#hvbs-gate-card{
+  background:linear-gradient(135deg,#12121c,#1a1a28);
+  border:1px solid rgba(168,85,247,.3);border-radius:20px;
+  padding:40px 36px;max-width:440px;width:90%;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.6);font-family:'Inter',sans-serif;
+}
+#hvbs-gate-card h2{font-size:24px;font-weight:800;color:#e2e8f0;margin-bottom:10px;}
+#hvbs-gate-card p{font-size:14px;color:#94a3b8;line-height:1.6;margin-bottom:24px;}
+.hvbs-gate-features{text-align:left;margin-bottom:28px;}
+.hvbs-gate-features li{list-style:none;font-size:14px;color:#cbd5e1;padding:6px 0;display:flex;align-items:center;gap:8px;}
+.hvbs-price-tag{
+  font-size:42px;font-weight:900;
+  background:linear-gradient(135deg,#a855f7,#ec4899);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:6px;
+}
+.hvbs-price-sub{font-size:13px;color:#64748b;margin-bottom:24px;}
+#hvbs-gate-go{
+  width:100%;padding:16px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,#a855f7,#7c3aed);
+  color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:.2s;
+  margin-bottom:12px;
+}
+#hvbs-gate-go:hover{opacity:.9;transform:translateY(-1px);}
+#hvbs-gate-cancel{
+  background:transparent;border:none;color:#64748b;font-size:13px;
+  cursor:pointer;text-decoration:underline;padding:4px;
+}
+.hvbs-burn-note{
+  background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);
+  border-radius:10px;padding:12px;font-size:12px;color:#a855f7;
+  margin-top:12px;line-height:1.5;
+}
+</style>
+
+<!-- PRO Upgrade Banner -->
+<div id="hvbs-pro-banner">
+  <div class="hvbs-banner-text">
+    <strong>⚡ Upgrade to PRO for just $3/month</strong>
+    <span>100% goes to ALERT token burn. Real-time whale alerts + AI signals.</span>
+    <span class="hvbs-coming-soon">🚀 Ethereum, BNB Chain, Base support coming soon!</span>
+  </div>
+  <div class="hvbs-banner-btns">
+    <button class="hvbs-btn-upgrade" onclick="window.location.href='pro-alerts.html'">Activate PRO – $3/mo</button>
+    <button class="hvbs-btn-close" onclick="hvbsDismissBanner()">Maybe later</button>
+  </div>
+</div>
+
+<!-- PRO Access Gate Modal -->
+<div id="hvbs-gate-modal">
+  <div id="hvbs-gate-card">
+    <h2>🔐 PRO Access Required</h2>
+    <p>Unlock the full PRO Whale Alert experience with real-time data and advanced tools.</p>
+    <div class="hvbs-gate-features">
+      <ul>
+        <li>🐋 Real-time whale alerts ($500–$100K filter)</li>
+        <li>📊 Advanced token analytics</li>
+        <li>🔔 Custom price alerts via Telegram</li>
+        <li>🤖 AI-powered market signals</li>
+        <li>📈 Top holder tracking</li>
+        <li>🔥 Burn dashboard access</li>
+      </ul>
+    </div>
+    <div class="hvbs-price-tag">$3</div>
+    <div class="hvbs-price-sub">per month · cancel anytime</div>
+    <button id="hvbs-gate-go" onclick="window.location.href='pro-alerts.html'">
+      💎 Get PRO Access
+    </button>
+    <button id="hvbs-gate-cancel" onclick="hvbsCloseGate()">No thanks</button>
+    <div class="hvbs-burn-note">
+      🔥 <strong>100% transparent:</strong> Every $3 payment is used to buy &amp; burn ALERT tokens on-chain. Fully verifiable.
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var BANNER_KEY  = 'hvbs_banner_dismissed';
+  var SUB_KEY     = 'hvbs_sub_status';
+
+  // ── Check subscription status ──────────────────────────────────────────────
+  async function checkSub(wallet) {
+    if (!wallet) return { active: false };
+    try {
+      var r = await fetch('/subscription-status?wallet=' + encodeURIComponent(wallet));
+      var d = await r.json();
+      localStorage.setItem(SUB_KEY, JSON.stringify({ ...d, ts: Date.now() }));
+      return d;
+    } catch(e) { return { active: false }; }
+  }
+
+  // ── Show banner after 3s if not dismissed ──────────────────────────────────
+  function maybeShowBanner() {
+    if (localStorage.getItem(BANNER_KEY)) return;
+    var cached = JSON.parse(localStorage.getItem(SUB_KEY) || '{}');
+    if (cached.active) return; // already subscribed — hide banner
+    setTimeout(function() {
+      var b = document.getElementById('hvbs-pro-banner');
+      if (b) b.classList.add('show');
+    }, 3000);
+  }
+
+  window.hvbsDismissBanner = function() {
+    localStorage.setItem(BANNER_KEY, '1');
+    var b = document.getElementById('hvbs-pro-banner');
+    if (b) b.classList.remove('show');
+  };
+
+  window.hvbsOpenGate = function() {
+    hvbsDismissBanner();
+    var m = document.getElementById('hvbs-gate-modal');
+    if (m) m.classList.add('show');
+  };
+
+  window.hvbsCloseGate = function() {
+    var m = document.getElementById('hvbs-gate-modal');
+    if (m) m.classList.remove('show');
+  };
+
+  // ── Wire PRO Alerts button ─────────────────────────────────────────────────
+  function wirePROButton() {
+    // Find any button/link that says "PRO Alert" (case-insensitive)
+    var allEls = document.querySelectorAll('a,button');
+    allEls.forEach(function(el) {
+      var txt = el.textContent || '';
+      if (/pro.?alert/i.test(txt)) {
+        el.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          handlePROClick();
+        });
+      }
+    });
+  }
+
+  function handlePROClick() {
+    // Always navigate to pro-alerts.html — the gate and wallet check is handled there
+    window.location.href = 'pro-alerts.html';
+  }
+
+  // ── Init on DOM ready ──────────────────────────────────────────────────────
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      maybeShowBanner();
+      wirePROButton();
+    });
+  } else {
+    maybeShowBanner();
+    wirePROButton();
+  }
+
+  // Close gate on backdrop click
+  document.addEventListener('click', function(e) {
+    var modal = document.getElementById('hvbs-gate-modal');
+    if (e.target === modal) hvbsCloseGate();
   });
 })();
 </script>
