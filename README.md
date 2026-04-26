@@ -6,18 +6,20 @@
 
 [![🤖 Telegram Bot](https://img.shields.io/badge/Telegram-Bot-green?style=for-the-badge\&logo=telegram)](https://t.me/hvbs_scanner_bot)
 
+[![🐦 X (Twitter)](https://img.shields.io/badge/X-@alerthvbsai-black?style=for-the-badge\&logo=twitter)](https://x.com/alerthvbsai)
 
-> **Real‑time Solana token analysis + Telegram price alerts with custom sound.**
+> **Real-time Solana token analysis + Telegram price alerts with custom sound.**
 
 ## ✨ Features
-- 🔍 Instant token scan (price, liquidity, volume, holders)
-- 👥 Top 10 holders with percentages
-- 📊 Buyers vs Sellers (1h/6h/24h)
-- 🌐 DEX + CEX exchange listings
-- 🤖 Telegram bot: `/alerts`, `/watchlist`, `/trending`, `/mute`, `/unmute`
-- 🔔 Custom notification sound (instructions inside bot)
-- 🖥️ 3D interactive website with glassmorphism
-- 📱 Browser push notifications with sound
+
+* 🔍 Instant token scan (price, liquidity, volume, holders)
+* 👥 Top 10 holders with percentages
+* 📊 Buyers vs Sellers (1h/6h/24h)
+* 🌐 DEX + CEX exchange listings
+* 🤖 Telegram bot: `/alerts`, `/watchlist`, `/trending`, `/mute`, `/unmute`
+* 🔔 Custom notification sound (instructions inside bot)
+* 🖥️ 3D interactive website with glassmorphism
+* 📱 Browser push notifications with sound
 
 ## 🧪 Preview (partial code – full version not disclosed)
 
@@ -39,3 +41,4 @@
   </div>
 </body>
 </html>
+```
