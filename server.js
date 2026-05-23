@@ -15,8 +15,8 @@ import { Connection, PublicKey, Keypair, Transaction,
 import cron from "node-cron";
 import bs58 from "bs58";
 
-const SOLANA_RPC        = "https://api.mainnet-beta.solana.com";
-const ADMIN_WALLET      = "FoEd1FMU2ZCaYEatWKj2mRYqpUuWB3vUAtQnThn2p54V";
+const SOLANA_RPC        = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+const ADMIN_WALLET      = process.env.ADMIN_WALLET_ADDRESS || "FoEd1FMU2ZCaYEatWKj2mRYqpUuWB3vUAtQnThn2p54V";
 const SUB_PRICE_USD     = 3;
 const SUB_DURATION_DAYS = 30;
 
@@ -216,8 +216,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 // 🔐 TELEGRAM BOT TOKEN (fixed — do not use env var to avoid Render override conflict)
-const TELEGRAM_BOT_TOKEN = "8550627220:AAFttBqsomvRonARz7cWsvP5vki4UJ3vONM";
-const CMC_API_KEY = "2e4699c5c9614df5801eed04b36ba057";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const CMC_API_KEY = process.env.CMC_API_KEY;
 
 const DEXSCREENER_TOKEN_PAIRS = "https://api.dexscreener.com/token-pairs/v1/solana/";
 const DEXSCREENER_SEARCH      = "https://api.dexscreener.com/latest/dex/search?q=";
@@ -486,7 +486,7 @@ async function getTopHolders(mint) {
     }
   } catch(e) { console.log("Solscan holders error:", e.message); }
   try {
-    const heliusRes = await axios.post(`https://mainnet.helius-rpc.com/?api-key=35d9c070-00bd-4523-acd7-6b728e9c1127`, {
+    const heliusRes = await axios.post(`https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`, {
       jsonrpc: "2.0", id: 1, method: "getTokenLargestAccounts", params: [mint]
     }, { timeout: 7000 });
     const accounts = heliusRes.data?.result?.value || [];

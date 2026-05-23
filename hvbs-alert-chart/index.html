@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HVBS AI – Live Token Chart</title>
+  <meta name="description" content="HVBS AI PRO – Real-time live crypto token charts powered by CoinGecko. Search any token by contract address on Ethereum, BSC, Solana, or Base." />
+  <meta name="robots" content="index, follow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <!-- TradingView Lightweight Charts v4 -->
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── MATRIX RAIN BACKGROUND ── -->
+  <canvas id="matrix-canvas"></canvas>
+
+  <!-- ── TOP NAV ── -->
+  <nav class="topnav">
+    <div class="nav-brand">
+      <span class="brand-logo">⬡</span>
+      <span class="brand-name">HVBS<span class="brand-pro"> AI PRO</span></span>
+    </div>
+    <div class="nav-links">
+      <a href="https://hvbsai.com" class="nav-link" target="_blank">← Back to Home</a>
+    </div>
+    <div class="live-dot-wrap">
+      <span class="live-dot" id="liveDot"></span>
+      <span class="live-label" id="liveLabel">LIVE</span>
+    </div>
+  </nav>
+
+  <!-- ── MAIN WRAPPER ── -->
+  <main class="main-wrap">
+
+    <!-- SEARCH PANEL -->
+    <section class="search-panel" aria-label="Token Search">
+      <h1 class="page-title">Live Token Chart</h1>
+      <p class="page-subtitle">Enter a contract address to view real-time price charts</p>
+
+      <div class="search-grid">
+        <!-- Contract Address -->
+        <div class="input-group">
+          <label for="contractInput" class="input-label">Contract Address</label>
+          <input
+            id="contractInput"
+            type="text"
+            class="input-field"
+            placeholder="0x... or Solana address"
+            spellcheck="false"
+            autocomplete="off"
+            aria-label="Token contract address"
+          />
+        </div>
+
+        <!-- Chain Selector -->
+        <div class="input-group">
+          <label for="chainSelect" class="input-label">Blockchain <span style="color: #FFD700; font-size: 11px; margin-left: 6px;">Auto-Detect</span></label>
+          <select id="chainSelect" class="input-field select-field" aria-label="Select blockchain">
+            <option value="auto">🔍 Auto-Detect</option>
+            <option value="ethereum">Ξ Ethereum</option>
+            <option value="bsc">⬡ BSC (BNB Chain)</option>
+            <option value="solana">◎ Solana</option>
+            <option value="base">🔵 Base</option>
+          </select>
+        </div>
+
+
+
+        <!-- Load Button -->
+        <div class="input-group btn-group-wrap">
+          <label class="input-label">&nbsp;</label>
+          <button id="loadBtn" class="load-btn" aria-label="Load chart for token">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Load Chart</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOKEN INFO STRIP -->
+    <section class="token-info-bar" id="tokenInfoBar" aria-label="Token information" hidden>
+      <div class="info-chip" id="infoChipName">
+        <span class="chip-label">Token</span>
+        <span class="chip-val" id="tokenName">–</span>
+      </div>
+      <div class="info-chip" id="infoChipSymbol">
+        <span class="chip-label">Symbol</span>
+        <span class="chip-val" id="tokenSymbol">–</span>
+      </div>
+      <div class="info-chip" id="infoChipPrice">
+        <span class="chip-label">Price (USD)</span>
+        <span class="chip-val price-val" id="tokenPrice">–</span>
+        <span class="price-flash" id="priceFlash"></span>
+      </div>
+      <div class="info-chip">
+        <span class="chip-label">24h Change</span>
+        <span class="chip-val" id="token24h">–</span>
+      </div>
+      <div class="info-chip">
+        <span class="chip-label">Market Cap</span>
+        <span class="chip-val" id="tokenMcap">–</span>
+      </div>
+      <div class="info-chip">
+        <span class="chip-label">Volume 24h</span>
+        <span class="chip-val" id="tokenVol">–</span>
+      </div>
+      <div class="info-chip refresh-chip">
+        <span class="chip-label">Refreshing in</span>
+        <span class="chip-val" id="countdownVal">–</span>
+      </div>
+    </section>
+
+    <!-- CHART AREA -->
+    <section class="chart-section" aria-label="Price chart">
+      <!-- Placeholder / Loading State -->
+      <div class="chart-placeholder" id="chartPlaceholder">
+        <div class="placeholder-icon">📈</div>
+        <p class="placeholder-title">Ready to Chart</p>
+        <p class="placeholder-sub">Enter a contract address above and click <strong>Load Chart</strong></p>
+      </div>
+
+      <!-- Error State -->
+      <div class="chart-error" id="chartError" hidden>
+        <div class="placeholder-icon">⚠️</div>
+        <p class="placeholder-title" id="errorTitle">Token Not Found</p>
+        <p class="placeholder-sub" id="errorMsg">Make sure the contract address is correct and the blockchain is right.</p>
+        <button class="retry-btn" id="retryBtn">Try Again</button>
+      </div>
+
+      <!-- Loading Spinner -->
+      <div class="chart-loader" id="chartLoader" hidden>
+        <div class="spinner"></div>
+        <p class="loader-text" id="loaderText">Fetching token data…</p>
+      </div>
+
+      <!-- TradingView-Style Top Toolbar -->
+      <div id="chartToolbar" class="tv-toolbar-3d" style="display: none;">
+        <div style="display: flex; align-items: center; gap: 8px; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 14px;">
+          <button id="tvToolCompare" class="tv-tool-btn" title="Add/Compare Token">+</button>
+        </div>
+        
+        <!-- Toolbar Timeframes -->
+        <div style="display: flex; gap: 8px; position: relative; align-items: center; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 14px;">
+          <div id="tvTfButtons" class="tf-buttons" style="display: flex; gap: 6px; align-items: center;">
+            <!-- Dynamically populated from script.js -->
+          </div>
+          <button id="tfMenuBtn" class="tv-tool-btn" style="padding: 6px;" title="Choose Timeframes">⚙️</button>
+          <div id="tfMenuDropdown" style="display: none; position: absolute; top: calc(100% + 8px); left: 0; background: linear-gradient(180deg, #1f1f3a, #14142a); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 16px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.8); width: 280px;">
+            <p style="font-size: 11px; color: var(--accent-light); margin-bottom: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Choose Exactly 5 Timeframes:</p>
+            <div id="tfOptionsGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+              <!-- Dynamically populated checkboxes -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Extra Tools Row -->
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          
+          <!-- Chart Type Dropdown -->
+          <div style="position: relative;" id="chartTypeWrapper">
+            <span id="tvToolCandles" class="tv-tool-btn" title="Chart Type">
+              <span id="chartTypeIcon">🕯️</span> <span style="font-size: 10px; opacity: 0.7;">▼</span>
+            </span>
+            <div id="chartTypeMenu" class="charttype-dropdown" style="display: none;">
+              <div class="charttype-item" data-type="candle">🕯️ Candles</div>
+              <div class="charttype-item" data-type="bar">📊 Bars</div>
+              <div class="charttype-item" data-type="line">📈 Line</div>
+              <div class="charttype-item" data-type="area">📉 Area</div>
+              <div class="charttype-item" data-type="baseline">🌊 Baseline</div>
+              <div class="charttype-item" data-type="histogram">📏 Columns</div>
+            </div>
+          </div>
+
+          <span id="tvToolIndicators" class="tv-tool-btn" style="font-family: serif; font-size: 16px;" title="Indicators">ƒx</span>
+          
+          <span id="tvToolViewMode" class="tv-tool-btn" title="Chart View Mode">
+            <span id="lblPrice">Price</span> <span style="opacity: 0.4; margin: 0 4px;">/</span> <span id="lblMcap">Market Cap</span>
+          </span>
+          
+          <span id="tvToolCurrency" class="tv-tool-btn" title="Currency Mode">USD / SOL</span>
+          <span id="tvToolFullscreen" class="tv-tool-btn" title="Fullscreen">⛶ <span style="font-size: 12px; font-weight:normal;">Full</span></span>
+          <span id="tvToolScreenshot" class="tv-tool-btn" title="Screenshot">📷</span>
+          <span id="tvToolSettings" class="tv-tool-btn" title="Settings">⚙️</span>
+
+          <!-- ── DRAWING TOOLS OVERLAY (moved to top toolbar) ── -->
+          <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 4px;"></div>
+          <div id="drawingToolsOverlay" class="dt-overlay" style="display:none;">
+            <!-- Crosshair (default cursor) -->
+            <button class="dt-btn active-tool" data-tool="Crosshair" title="Crosshair">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.6">
+                <line x1="7.5" y1="1" x2="7.5" y2="14"/><line x1="1" y1="7.5" x2="14" y2="7.5"/>
+                <circle cx="7.5" cy="7.5" r="2" stroke-width="1.4"/>
+              </svg>
+            </button>
+
+            <div class="dt-sep"></div>
+
+            <!-- Trend Line -->
+            <button class="dt-btn" data-tool="Trend Line" title="Trend Line">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.7">
+                <line x1="2" y1="13" x2="13" y2="2"/>
+                <circle cx="2" cy="13" r="1.5" fill="currentColor" stroke="none"/>
+                <circle cx="13" cy="2" r="1.5" fill="currentColor" stroke="none"/>
+              </svg>
+            </button>
+
+            <!-- Fibonacci -->
+            <button class="dt-btn" data-tool="Fibonacci Retracement" title="Fibonacci Retracement">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3">
+                <line x1="2" y1="13" x2="13" y2="13"/>
+                <line x1="2" y1="10" x2="13" y2="10"/>
+                <line x1="2" y1="7.5" x2="13" y2="7.5"/>
+                <line x1="2" y1="5" x2="13" y2="5"/>
+                <line x1="2" y1="2" x2="13" y2="2"/>
+                <circle cx="2" cy="13" r="1.1" fill="currentColor" stroke="none"/>
+                <circle cx="13" cy="2" r="1.1" fill="currentColor" stroke="none"/>
+              </svg>
+            </button>
+
+            <!-- Brush -->
+            <button class="dt-btn" data-tool="Brush" title="Brush / Free Draw">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 12 Q5 7 9 4.5 L12 2.5 L12.5 3.5 Q10 6.5 7.5 10.5 Q5.5 13 3.5 13.5 Q2 14 3 12Z"/>
+                <line x1="12" y1="2.5" x2="13.5" y2="1" stroke-width="2"/>
+              </svg>
+            </button>
+
+            <!-- Measure -->
+            <button class="dt-btn" data-tool="Measure" title="Measure">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4">
+                <rect x="1.5" y="5.5" width="12" height="4" rx="1"/>
+                <line x1="4" y1="5.5" x2="4" y2="9.5"/>
+                <line x1="7.5" y1="5.5" x2="7.5" y2="9.5"/>
+                <line x1="11" y1="5.5" x2="11" y2="9.5"/>
+              </svg>
+            </button>
+
+            <div class="dt-sep"></div>
+
+            <!-- Text -->
+            <button class="dt-btn" data-tool="Text" title="Text Label">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" stroke="none">
+                <text x="2" y="12.5" font-size="12" font-family="serif" font-weight="bold">T</text>
+              </svg>
+            </button>
+
+            <!-- Emoji -->
+            <div style="position:relative; display: flex; align-items: center;">
+              <button class="dt-btn" data-tool="Emoji" title="Emoji Sticker" id="dtEmojiBtn">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4">
+                  <circle cx="7.5" cy="7.5" r="6"/>
+                  <circle cx="5.2" cy="6.2" r="0.9" fill="currentColor" stroke="none"/>
+                  <circle cx="9.8" cy="6.2" r="0.9" fill="currentColor" stroke="none"/>
+                  <path d="M4.8 9.5 Q7.5 11.8 10.2 9.5" stroke-linecap="round" fill="none"/>
+                </svg>
+              </button>
+              <!-- Emoji picker popup (hidden by default) -->
+              <div id="dtEmojiPicker" class="dt-emoji-picker" style="display:none;">
+                <span>🚀</span><span>🔥</span><span>⚡</span><span>💎</span><span>🐻</span>
+                <span>🐂</span><span>📈</span><span>📉</span><span>⚠️</span><span>✅</span>
+                <span>❌</span><span>💡</span><span>🎯</span><span>🔔</span><span>💰</span>
+                <span>🌊</span><span>❄️</span><span>🌙</span><span>☀️</span><span>⭐</span>
+              </div>
+            </div>
+
+            <div class="dt-sep"></div>
+
+            <!-- Zoom In -->
+            <button class="dt-btn" data-tool="Zoom In" title="Zoom In">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.6">
+                <circle cx="6.5" cy="6.5" r="4.5"/>
+                <line x1="10" y1="10" x2="14" y2="14"/>
+                <line x1="4.5" y1="6.5" x2="8.5" y2="6.5"/>
+                <line x1="6.5" y1="4.5" x2="6.5" y2="8.5"/>
+              </svg>
+            </button>
+
+            <div class="dt-sep"></div>
+
+            <!-- Magnet -->
+            <button class="dt-btn" data-tool="Magnet Mode" title="Magnet Mode" id="dtMagnetBtn">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M3.5 3 L3.5 8.5 Q3.5 12 7.5 12 Q11.5 12 11.5 8.5 L11.5 3"/>
+                <line x1="1.5" y1="3" x2="5.5" y2="3" stroke-width="2.2"/>
+                <line x1="9.5" y1="3" x2="13.5" y2="3" stroke-width="2.2"/>
+              </svg>
+            </button>
+
+            <!-- Eraser -->
+            <button class="dt-btn" data-tool="Eraser" title="Eraser (undo last)">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2.5 12.5 L9.5 2.5 L13 5.5 L6 14 Z"/>
+                <line x1="1" y1="14" x2="14" y2="14"/>
+                <line x1="6.5" y1="8.5" x2="10.5" y2="6"/>
+              </svg>
+            </button>
+
+            <!-- Lock -->
+            <button class="dt-btn" data-tool="Lock All Drawing Tools" title="Lock All Drawing Tools" id="dtLockBtn">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="7" width="9" height="7" rx="1.5"/>
+                <path d="M5 7 L5 4.5 Q5 2 7.5 2 Q10 2 10 4.5 L10 7"/>
+                <circle cx="7.5" cy="10.5" r="1.1" fill="currentColor" stroke="none"/>
+              </svg>
+            </button>
+
+          </div>
+        </div>
+
+        <!-- ── PATTERN DETECTION BUTTONS — NEW LAYOUT ── -->
+        <div id="patternBtnsBar" style="display:flex;flex-direction:column;gap:6px;width:100%;margin-top:6px;">
+
+          <!-- BULLISH 3D GREEN BOX (TOP) -->
+          <div class="pattern-box pattern-box-bullish">
+            <div class="pattern-box-label pattern-box-label-bull">🟢 BULLISH PATTERNS</div>
+            <div class="pattern-box-btns">
+              <button id="patBtn_dbl_bot" class="pattern-btn bullish-pat" data-fullname="Bullish Double Bottom — 2 troughs at same price level, signals reversal up">
+                <span class="pat-icon">W</span><span class="pat-label">2Bot</span>
+              </button>
+              <button id="patBtn_inv_hs" class="pattern-btn bullish-pat" data-fullname="Bullish Inverted Head &amp; Shoulders — LS → Head(low) → RS, breakout up">
+                <span class="pat-icon">⌣</span><span class="pat-label">IH&amp;S</span>
+              </button>
+              <button id="patBtn_fall_wedge" class="pattern-btn bullish-pat" data-fullname="Bullish Falling Wedge — Converging downward channel, breakout up">
+                <span class="pat-icon">▽</span><span class="pat-label">FWedge</span>
+              </button>
+              <button id="patBtn_bull_expand" class="pattern-btn bullish-pat" data-fullname="Bullish Expanding Triangle — Diverging swings, breakout upward">
+                <span class="pat-icon">◁▷</span><span class="pat-label">Exp△</span>
+              </button>
+              <button id="patBtn_triple_bot" class="pattern-btn bullish-pat" data-fullname="Bullish Triple Bottom — 3 troughs at same price, strong reversal signal">
+                <span class="pat-icon">ш</span><span class="pat-label">3Bot</span>
+              </button>
+              <button id="patBtn_bull_flag" class="pattern-btn bullish-pat" data-fullname="Bullish Flag Pattern — Sharp rally + brief consolidation, continuation up">
+                <span class="pat-icon">⚑</span><span class="pat-label">Flag△</span>
+              </button>
+              <button id="patBtn_bull_pennant" class="pattern-btn bullish-pat" data-fullname="Bullish Pennant Pattern — Rally + symmetrical triangle, continuation up">
+                <span class="pat-icon">◈</span><span class="pat-label">Penn△</span>
+              </button>
+              <button id="patBtn_fall_village" class="pattern-btn bullish-pat" data-fullname="Bullish Falling Village — Multiple falling lows converging, reversal up">
+                <span class="pat-icon">∧</span><span class="pat-label">Vill</span>
+              </button>
+              <button id="patBtn_desc_tri" class="pattern-btn bullish-pat" data-fullname="Descending Triangle (Bullish Breakout) — Flat support + lower highs, breakout up">
+                <span class="pat-icon">◺</span><span class="pat-label">DescTri</span>
+              </button>
+              <button id="patBtn_sym_expand" class="pattern-btn bullish-pat" data-fullname="Symmetrical Expanding Triangle — Diverging swings, neutral → breakout direction">
+                <span class="pat-icon">⬡</span><span class="pat-label">SymExp</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- BEARISH 3D RED BOX (BOTTOM) -->
+          <div class="pattern-box pattern-box-bearish">
+            <div class="pattern-box-label pattern-box-label-bear">🔴 BEARISH PATTERNS</div>
+            <div class="pattern-box-btns">
+              <button id="patBtn_dbl_top" class="pattern-btn bearish-pat" data-fullname="Bearish Double Top — 2 peaks at same price level, signals reversal down">
+                <span class="pat-icon">M</span><span class="pat-label">2Top</span>
+              </button>
+              <button id="patBtn_hs" class="pattern-btn bearish-pat" data-fullname="Bearish Head &amp; Shoulders — LS → Head(high) → RS, breakdown below neckline">
+                <span class="pat-icon">⌢</span><span class="pat-label">H&amp;S</span>
+              </button>
+              <button id="patBtn_wedge" class="pattern-btn bearish-pat" data-fullname="Bearish Rising Wedge — Converging upward channel, breakdown down">
+                <span class="pat-icon">▲</span><span class="pat-label">RWedge</span>
+              </button>
+              <button id="patBtn_expand" class="pattern-btn bearish-pat" data-fullname="Bearish Expanding Triangle — Diverging price swings, breakdown downward">
+                <span class="pat-icon">◁▷</span><span class="pat-label">Exp▽</span>
+              </button>
+              <button id="patBtn_triple" class="pattern-btn bearish-pat" data-fullname="Bearish Triple Top — 3 peaks at same price level, strong reversal signal">
+                <span class="pat-icon">⋀⋀</span><span class="pat-label">3Top</span>
+              </button>
+              <button id="patBtn_bear_flag" class="pattern-btn bearish-pat" data-fullname="Bearish Flag Pattern — Sharp drop + brief rally, continuation down">
+                <span class="pat-icon">⚐</span><span class="pat-label">Flag▽</span>
+              </button>
+              <button id="patBtn_bear_pennant" class="pattern-btn bearish-pat" data-fullname="Bearish Pennant Pattern — Drop + symmetrical triangle, continuation down">
+                <span class="pat-icon">◇</span><span class="pat-label">Penn▽</span>
+              </button>
+              <button id="patBtn_bear_wedge" class="pattern-btn bearish-pat" data-fullname="Bearish Rising Wedge — Price rising in narrowing wedge, bearish breakdown">
+                <span class="pat-icon">▽</span><span class="pat-label">BRWedge</span>
+              </button>
+              <button id="patBtn_asc_tri" class="pattern-btn bearish-pat" data-fullname="Descending Triangle (Bearish) — Flat support breaks, strong sell signal">
+                <span class="pat-icon">◿</span><span class="pat-label">AscTri</span>
+              </button>
+              <button id="patBtn_sym_expand_bear" class="pattern-btn bearish-pat" data-fullname="Symmetrical Expanding Triangle (Bearish) — Expanding volatility, bearish bias">
+                <span class="pat-icon">⬡</span><span class="pat-label">SymE▽</span>
+              </button>
+              <!-- Scan Visible Area -->
+              <button id="scanVisibleBtn" class="pattern-btn" style="margin-left:6px;border-color:rgba(108,99,255,0.5);color:#9b94ff;background:linear-gradient(145deg,rgba(108,99,255,0.1),rgba(40,40,100,0.2));" data-fullname="Scan Visible — Detect patterns in the current chart view">
+                <span class="pat-icon">🔍</span><span class="pat-label">Scan</span>
+              </button>
+              <!-- Clear All -->
+              <button id="clearAllPatsBtn" class="pattern-btn" style="margin-left:6px;border-color:rgba(255,100,100,0.5);color:#ff6464;background:linear-gradient(145deg,rgba(255,69,96,0.1),rgba(120,20,30,0.2));" data-fullname="Clear All — Remove all drawn patterns from chart">
+                <span class="pat-icon">✕</span><span class="pat-label">Clear</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Custom Tooltip for Patterns -->
+        <div id="patternTooltip" style="
+          display:none;position:fixed;z-index:9999;
+          background:linear-gradient(135deg,#1a1a3a,#0e0e22);
+          border:1px solid rgba(108,99,255,0.5);
+          border-radius:8px;padding:10px 14px;
+          font-size:12px;color:#e0e0ff;
+          box-shadow:0 8px 32px rgba(0,0,0,0.7);
+          max-width:260px;line-height:1.5;pointer-events:none;
+          white-space:normal;word-break:break-word;
+        "></div>
+      </div>
+
+      <!-- Chart Body Wrapper -->
+      <div style="display: flex; flex-direction: row; align-items: stretch; position: relative; min-height: 500px;">
+
+        <!-- Actual Chart Container -->
+        <div id="chartContainer" class="chart-container" style="border-top-left-radius: 0; border-top-right-radius: 0; position: relative; flex: 1; width: 100%;" hidden>
+          <!-- Blinking Golden Arrow for Current Price -->
+          <div id="customPriceArrow" class="price-arrow" style="display: none;"></div>
+
+
+
+          <!-- ── FLOATING CANDLE PANEL (inside chart) ── -->
+          <div id="leftToolbar" class="floating-candle-panel" style="display: none;">
+            <!-- Toggle Header -->
+            <div class="fcp-header" id="fcpHeader">
+              <span class="fcp-title">🕯️ CANDLES</span>
+              <button class="fcp-toggle" id="fcpToggle" title="Toggle Panel">▼</button>
+            </div>
+            <!-- Scrollable Content -->
+            <div class="fcp-body" id="fcpBody">
+
+              <!-- ▲ BULLISH -->
+              <div class="candle-section-hdr bull">▲ Bullish</div>
+
+              <button id="cBtn_hammer" class="candle-pat-btn bull" title="Hammer — Bullish reversal: small body, long lower wick">
+                <span class="cicon">🔨</span><span class="cname">Hammer</span>
+              </button>
+              <button id="cBtn_inv_hammer" class="candle-pat-btn bull" title="Inverted Hammer — Bullish reversal: small body, long upper wick">
+                <span class="cicon">🔼</span><span class="cname">InvHammer</span>
+              </button>
+              <button id="cBtn_bull_engulf" class="candle-pat-btn bull" title="Bullish Engulfing — Large green candle engulfs previous red candle">
+                <span class="cicon">↑</span><span class="cname">BullEngulf</span>
+              </button>
+              <button id="cBtn_piercing" class="candle-pat-btn bull" title="Piercing Line — Green opens below prev low, closes above midpoint">
+                <span class="cicon">⚔</span><span class="cname">Piercing</span>
+              </button>
+              <button id="cBtn_morning_star" class="candle-pat-btn bull" title="Morning Star — Red, small doji, large green. Bullish reversal">
+                <span class="cicon">☀</span><span class="cname">MorningStar</span>
+              </button>
+              <button id="cBtn_morning_doji" class="candle-pat-btn bull" title="Morning Doji Star — Red, doji, green. Strong bullish reversal">
+                <span class="cicon">✦</span><span class="cname">MornDoji</span>
+              </button>
+              <button id="cBtn_bull_harami" class="candle-pat-btn bull" title="Bullish Harami — Small green candle inside previous large red">
+                <span class="cicon">◑</span><span class="cname">BullHarami</span>
+              </button>
+              <button id="cBtn_bull_harami_cross" class="candle-pat-btn bull" title="Bullish Harami Cross — Doji inside large red candle">
+                <span class="cicon">✚</span><span class="cname">HaramiCross</span>
+              </button>
+              <button id="cBtn_three_white" class="candle-pat-btn bull" title="Three White Soldiers — 3 consecutive green candles. Strong bull">
+                <span class="cicon">▲</span><span class="cname">3WhiteSold</span>
+              </button>
+              <button id="cBtn_bull_belt" class="candle-pat-btn bull" title="Bullish Belt Hold — Opens at low, closes near high. No lower wick">
+                <span class="cicon">⬜</span><span class="cname">BullBelt</span>
+              </button>
+              <button id="cBtn_bull_kick" class="candle-pat-btn bull" title="Bullish Kicking — Red followed by gapped-up green candle">
+                <span class="cicon">▶</span><span class="cname">BullKick</span>
+              </button>
+              <button id="cBtn_bull_meet" class="candle-pat-btn bull" title="Bullish Meeting Line — Red and green close at same price">
+                <span class="cicon">≡</span><span class="cname">BullMeetLn</span>
+              </button>
+              <button id="cBtn_tower_bot" class="candle-pat-btn bull" title="Tower Bottom — Large red, small bodies, large green. Reversal">
+                <span class="cicon">🏛</span><span class="cname">TowerBot</span>
+              </button>
+              <button id="cBtn_three_stars_s" class="candle-pat-btn bull" title="Three Stars in the South — Three bearish candles with narrowing range">
+                <span class="cicon">⭐</span><span class="cname">3StarsS</span>
+              </button>
+              <button id="cBtn_frypat_bot" class="candle-pat-btn bull" title="Frypan Bottom — Rounding bottom with gap up confirmation">
+                <span class="cicon">🍳</span><span class="cname">FrypanBot</span>
+              </button>
+
+              <!-- ▼ BEARISH -->
+              <div class="candle-section-hdr bear">▼ Bearish</div>
+
+              <button id="cBtn_hanging" class="candle-pat-btn bear" title="Hanging Man — Small body at top, long lower wick. Bearish reversal">
+                <span class="cicon">🪢</span><span class="cname">HangingMan</span>
+              </button>
+              <button id="cBtn_shooting" class="candle-pat-btn bear" title="Shooting Star — Small body at bottom, long upper wick. Bearish">
+                <span class="cicon">★</span><span class="cname">ShootStar</span>
+              </button>
+              <button id="cBtn_bear_engulf" class="candle-pat-btn bear" title="Bearish Engulfing — Large red candle engulfs previous green">
+                <span class="cicon">↓</span><span class="cname">BearEngulf</span>
+              </button>
+              <button id="cBtn_dark_cloud" class="candle-pat-btn bear" title="Dark Cloud Cover — Red opens above prev high, closes below midpoint">
+                <span class="cicon">☁</span><span class="cname">DarkCloud</span>
+              </button>
+              <button id="cBtn_evening_star" class="candle-pat-btn bear" title="Evening Star — Green, small doji, large red. Bearish reversal">
+                <span class="cicon">🌙</span><span class="cname">EveningStar</span>
+              </button>
+              <button id="cBtn_evening_doji" class="candle-pat-btn bear" title="Evening Doji Star — Green, doji, red. Strong bearish reversal">
+                <span class="cicon">✦</span><span class="cname">EvenDoji</span>
+              </button>
+              <button id="cBtn_bear_harami" class="candle-pat-btn bear" title="Bearish Harami — Small red candle inside previous large green">
+                <span class="cicon">◑</span><span class="cname">BearHarami</span>
+              </button>
+              <button id="cBtn_bear_harami_cross" class="candle-pat-btn bear" title="Bearish Harami Cross — Doji inside large green candle">
+                <span class="cicon">✚</span><span class="cname">BearHrCross</span>
+              </button>
+              <button id="cBtn_three_black" class="candle-pat-btn bear" title="Three Black Crows — 3 consecutive red candles. Strong bearish">
+                <span class="cicon">▼</span><span class="cname">3BlackCrow</span>
+              </button>
+              <button id="cBtn_bear_belt" class="candle-pat-btn bear" title="Bearish Belt Hold — Opens at high, closes near low. No upper wick">
+                <span class="cicon">⬛</span><span class="cname">BearBelt</span>
+              </button>
+              <button id="cBtn_bear_kick" class="candle-pat-btn bear" title="Bearish Kicking — Green followed by gapped-down red candle">
+                <span class="cicon">◀</span><span class="cname">BearKick</span>
+              </button>
+              <button id="cBtn_bear_meet" class="candle-pat-btn bear" title="Bearish Meeting Line — Green and red close at same price. Bearish">
+                <span class="cicon">≡</span><span class="cname">BearMeetLn</span>
+              </button>
+              <button id="cBtn_tower_top" class="candle-pat-btn bear" title="Tower Top — Large green, small bodies, large red. Reversal">
+                <span class="cicon">🏛</span><span class="cname">TowerTop</span>
+              </button>
+              <button id="cBtn_upsidegap2" class="candle-pat-btn bear" title="Upside Gap Two Crows — Green gap up then two red candles fill it">
+                <span class="cicon">↗</span><span class="cname">UGap2Crows</span>
+              </button>
+              <button id="cBtn_adv_block" class="candle-pat-btn bear" title="Advance Block — Three green candles with diminishing strength">
+                <span class="cicon">⛔</span><span class="cname">AdvBlock</span>
+              </button>
+              <button id="cBtn_bear_brkaway" class="candle-pat-btn bear" title="Bearish Breakaway — 5-candle pattern ending with large red">
+                <span class="cicon">💥</span><span class="cname">BearBreak</span>
+              </button>
+              <button id="cBtn_dumpling_top" class="candle-pat-btn bear" title="Dumpling Top — Rounding top with gap down. Bearish reversal">
+                <span class="cicon">🍮</span><span class="cname">DumpTop</span>
+              </button>
+              <button id="cBtn_stick_sand" class="candle-pat-btn bear" title="Stick Sandwich — Red, green, red. Bearish continuation">
+                <span class="cicon">🥪</span><span class="cname">StickSand</span>
+              </button>
+
+            </div><!-- end fcp-body -->
+          </div><!-- end floating-candle-panel -->
+
+          <!-- ── CHART CANDLE INFO OVERLAY (shows detected pattern name) ── -->
+          <div id="chartCandleInfo" class="chart-candle-info" style="display:none;"></div>
+
+        </div>
+      </div>
+
+      <!-- ── BOTTOM INDICATORS TOOLBAR ── -->
+      <div id="bottomIndicatorToolbar" class="bottom-indicator-toolbar" style="display: none;">
+        <div class="bit-scroll">
+          <button class="bit-btn">SRL</button>
+          <button class="bit-btn">Turnover</button>
+          <button class="bit-btn">MA</button>
+          <button class="bit-btn">EMA</button>
+          <button class="bit-btn">Volume</button>
+          <button class="bit-btn">MACD</button>
+          <button class="bit-btn">BOLL</button>
+          <button class="bit-btn">VPVR</button>
+          <button class="bit-btn">SAR</button>
+          <button class="bit-btn">AVL</button>
+          <button class="bit-btn">MTM</button>
+          <button class="bit-btn">VR</button>
+          <button class="bit-btn">DMA</button>
+          <button class="bit-btn">SKDJ</button>
+          <button class="bit-btn">PSY</button>
+          <button class="bit-btn">BBI</button>
+          <button class="bit-btn">BRAR</button>
+          <button class="bit-btn">Rate</button>
+          <button class="bit-btn">CCI</button>
+          <button class="bit-btn">VWAP</button>
+          <!-- Additional Important Tools -->
+          <button class="bit-btn">RSI</button>
+          <button class="bit-btn">Stoch</button>
+          <button class="bit-btn">ATR</button>
+          <button class="bit-btn">OBV</button>
+        </div>
+        <button class="bit-more-btn" title="More Indicators">&gt;</button>
+      </div>
+
+    </section>
+
+    <!-- ALERT PANEL -->
+    <section class="alert-panel" id="alertPanel" aria-label="Price alert" hidden>
+      <h2 class="alert-title">🔔 Set Price Alerts (Max 10)</h2>
+      
+      <div class="alert-grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto auto; gap: 14px; align-items: end;">
+        <div class="input-group">
+          <label for="alertInput" class="input-label">Alert Price (USD)</label>
+          <input id="alertInput" type="number" class="input-field" placeholder="e.g. 0.00042" step="any" min="0" aria-label="Set alert price" />
+        </div>
+        
+        <div class="input-group">
+          <label for="soundSelect" class="input-label">Sound Type</label>
+          <select id="soundSelect" class="input-field select-field" style="padding-right: 24px;">
+            <option value="beep">🔔 Default Beep</option>
+            <option value="custom">🎵 Custom MP3</option>
+          </select>
+        </div>
+
+        <div class="input-group" id="fileGroup" style="display: none;">
+          <label for="audioFile" class="input-label">Upload MP3 (&lt;2MB)</label>
+          <input id="audioFile" type="file" accept="audio/mpeg,audio/mp3" class="input-field" style="padding: 8px 10px;" />
+        </div>
+
+        <div class="input-group btn-group-wrap">
+          <label class="input-label">&nbsp;</label>
+          <button id="setAlertBtn" class="alert-btn" aria-label="Set price alert">Set Alert</button>
+        </div>
+
+        <div class="input-group btn-group-wrap">
+          <label class="input-label">&nbsp;</label>
+          <button id="stopSoundBtn" class="clear-btn" style="display: none; border-color: var(--accent); color: var(--accent-light);" aria-label="Stop sound">⏹ Stop Sound</button>
+        </div>
+      </div>
+
+      <!-- Active Alerts List -->
+      <div id="alertsList" style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px;">
+        <!-- Alert badges loaded dynamically -->
+      </div>
+
+      <div id="alertStatus" class="alert-status" hidden></div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <p>© 2025 <a href="https://hvbsai.com" target="_blank">HVBS AI</a> · Data via CoinGecko & GeckoTerminal · For informational purposes only.</p>
+  </footer>
+
+  <!-- Custom Toast Notification -->
+  <div id="customToast" class="custom-toast">
+    <span class="custom-toast-icon">⚠️</span>
+    <span id="customToastText">Feature coming soon!</span>
+  </div>
+
+  <!-- Candle Pattern Detail Popup (shows on mouseenter) -->
+  <div id="candleDetailPopup">
+    <div class="cdp-header">
+      <span id="cdpSignal" class="cdp-signal"></span>
+      <span id="cdpLabel" class="cdp-label"></span>
+    </div>
+    <div class="cdp-badge-row">
+      <span id="cdpType" class="cdp-type-badge"></span>
+      <span id="cdpCount" class="cdp-count"></span>
+    </div>
+    <div id="cdpSvg" class="cdp-svg-wrap"></div>
+    <div id="cdpDesc" class="cdp-desc"></div>
+  </div>
+
+  <!-- ── CUSTOM CONTEXT MENU ── -->
+  <div id="customContextMenu" class="custom-context-menu" style="display:none;">
+    <div class="ctx-item" id="ctxResetChart">
+      <span class="ctx-icon">↺</span> <span class="ctx-text">Reset chart view</span>
+    </div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-item" id="ctxCopyPrice">
+      <span class="ctx-icon">📋</span> <span class="ctx-text">Copy price</span>
+    </div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-item" id="ctxClearDrawings">
+      <span class="ctx-icon">🗑️</span> <span class="ctx-text">Remove drawings</span>
+    </div>
+    <div class="ctx-item" id="ctxClearPatterns">
+      <span class="ctx-icon">✕</span> <span class="ctx-text">Remove patterns</span>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="candle-popup.js"></script>
+  <script>
+    /* roundRect polyfill for older Chrome/Firefox */
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        r = Math.min(r, w/2, h/2);
+        this.moveTo(x+r, y);
+        this.lineTo(x+w-r, y);
+        this.arcTo(x+w, y, x+w, y+r, r);
+        this.lineTo(x+w, y+h-r);
+        this.arcTo(x+w, y+h, x+w-r, y+h, r);
+        this.lineTo(x+r, y+h);
+        this.arcTo(x, y+h, x, y+h-r, r);
+        this.lineTo(x, y+r);
+        this.arcTo(x, y, x+r, y, r);
+        this.closePath();
+        return this;
+      };
+    }
+  </script>
+  <script src="candle-markers.js"></script>
+
+  <!-- ── MATRIX RAIN ANIMATION ── -->
+  <script>
+  (function() {
+    const mCanvas = document.getElementById('matrix-canvas');
+    if(!mCanvas) return;
+    const ctx = mCanvas.getContext('2d');
+    let cw = mCanvas.width = window.innerWidth;
+    let ch = mCanvas.height = window.innerHeight;
+
+    const allChars = "01010101<>/?;:{}[]|=+-_*&^%$#@!";
+    const colors = ['#3b82f6', '#facc15', '#f87171', '#f472b6'];
+    const fontSize = 24;
+    let columns = Math.ceil(cw / fontSize);
+    const drops = [];
+    const dropColors = [];
+
+    function initDrops() {
+      columns = Math.ceil(cw / fontSize);
+      for (let x = 0; x < columns; x++) {
+        if (drops[x] === undefined) {
+          drops[x] = Math.random() * ch / fontSize;
+          dropColors[x] = colors[Math.floor(Math.random() * colors.length)];
+        }
+      }
+    }
+    initDrops();
+
+    function drawMatrix() {
+      ctx.fillStyle = 'rgba(5, 11, 26, 0.15)';
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.font = 'bold ' + fontSize + 'px monospace';
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = allChars.charAt(Math.floor(Math.random() * allChars.length));
+        ctx.fillStyle = dropColors[i];
+
+        if (Math.random() > 0.9) {
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = dropColors[i];
+          ctx.fillStyle = '#ffffff';
+        } else {
+          ctx.shadowBlur = 0;
+        }
+
+        ctx.fillText(text, i * fontSize, Math.floor(drops[i]) * fontSize);
+
+        if (drops[i] * fontSize > ch && Math.random() > 0.975) {
+          drops[i] = 0;
+          dropColors[i] = colors[Math.floor(Math.random() * colors.length)];
+        }
+        drops[i] += 1;
+      }
+    }
+    setInterval(drawMatrix, 75);
+
+    window.addEventListener('resize', () => {
+      cw = mCanvas.width = window.innerWidth;
+      ch = mCanvas.height = window.innerHeight;
+      initDrops();
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+Options -MultiViews
+
+# ─── Enable Rewrite Engine ───────────────────────────────────────────────────
+RewriteEngine On
+
+# ─── Remove .html extension from URLs ───────────────────────────────────────
+# If the request is for a real file or directory, serve it directly
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# If the URL has no extension, check if the .html version exists and serve it
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+)$ $1.html [L]
+
+# ─── Redirect .html URLs to clean URLs (prevents duplicate content) ──────────
+RewriteCond %{THE_REQUEST} \s/+(.+)\.html[\s?] [NC]
+RewriteRule ^ /%1 [R=301,L]
