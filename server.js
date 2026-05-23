@@ -294,6 +294,7 @@ function initBot() {
     });
     
     bot.on('polling_error', (error) => {
+      console.error("Polling FULL error:", error);
       console.error("Polling error:", error.code, error.message);
       if (error.message && error.message.includes('409')) {
         console.warn("409 Conflict detected — another bot instance is running. Skipping polling restart.");
