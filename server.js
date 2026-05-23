@@ -16,7 +16,7 @@ import cron from "node-cron";
 import bs58 from "bs58";
 
 const SOLANA_RPC        = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-const ADMIN_WALLET      = process.env.ADMIN_WALLET_ADDRESS || "FoEd1FMU2ZCaYEatWKj2mRYqpUuWB3vUAtQnThn2p54V";
+const ADMIN_WALLET      = process.env.ADMIN_WALLET_ADDRESS || "DKaLRLF17JeAnHpYsBgRZnNVFPnKC2gnDn5cHUtLMsAz";
 const SUB_PRICE_USD     = 3;
 const SUB_DURATION_DAYS = 30;
 
