@@ -16,7 +16,7 @@ import cron from "node-cron";
 import bs58 from "bs58";
 
 const SOLANA_RPC        = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-const ADMIN_WALLET      = process.env.ADMIN_WALLET_ADDRESS || "DKaLRLF17JeAnHpYsBgRZnNVFPnKC2gnDn5cHUtLMsAz";
+const ADMIN_WALLET      = process.env.ADMIN_WALLET_ADDRESS || "FoEd1FMU2ZCaYEatWKj2mRYqpUuWB3vUAtQnThn2p54V";
 const SUB_PRICE_USD     = 3;
 const SUB_DURATION_DAYS = 30;
 
@@ -295,7 +295,11 @@ function initBot() {
     
     bot.on('polling_error', (error) => {
       console.error("Polling error:", error.code, error.message);
-      if (error.code === 'EFATAL' || error.message.includes('409')) {
+      if (error.message && error.message.includes('409')) {
+        console.warn("409 Conflict detected — another bot instance is running. Skipping polling restart.");
+        return;
+      }
+      if (error.code === 'EFATAL') {
         console.log("Attempting to restart polling...");
         setTimeout(() => {
           bot.stopPolling().then(() => {
