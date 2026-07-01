@@ -6,7 +6,7 @@
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const BACKEND_URL    = window.location.origin;   // Render backend URL auto-detected
-const ADMIN_WALLET   = "FoEd1FMU2ZCaYEatWKj2mRYqpUuWB3vUAtQnThn2p54V";
+const ADMIN_WALLET   = "DKaLRLF17JeAnHpYsBgRZnNVFPnKC2gnDn5cHUtLMsAz";
 const SUB_PRICE_USD  = 3;                         // $3/month
 
 // USDC & USDT Mint addresses (Solana mainnet)
