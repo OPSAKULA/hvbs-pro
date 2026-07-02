@@ -10,14 +10,16 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // ─── SOLANA SUBSCRIPTION SYSTEM ─────────────────────────────────────────────
-import { Connection, PublicKey, Keypair, Transaction,
-         SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import {
+  Connection, PublicKey, Keypair, Transaction,
+  SystemProgram, LAMPORTS_PER_SOL
+} from "@solana/web3.js";
 import cron from "node-cron";
 import bs58 from "bs58";
 
-const SOLANA_RPC        = "https://api.mainnet-beta.solana.com";
-const ADMIN_WALLET      = "DKaLRLF17JeAnHpYsBgRZnNVFPnKC2gnDn5cHUtLMsAz";
-const SUB_PRICE_USD     = 3;
+const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+const ADMIN_WALLET = "DKaLRLF17JeAnHpYsBgRZnNVFPnKC2gnDn5cHUtLMsAz";
+const SUB_PRICE_USD = 3;
 const SUB_DURATION_DAYS = 30;
 
 // USDC & USDT mint addresses (Solana mainnet)
@@ -25,22 +27,22 @@ const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
 
 // Data persistence files
-const SUBS_FILE      = "./subscriptions.json";
-const BURN_FILE      = "./burn_history.json";
-const SEEN_TXS_FILE  = "./seen_txs.json";
+const SUBS_FILE = "./subscriptions.json";
+const BURN_FILE = "./burn_history.json";
+const SEEN_TXS_FILE = "./seen_txs.json";
 
 function loadJSON(file, def = {}) {
   try { if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf-8")); }
-  catch(e) {}
+  catch (e) { }
   return def;
 }
 function saveJSON(file, data) {
-  try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); } catch(e) {}
+  try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); } catch (e) { }
 }
 
-let subscriptions  = loadJSON(SUBS_FILE, {});   // { walletAddr: { active, startedAt, expiresAt, txSignature, currency } }
-let burnHistory    = loadJSON(BURN_FILE, { history: [], totalBurned: 0, totalUsdBurned: 0, totalRevenue: 0, burnCount: 0 });
-let seenTxs        = loadJSON(SEEN_TXS_FILE, {});
+let subscriptions = loadJSON(SUBS_FILE, {});   // { walletAddr: { active, startedAt, expiresAt, txSignature, currency } }
+let burnHistory = loadJSON(BURN_FILE, { history: [], totalBurned: 0, totalUsdBurned: 0, totalRevenue: 0, burnCount: 0 });
+let seenTxs = loadJSON(SEEN_TXS_FILE, {});
 
 // Lazily get backend keypair from env
 function getBackendKeypair() {
@@ -55,11 +57,11 @@ async function getSolPrice() {
   try {
     const r = await axios.get("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd", { timeout: 5000 });
     return r.data?.solana?.usd || 0;
-  } catch(e) {
+  } catch (e) {
     try {
       const r2 = await axios.get("https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112", { timeout: 5000 });
       return parseFloat(r2.data?.data?.["So11111111111111111111111111111111111111112"]?.price) || 0;
-    } catch(e2) { return 0; }
+    } catch (e2) { return 0; }
   }
 }
 
@@ -71,7 +73,7 @@ async function burnAlertTokens(amountLamports, reason = "subscription") {
 
   try {
     const connection = new Connection(SOLANA_RPC, "confirmed");
-    const payer      = getBackendKeypair();
+    const payer = getBackendKeypair();
 
     // Use Token-2022 burn instruction via spl-token
     // Here we simulate with a memo transfer to the burn address (11111...) as a placeholder
@@ -82,14 +84,14 @@ async function burnAlertTokens(amountLamports, reason = "subscription") {
     // Minimal SOL transfer to self as a signed marker (real burn needs spl-token)
     tx.add(SystemProgram.transfer({
       fromPubkey: payer.publicKey,
-      toPubkey:   payer.publicKey,
-      lamports:   1  // marker tx – replace with real burn instruction
+      toPubkey: payer.publicKey,
+      lamports: 1  // marker tx – replace with real burn instruction
     }));
 
     const sig = await connection.sendTransaction(tx, [payer]);
     console.log(`🔥 Burn TX: ${sig}`);
     return sig;
-  } catch(err) {
+  } catch (err) {
     console.error("Burn error:", err.message);
     return null;
   }
@@ -118,8 +120,8 @@ async function verifySolanaTransaction(txSignature, expectedRecipient, currency,
       for (const ix of instructions) {
         const parsed = ix.parsed;
         if (parsed?.type === "transfer" &&
-            parsed.info?.destination?.toLowerCase() === expectedRecipient.toLowerCase() &&
-            parseInt(parsed.info?.lamports || 0) >= requiredLamports) {
+          parsed.info?.destination?.toLowerCase() === expectedRecipient.toLowerCase() &&
+          parseInt(parsed.info?.lamports || 0) >= requiredLamports) {
           return { ok: true, amount: parsed.info.lamports / LAMPORTS_PER_SOL, usd: solPriceUsd };
         }
       }
@@ -133,8 +135,8 @@ async function verifySolanaTransaction(txSignature, expectedRecipient, currency,
       for (const ix of instructions) {
         const parsed = ix.parsed;
         if (parsed?.type === "transferChecked" &&
-            parsed.info?.mint === mintAddr &&
-            parseInt(parsed.info?.tokenAmount?.amount || 0) >= requiredAmount) {
+          parsed.info?.mint === mintAddr &&
+          parseInt(parsed.info?.tokenAmount?.amount || 0) >= requiredAmount) {
           return { ok: true, amount: parsed.info.tokenAmount.uiAmount, usd: parsed.info.tokenAmount.uiAmount };
         }
       }
@@ -142,7 +144,7 @@ async function verifySolanaTransaction(txSignature, expectedRecipient, currency,
     }
 
     return { ok: false, error: "Unsupported currency" };
-  } catch(err) {
+  } catch (err) {
     return { ok: false, error: err.message };
   }
 }
@@ -174,7 +176,7 @@ cron.schedule("*/2 * * * *", async () => {
     if (sub.active && new Date(sub.expiresAt) < new Date()) {
       subscriptions[wallet].active = false;
       changed = true;
-      console.log(`[CRON] Expired: ${wallet.slice(0,8)}…`);
+      console.log(`[CRON] Expired: ${wallet.slice(0, 8)}…`);
     }
   }
   if (changed) saveJSON(SUBS_FILE, subscriptions);
@@ -216,34 +218,38 @@ const storage = multer.diskStorage({
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 // 🔐 TELEGRAM BOT TOKEN (fixed — do not use env var to avoid Render override conflict)
-const TELEGRAM_BOT_TOKEN = "8550627220:AAFttBqsomvRonARz7cWsvP5vki4UJ3vONM";
-const CMC_API_KEY = "2e4699c5c9614df5801eed04b36ba057";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+console.log(
+  "Telegram Token Prefix:",
+  TELEGRAM_BOT_TOKEN ? TELEGRAM_BOT_TOKEN.substring(0, 10) : "NOT FOUND"
+);
+const CMC_API_KEY = process.env.CMC_API_KEY;
 
 const DEXSCREENER_TOKEN_PAIRS = "https://api.dexscreener.com/token-pairs/v1/solana/";
-const DEXSCREENER_SEARCH      = "https://api.dexscreener.com/latest/dex/search?q=";
-const TRENDING_API            = "https://api.dexscreener.com/latest/dex/search?q=solana";
-const JUPITER_PRICE_API       = "https://api.jup.ag/price/v2?ids=";
-const COINGECKO_SEARCH        = "https://api.coingecko.com/api/v3/search?query=";
-const COINGECKO_COIN_DATA     = "https://api.coingecko.com/api/v3/coins/";
-const GECKO_TERMINAL_API      = "https://api.geckoterminal.com/api/v2/networks/solana/tokens/";
-const SOLSCAN_TOPHOLDERS      = "https://api.solscan.io/v2/token/holders?tokenAddress=";
+const DEXSCREENER_SEARCH = "https://api.dexscreener.com/latest/dex/search?q=";
+const TRENDING_API = "https://api.dexscreener.com/latest/dex/search?q=solana";
+const JUPITER_PRICE_API = "https://api.jup.ag/price/v2?ids=";
+const COINGECKO_SEARCH = "https://api.coingecko.com/api/v3/search?query=";
+const COINGECKO_COIN_DATA = "https://api.coingecko.com/api/v3/coins/";
+const GECKO_TERMINAL_API = "https://api.geckoterminal.com/api/v2/networks/solana/tokens/";
+const SOLSCAN_TOPHOLDERS = "https://api.solscan.io/v2/token/holders?tokenAddress=";
 
 // ========== ETHEREUM CONSTANTS ==========
-const DEXSCREENER_ETH_PAIRS   = "https://api.dexscreener.com/token-pairs/v1/ethereum/";
-const GECKO_TERMINAL_ETH_API  = "https://api.geckoterminal.com/api/v2/networks/eth/tokens/";
-const TRENDING_ETH_API        = "https://api.dexscreener.com/latest/dex/search?q=ethereum";
+const DEXSCREENER_ETH_PAIRS = "https://api.dexscreener.com/token-pairs/v1/ethereum/";
+const GECKO_TERMINAL_ETH_API = "https://api.geckoterminal.com/api/v2/networks/eth/tokens/";
+const TRENDING_ETH_API = "https://api.dexscreener.com/latest/dex/search?q=ethereum";
 
 // ========== BNB/BSC CONSTANTS ==========
-const DEXSCREENER_BSC_PAIRS   = "https://api.dexscreener.com/token-pairs/v1/bsc/";
-const GECKO_TERMINAL_BSC_API  = "https://api.geckoterminal.com/api/v2/networks/bsc/tokens/";
-const TRENDING_BSC_API        = "https://api.dexscreener.com/latest/dex/search?q=bnb";
+const DEXSCREENER_BSC_PAIRS = "https://api.dexscreener.com/token-pairs/v1/bsc/";
+const GECKO_TERMINAL_BSC_API = "https://api.geckoterminal.com/api/v2/networks/bsc/tokens/";
+const TRENDING_BSC_API = "https://api.dexscreener.com/latest/dex/search?q=bnb";
 
 // ========== BASE CHAIN CONSTANTS ==========
-const DEXSCREENER_BASE_PAIRS  = "https://api.dexscreener.com/token-pairs/v1/base/";
+const DEXSCREENER_BASE_PAIRS = "https://api.dexscreener.com/token-pairs/v1/base/";
 const GECKO_TERMINAL_BASE_API = "https://api.geckoterminal.com/api/v2/networks/base/tokens/";
-const TRENDING_BASE_API       = "https://api.dexscreener.com/latest/dex/search?q=base";
+const TRENDING_BASE_API = "https://api.dexscreener.com/latest/dex/search?q=base";
 
-const ALERTS_FILE    = "./alerts.json";
+const ALERTS_FILE = "./alerts.json";
 const WATCHLIST_FILE = "./watchlist.json";
 const USERNAME_MAP_FILE = "./username_chatid_map.json";
 const MUTE_FILE = "./muted_users.json";
@@ -257,7 +263,7 @@ function saveData(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-let alerts    = loadData(ALERTS_FILE);
+let alerts = loadData(ALERTS_FILE);
 let watchlists = loadData(WATCHLIST_FILE);
 let usernameChatIdMap = loadData(USERNAME_MAP_FILE);
 let mutedUsers = loadData(MUTE_FILE);
@@ -284,7 +290,7 @@ function initBot() {
       console.error("❌ Telegram bot token not set! Add TELEGRAM_BOT_TOKEN to .env");
       return;
     }
-    bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { 
+    bot = new TelegramBot(TELEGRAM_BOT_TOKEN, {
       polling: true,
       autoStart: true,
       onlyFirstMatch: true,
@@ -292,7 +298,7 @@ function initBot() {
         timeout: 30000
       }
     });
-    
+
     bot.on('polling_error', (error) => {
       console.error("Polling error:", error.code, error.message);
       if (error.code === 'EFATAL' || error.message.includes('409')) {
@@ -304,11 +310,11 @@ function initBot() {
         }, 5000);
       }
     });
-    
+
     bot.on('error', (error) => {
       console.error("Bot error:", error);
     });
-    
+
     bot.getMe().then((botInfo) => {
       console.log(`🤖 Telegram bot started as @${botInfo.username}`);
       botInitialized = true;
@@ -316,7 +322,7 @@ function initBot() {
       console.error("❌ Failed to connect to Telegram API:", err.message);
       bot = null;
     });
-    
+
   } catch (err) {
     console.error("❌ Bot initialization error:", err);
     bot = null;
@@ -334,11 +340,11 @@ function stopSound(chatId) {
     } else if (activeSounds[chatId].type === 'custom' && activeSounds[chatId].process) {
       try {
         if (process.platform === 'win32') {
-          exec(`taskkill /F /PID ${activeSounds[chatId].process.pid}`, () => {});
+          exec(`taskkill /F /PID ${activeSounds[chatId].process.pid}`, () => { });
         } else {
           activeSounds[chatId].process.kill('SIGTERM');
         }
-      } catch(e) {}
+      } catch (e) { }
     }
     delete activeSounds[chatId];
     return true;
@@ -357,9 +363,9 @@ function playSound(chatId) {
   }
   if (soundFile) {
     let playerProcess;
-    if (process.platform === "win32")      playerProcess = exec(`start "" "${soundFile}"`);
+    if (process.platform === "win32") playerProcess = exec(`start "" "${soundFile}"`);
     else if (process.platform === "darwin") playerProcess = exec(`afplay "${soundFile}"`);
-    else                                    playerProcess = exec(`aplay "${soundFile}"`);
+    else playerProcess = exec(`aplay "${soundFile}"`);
     activeSounds[chatId] = { type: 'custom', process: playerProcess };
   } else {
     let beepCount = 0;
@@ -369,7 +375,7 @@ function playSound(chatId) {
         if (activeSounds[chatId]?.type === 'beep') delete activeSounds[chatId];
         return;
       }
-      if (process.platform === "win32") exec(`powershell -c "[System.Console]::Beep(880,300)"`, () => {});
+      if (process.platform === "win32") exec(`powershell -c "[System.Console]::Beep(880,300)"`, () => { });
       else process.stdout.write('\x07');
       beepCount++;
     }, 1000);
@@ -388,20 +394,20 @@ async function getMarketData(mint, retries = 2) {
         if (price && !isNaN(price) && price > 0) {
           return {
             price,
-            liquidity:      p.liquidity?.usd      || 0,
-            volume24h:      p.volume?.h24          || 0,
-            priceChange24h: p.priceChange?.h24     || 0,
-            marketCap:      p.marketCap            || 0,
-            symbol:         p.baseToken?.symbol    || "?",
-            name:           p.baseToken?.name      || "",
-            chartUrl:       p.url || `https://dexscreener.com/solana/${mint}`,
-            buyCount:       p.txns?.h24?.buys      || 0,
-            sellCount:      p.txns?.h24?.sells     || 0,
-            pairAddress:    p.pairAddress           || ""
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || "?",
+            name: p.baseToken?.name || "",
+            chartUrl: p.url || `https://dexscreener.com/solana/${mint}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || ""
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     try {
       const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${mint}`, { timeout: 6000 });
@@ -413,20 +419,20 @@ async function getMarketData(mint, retries = 2) {
         if (price && !isNaN(price) && price > 0) {
           return {
             price,
-            liquidity:      p.liquidity?.usd      || 0,
-            volume24h:      p.volume?.h24          || 0,
-            priceChange24h: p.priceChange?.h24     || 0,
-            marketCap:      p.marketCap            || 0,
-            symbol:         p.baseToken?.symbol    || "?",
-            name:           p.baseToken?.name      || "",
-            chartUrl:       p.url || `https://dexscreener.com/solana/${mint}`,
-            buyCount:       p.txns?.h24?.buys      || 0,
-            sellCount:      p.txns?.h24?.sells     || 0,
-            pairAddress:    p.pairAddress           || ""
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || "?",
+            name: p.baseToken?.name || "",
+            chartUrl: p.url || `https://dexscreener.com/solana/${mint}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || ""
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     try {
       const jupRes = await axios.get(`${JUPITER_PRICE_API}${mint}`, { timeout: 5000 });
@@ -442,7 +448,7 @@ async function getMarketData(mint, retries = 2) {
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     try {
       const geckoRes = await axios.get(`${GECKO_TERMINAL_API}${mint}`, { timeout: 5000 });
@@ -452,18 +458,18 @@ async function getMarketData(mint, retries = 2) {
         if (price && price > 0) {
           return {
             price,
-            liquidity:      parseFloat(attrs.total_reserve_in_usd) || 0,
-            volume24h:      parseFloat(attrs.volume_usd?.h24) || 0,
+            liquidity: parseFloat(attrs.total_reserve_in_usd) || 0,
+            volume24h: parseFloat(attrs.volume_usd?.h24) || 0,
             priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
-            marketCap:      parseFloat(attrs.market_cap_usd) || 0,
-            symbol:         attrs.symbol || "?",
-            name:           attrs.name || "",
-            chartUrl:       `https://dexscreener.com/solana/${mint}`,
+            marketCap: parseFloat(attrs.market_cap_usd) || 0,
+            symbol: attrs.symbol || "?",
+            name: attrs.name || "",
+            chartUrl: `https://dexscreener.com/solana/${mint}`,
             buyCount: 0, sellCount: 0, pairAddress: ""
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
   }
@@ -484,14 +490,14 @@ async function getTopHolders(mint) {
         isContract: h.owner ? h.owner.includes("1111111111") : false
       }));
     }
-  } catch(e) { console.log("Solscan holders error:", e.message); }
+  } catch (e) { console.log("Solscan holders error:", e.message); }
   try {
     const heliusRes = await axios.post(`https://mainnet.helius-rpc.com/?api-key=35d9c070-00bd-4523-acd7-6b728e9c1127`, {
       jsonrpc: "2.0", id: 1, method: "getTokenLargestAccounts", params: [mint]
     }, { timeout: 7000 });
     const accounts = heliusRes.data?.result?.value || [];
     return accounts.slice(0, 10).map((acc, i) => ({ rank: i + 1, address: acc.address || "Unknown", amount: acc.uiAmount || 0, percentage: "N/A", isContract: false }));
-  } catch(e) { console.log("Helius holders error:", e.message); }
+  } catch (e) { console.log("Helius holders error:", e.message); }
   return [];
 }
 
@@ -502,13 +508,13 @@ async function getBuyersSellers(mint) {
     if (Array.isArray(res.data) && res.data.length > 0) {
       let totalBuys1h = 0, totalSells1h = 0, totalBuys6h = 0, totalSells6h = 0, totalBuys24h = 0, totalSells24h = 0;
       for (const p of res.data) {
-        totalBuys1h  += p.txns?.h1?.buys   || 0; totalSells1h += p.txns?.h1?.sells  || 0;
-        totalBuys6h  += p.txns?.h6?.buys   || 0; totalSells6h += p.txns?.h6?.sells  || 0;
-        totalBuys24h += p.txns?.h24?.buys  || 0; totalSells24h+= p.txns?.h24?.sells || 0;
+        totalBuys1h += p.txns?.h1?.buys || 0; totalSells1h += p.txns?.h1?.sells || 0;
+        totalBuys6h += p.txns?.h6?.buys || 0; totalSells6h += p.txns?.h6?.sells || 0;
+        totalBuys24h += p.txns?.h24?.buys || 0; totalSells24h += p.txns?.h24?.sells || 0;
       }
       return { h1: { buys: totalBuys1h, sells: totalSells1h }, h6: { buys: totalBuys6h, sells: totalSells6h }, h24: { buys: totalBuys24h, sells: totalSells24h } };
     }
-  } catch(e) { console.log("Buyers/sellers error:", e.message); }
+  } catch (e) { console.log("Buyers/sellers error:", e.message); }
   return { h1: { buys: 0, sells: 0 }, h6: { buys: 0, sells: 0 }, h24: { buys: 0, sells: 0 } };
 }
 
@@ -594,7 +600,7 @@ async function getTrendingTokens(limit = 10) {
       solPairs.sort((a, b) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0));
       return solPairs.slice(0, limit).map(p => ({ symbol: p.baseToken?.symbol || "?", address: p.baseToken?.address || "", price: p.priceUsd || "0", volume24h: p.volume?.h24 || 0, priceChange: p.priceChange?.h24 || 0, liquidity: p.liquidity?.usd || 0, url: p.url }));
     }
-  } catch(e) {}
+  } catch (e) { }
   return [];
 }
 
@@ -608,7 +614,7 @@ async function searchTokenBySymbol(symbol) {
         return { address: best.baseToken?.address, symbol: best.baseToken?.symbol, name: best.baseToken?.name, price: best.priceUsd, url: best.url };
       }
     }
-  } catch(e) {}
+  } catch (e) { }
   return null;
 }
 
@@ -654,7 +660,7 @@ async function checkAllAlerts() {
             reply_markup: { inline_keyboard: [[{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]] }
           };
           bot.sendMessage(chatId,
-            `🚨 *PRICE ALERT!*\nToken [${chainLabel}]: \`${addr.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[📈 View Chart](${market.chartUrl})`,
+            `🚨 *PRICE ALERT!*\nToken [${chainLabel}]: \`${addr.slice(0, 6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[📈 View Chart](${market.chartUrl})`,
             options
           ).catch(e => console.error("Send message error:", e.message));
           playSound(chatId);
@@ -678,20 +684,20 @@ async function getMarketDataEth(address, retries = 2) {
         if (price && !isNaN(price) && price > 0) {
           return {
             price,
-            liquidity:      p.liquidity?.usd      || 0,
-            volume24h:      p.volume?.h24          || 0,
-            priceChange24h: p.priceChange?.h24     || 0,
-            marketCap:      p.marketCap            || 0,
-            symbol:         p.baseToken?.symbol    || "?",
-            name:           p.baseToken?.name      || "",
-            chartUrl:       p.url || `https://dexscreener.com/ethereum/${address}`,
-            buyCount:       p.txns?.h24?.buys      || 0,
-            sellCount:      p.txns?.h24?.sells     || 0,
-            pairAddress:    p.pairAddress           || ""
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || "?",
+            name: p.baseToken?.name || "",
+            chartUrl: p.url || `https://dexscreener.com/ethereum/${address}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || ""
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     try {
       const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 6000 });
@@ -703,20 +709,20 @@ async function getMarketDataEth(address, retries = 2) {
         if (price && !isNaN(price) && price > 0) {
           return {
             price,
-            liquidity:      p.liquidity?.usd      || 0,
-            volume24h:      p.volume?.h24          || 0,
-            priceChange24h: p.priceChange?.h24     || 0,
-            marketCap:      p.marketCap            || 0,
-            symbol:         p.baseToken?.symbol    || "?",
-            name:           p.baseToken?.name      || "",
-            chartUrl:       p.url || `https://dexscreener.com/ethereum/${address}`,
-            buyCount:       p.txns?.h24?.buys      || 0,
-            sellCount:      p.txns?.h24?.sells     || 0,
-            pairAddress:    p.pairAddress           || ""
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || "?",
+            name: p.baseToken?.name || "",
+            chartUrl: p.url || `https://dexscreener.com/ethereum/${address}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || ""
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     try {
       const geckoRes = await axios.get(`${GECKO_TERMINAL_ETH_API}${address}`, { timeout: 5000 });
@@ -726,18 +732,18 @@ async function getMarketDataEth(address, retries = 2) {
         if (price && price > 0) {
           return {
             price,
-            liquidity:      parseFloat(attrs.total_reserve_in_usd) || 0,
-            volume24h:      parseFloat(attrs.volume_usd?.h24) || 0,
+            liquidity: parseFloat(attrs.total_reserve_in_usd) || 0,
+            volume24h: parseFloat(attrs.volume_usd?.h24) || 0,
             priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
-            marketCap:      parseFloat(attrs.market_cap_usd) || 0,
-            symbol:         attrs.symbol || "?",
-            name:           attrs.name || "",
-            chartUrl:       `https://dexscreener.com/ethereum/${address}`,
+            marketCap: parseFloat(attrs.market_cap_usd) || 0,
+            symbol: attrs.symbol || "?",
+            name: attrs.name || "",
+            chartUrl: `https://dexscreener.com/ethereum/${address}`,
             buyCount: 0, sellCount: 0, pairAddress: ""
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
   }
@@ -757,13 +763,13 @@ async function getBuyersSellersEth(address) {
     if (Array.isArray(res.data) && res.data.length > 0) {
       let totalBuys1h = 0, totalSells1h = 0, totalBuys6h = 0, totalSells6h = 0, totalBuys24h = 0, totalSells24h = 0;
       for (const p of res.data) {
-        totalBuys1h  += p.txns?.h1?.buys   || 0; totalSells1h += p.txns?.h1?.sells  || 0;
-        totalBuys6h  += p.txns?.h6?.buys   || 0; totalSells6h += p.txns?.h6?.sells  || 0;
-        totalBuys24h += p.txns?.h24?.buys  || 0; totalSells24h+= p.txns?.h24?.sells || 0;
+        totalBuys1h += p.txns?.h1?.buys || 0; totalSells1h += p.txns?.h1?.sells || 0;
+        totalBuys6h += p.txns?.h6?.buys || 0; totalSells6h += p.txns?.h6?.sells || 0;
+        totalBuys24h += p.txns?.h24?.buys || 0; totalSells24h += p.txns?.h24?.sells || 0;
       }
       return { h1: { buys: totalBuys1h, sells: totalSells1h }, h6: { buys: totalBuys6h, sells: totalSells6h }, h24: { buys: totalBuys24h, sells: totalSells24h } };
     }
-  } catch(e) {}
+  } catch (e) { }
   return { h1: { buys: 0, sells: 0 }, h6: { buys: 0, sells: 0 }, h24: { buys: 0, sells: 0 } };
 }
 
@@ -789,7 +795,7 @@ async function getTrendingEthTokens(limit = 10) {
       ethPairs.sort((a, b) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0));
       return ethPairs.slice(0, limit).map(p => ({ symbol: p.baseToken?.symbol || "?", address: p.baseToken?.address || "", price: p.priceUsd || "0", volume24h: p.volume?.h24 || 0, priceChange: p.priceChange?.h24 || 0, liquidity: p.liquidity?.usd || 0, url: p.url }));
     }
-  } catch(e) {}
+  } catch (e) { }
   return [];
 }
 
@@ -826,10 +832,10 @@ app.get("/api/token/ethereum/:address", async (req, res) => {
         const cmcData = cmcRes.data?.data?.[tokenSymbol];
         if (cmcData) platformPresence.coinmarketcap = { listed: true, name: cmcData.name };
       }
-    } catch(e) {}
+    } catch (e) { }
     res.json({
       success: true, chain: 'ethereum', tokenAddress: address,
-      name: market?.name || market?.symbol || address.slice(0,8)+"...",
+      name: market?.name || market?.symbol || address.slice(0, 8) + "...",
       symbol: market?.symbol || "?",
       price: formattedPrice, rawPrice: market?.price || 0,
       liquidity: market?.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A",
@@ -861,20 +867,20 @@ async function getMarketDataBNB(address, retries = 2) {
         if (price && !isNaN(price) && price > 0) {
           return {
             price,
-            liquidity:      p.liquidity?.usd      || 0,
-            volume24h:      p.volume?.h24          || 0,
-            priceChange24h: p.priceChange?.h24     || 0,
-            marketCap:      p.marketCap            || 0,
-            symbol:         p.baseToken?.symbol    || '?',
-            name:           p.baseToken?.name      || '',
-            chartUrl:       p.url || `https://dexscreener.com/bsc/${address}`,
-            buyCount:       p.txns?.h24?.buys      || 0,
-            sellCount:      p.txns?.h24?.sells     || 0,
-            pairAddress:    p.pairAddress           || ''
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || '?',
+            name: p.baseToken?.name || '',
+            chartUrl: p.url || `https://dexscreener.com/bsc/${address}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || ''
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     try {
       const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 6000 });
@@ -886,20 +892,20 @@ async function getMarketDataBNB(address, retries = 2) {
         if (price && !isNaN(price) && price > 0) {
           return {
             price,
-            liquidity:      p.liquidity?.usd      || 0,
-            volume24h:      p.volume?.h24          || 0,
-            priceChange24h: p.priceChange?.h24     || 0,
-            marketCap:      p.marketCap            || 0,
-            symbol:         p.baseToken?.symbol    || '?',
-            name:           p.baseToken?.name      || '',
-            chartUrl:       p.url || `https://dexscreener.com/bsc/${address}`,
-            buyCount:       p.txns?.h24?.buys      || 0,
-            sellCount:      p.txns?.h24?.sells     || 0,
-            pairAddress:    p.pairAddress           || ''
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || '?',
+            name: p.baseToken?.name || '',
+            chartUrl: p.url || `https://dexscreener.com/bsc/${address}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || ''
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     try {
       const geckoRes = await axios.get(`${GECKO_TERMINAL_BSC_API}${address}`, { timeout: 5000 });
@@ -909,18 +915,18 @@ async function getMarketDataBNB(address, retries = 2) {
         if (price && price > 0) {
           return {
             price,
-            liquidity:      parseFloat(attrs.total_reserve_in_usd) || 0,
-            volume24h:      parseFloat(attrs.volume_usd?.h24) || 0,
+            liquidity: parseFloat(attrs.total_reserve_in_usd) || 0,
+            volume24h: parseFloat(attrs.volume_usd?.h24) || 0,
             priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
-            marketCap:      parseFloat(attrs.market_cap_usd) || 0,
-            symbol:         attrs.symbol || '?',
-            name:           attrs.name || '',
-            chartUrl:       `https://dexscreener.com/bsc/${address}`,
+            marketCap: parseFloat(attrs.market_cap_usd) || 0,
+            symbol: attrs.symbol || '?',
+            name: attrs.name || '',
+            chartUrl: `https://dexscreener.com/bsc/${address}`,
             buyCount: 0, sellCount: 0, pairAddress: ''
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
   }
@@ -931,23 +937,23 @@ async function getHolderCountBNB(address) {
   try {
     const geckoRes = await axios.get(`${GECKO_TERMINAL_BSC_API}${address}`, { timeout: 5000 });
     return geckoRes.data?.data?.attributes?.holders || 0;
-  } catch(e) { return 0; }
+  } catch (e) { return 0; }
 }
 
 async function getBuyersSellersB(address) {
   try {
     const res = await axios.get(`${DEXSCREENER_BSC_PAIRS}${address}`, { timeout: 6000 });
     if (Array.isArray(res.data) && res.data.length > 0) {
-      let b1=0,s1=0,b6=0,s6=0,b24=0,s24=0;
-      for(const p of res.data){
-        b1  += p.txns?.h1?.buys||0;  s1  += p.txns?.h1?.sells||0;
-        b6  += p.txns?.h6?.buys||0;  s6  += p.txns?.h6?.sells||0;
-        b24 += p.txns?.h24?.buys||0; s24 += p.txns?.h24?.sells||0;
+      let b1 = 0, s1 = 0, b6 = 0, s6 = 0, b24 = 0, s24 = 0;
+      for (const p of res.data) {
+        b1 += p.txns?.h1?.buys || 0; s1 += p.txns?.h1?.sells || 0;
+        b6 += p.txns?.h6?.buys || 0; s6 += p.txns?.h6?.sells || 0;
+        b24 += p.txns?.h24?.buys || 0; s24 += p.txns?.h24?.sells || 0;
       }
-      return { h1:{buys:b1,sells:s1}, h6:{buys:b6,sells:s6}, h24:{buys:b24,sells:s24} };
+      return { h1: { buys: b1, sells: s1 }, h6: { buys: b6, sells: s6 }, h24: { buys: b24, sells: s24 } };
     }
-  } catch(e) {}
-  return { h1:{buys:0,sells:0}, h6:{buys:0,sells:0}, h24:{buys:0,sells:0} };
+  } catch (e) { }
+  return { h1: { buys: 0, sells: 0 }, h6: { buys: 0, sells: 0 }, h24: { buys: 0, sells: 0 } };
 }
 
 async function getDEXListingsBNB(tokenAddress) {
@@ -961,7 +967,7 @@ async function getDEXListingsBNB(tokenAddress) {
       }
     }
     return Array.from(exchanges.values());
-  } catch(e) { return []; }
+  } catch (e) { return []; }
 }
 
 // ========== BSC TOKEN ENDPOINT ==========
@@ -996,10 +1002,10 @@ app.get("/api/token/bsc/:address", async (req, res) => {
         const cmcData = cmcRes.data?.data?.[tokenSymbol];
         if (cmcData) platformPresence.coinmarketcap = { listed: true, name: cmcData.name };
       }
-    } catch(e) {}
+    } catch (e) { }
     res.json({
       success: true, chain: 'bsc', tokenAddress: address,
-      name: market?.name || market?.symbol || address.slice(0,8)+'...',
+      name: market?.name || market?.symbol || address.slice(0, 8) + '...',
       symbol: market?.symbol || '?',
       price: formattedPrice, rawPrice: market?.price || 0,
       liquidity: market?.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : 'N/A',
@@ -1012,7 +1018,7 @@ app.get("/api/token/bsc/:address", async (req, res) => {
       exchanges: allExchanges, socialLinks: cgDetails?.links || {}, logo: cgDetails?.image || null,
       coingeckoUrl: cgDetails?.coingeckoUrl || null, platformPresence
     });
-  } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.get("/api/trending/bsc", async (req, res) => {
@@ -1020,11 +1026,11 @@ app.get("/api/trending/bsc", async (req, res) => {
     const r = await axios.get(TRENDING_BSC_API, { timeout: 8000 });
     if (r.data.pairs) {
       let bscPairs = r.data.pairs.filter(p => p.chainId === 'bsc' && parseFloat(p.priceUsd) > 0);
-      bscPairs.sort((a,b) => (b.volume?.h24||0)-(a.volume?.h24||0));
-      return res.json({ success: true, trending: bscPairs.slice(0,10).map(p => ({ symbol: p.baseToken?.symbol||'?', address: p.baseToken?.address||'', price: p.priceUsd||'0', volume24h: p.volume?.h24||0, priceChange: p.priceChange?.h24||0, liquidity: p.liquidity?.usd||0, url: p.url })) });
+      bscPairs.sort((a, b) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0));
+      return res.json({ success: true, trending: bscPairs.slice(0, 10).map(p => ({ symbol: p.baseToken?.symbol || '?', address: p.baseToken?.address || '', price: p.priceUsd || '0', volume24h: p.volume?.h24 || 0, priceChange: p.priceChange?.h24 || 0, liquidity: p.liquidity?.usd || 0, url: p.url })) });
     }
     res.json({ success: true, trending: [] });
-  } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ========== BASE CHAIN MARKET DATA FUNCTIONS ==========
@@ -1038,20 +1044,20 @@ async function getMarketDataBase(address, retries = 2) {
         if (price && !isNaN(price) && price > 0) {
           return {
             price,
-            liquidity:      p.liquidity?.usd      || 0,
-            volume24h:      p.volume?.h24          || 0,
-            priceChange24h: p.priceChange?.h24     || 0,
-            marketCap:      p.marketCap            || 0,
-            symbol:         p.baseToken?.symbol    || '?',
-            name:           p.baseToken?.name      || '',
-            chartUrl:       p.url || `https://dexscreener.com/base/${address}`,
-            buyCount:       p.txns?.h24?.buys      || 0,
-            sellCount:      p.txns?.h24?.sells     || 0,
-            pairAddress:    p.pairAddress           || ''
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || '?',
+            name: p.baseToken?.name || '',
+            chartUrl: p.url || `https://dexscreener.com/base/${address}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || ''
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     try {
       const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 6000 });
@@ -1063,20 +1069,20 @@ async function getMarketDataBase(address, retries = 2) {
         if (price && !isNaN(price) && price > 0) {
           return {
             price,
-            liquidity:      p.liquidity?.usd      || 0,
-            volume24h:      p.volume?.h24          || 0,
-            priceChange24h: p.priceChange?.h24     || 0,
-            marketCap:      p.marketCap            || 0,
-            symbol:         p.baseToken?.symbol    || '?',
-            name:           p.baseToken?.name      || '',
-            chartUrl:       p.url || `https://dexscreener.com/base/${address}`,
-            buyCount:       p.txns?.h24?.buys      || 0,
-            sellCount:      p.txns?.h24?.sells     || 0,
-            pairAddress:    p.pairAddress           || ''
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || '?',
+            name: p.baseToken?.name || '',
+            chartUrl: p.url || `https://dexscreener.com/base/${address}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || ''
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     try {
       const geckoRes = await axios.get(`${GECKO_TERMINAL_BASE_API}${address}`, { timeout: 5000 });
@@ -1086,18 +1092,18 @@ async function getMarketDataBase(address, retries = 2) {
         if (price && price > 0) {
           return {
             price,
-            liquidity:      parseFloat(attrs.total_reserve_in_usd) || 0,
-            volume24h:      parseFloat(attrs.volume_usd?.h24) || 0,
+            liquidity: parseFloat(attrs.total_reserve_in_usd) || 0,
+            volume24h: parseFloat(attrs.volume_usd?.h24) || 0,
             priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
-            marketCap:      parseFloat(attrs.market_cap_usd) || 0,
-            symbol:         attrs.symbol || '?',
-            name:           attrs.name || '',
-            chartUrl:       `https://dexscreener.com/base/${address}`,
+            marketCap: parseFloat(attrs.market_cap_usd) || 0,
+            symbol: attrs.symbol || '?',
+            name: attrs.name || '',
+            chartUrl: `https://dexscreener.com/base/${address}`,
             buyCount: 0, sellCount: 0, pairAddress: ''
           };
         }
       }
-    } catch(e) {}
+    } catch (e) { }
 
     if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
   }
@@ -1108,23 +1114,23 @@ async function getHolderCountBase(address) {
   try {
     const geckoRes = await axios.get(`${GECKO_TERMINAL_BASE_API}${address}`, { timeout: 5000 });
     return geckoRes.data?.data?.attributes?.holders || 0;
-  } catch(e) { return 0; }
+  } catch (e) { return 0; }
 }
 
 async function getBuyersSellersBase(address) {
   try {
     const res = await axios.get(`${DEXSCREENER_BASE_PAIRS}${address}`, { timeout: 6000 });
     if (Array.isArray(res.data) && res.data.length > 0) {
-      let b1=0,s1=0,b6=0,s6=0,b24=0,s24=0;
-      for(const p of res.data){
-        b1  += p.txns?.h1?.buys||0;  s1  += p.txns?.h1?.sells||0;
-        b6  += p.txns?.h6?.buys||0;  s6  += p.txns?.h6?.sells||0;
-        b24 += p.txns?.h24?.buys||0; s24 += p.txns?.h24?.sells||0;
+      let b1 = 0, s1 = 0, b6 = 0, s6 = 0, b24 = 0, s24 = 0;
+      for (const p of res.data) {
+        b1 += p.txns?.h1?.buys || 0; s1 += p.txns?.h1?.sells || 0;
+        b6 += p.txns?.h6?.buys || 0; s6 += p.txns?.h6?.sells || 0;
+        b24 += p.txns?.h24?.buys || 0; s24 += p.txns?.h24?.sells || 0;
       }
-      return { h1:{buys:b1,sells:s1}, h6:{buys:b6,sells:s6}, h24:{buys:b24,sells:s24} };
+      return { h1: { buys: b1, sells: s1 }, h6: { buys: b6, sells: s6 }, h24: { buys: b24, sells: s24 } };
     }
-  } catch(e) {}
-  return { h1:{buys:0,sells:0}, h6:{buys:0,sells:0}, h24:{buys:0,sells:0} };
+  } catch (e) { }
+  return { h1: { buys: 0, sells: 0 }, h6: { buys: 0, sells: 0 }, h24: { buys: 0, sells: 0 } };
 }
 
 async function getDEXListingsBase(tokenAddress) {
@@ -1138,7 +1144,7 @@ async function getDEXListingsBase(tokenAddress) {
       }
     }
     return Array.from(exchanges.values());
-  } catch(e) { return []; }
+  } catch (e) { return []; }
 }
 
 // ========== BASE TOKEN ENDPOINT ==========
@@ -1173,10 +1179,10 @@ app.get("/api/token/base/:address", async (req, res) => {
         const cmcData = cmcRes.data?.data?.[tokenSymbol];
         if (cmcData) platformPresence.coinmarketcap = { listed: true, name: cmcData.name };
       }
-    } catch(e) {}
+    } catch (e) { }
     res.json({
       success: true, chain: 'base', tokenAddress: address,
-      name: market?.name || market?.symbol || address.slice(0,8)+'...',
+      name: market?.name || market?.symbol || address.slice(0, 8) + '...',
       symbol: market?.symbol || '?',
       price: formattedPrice, rawPrice: market?.price || 0,
       liquidity: market?.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : 'N/A',
@@ -1189,7 +1195,7 @@ app.get("/api/token/base/:address", async (req, res) => {
       exchanges: allExchanges, socialLinks: cgDetails?.links || {}, logo: cgDetails?.image || null,
       coingeckoUrl: cgDetails?.coingeckoUrl || null, platformPresence
     });
-  } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.get("/api/trending/base", async (req, res) => {
@@ -1197,11 +1203,11 @@ app.get("/api/trending/base", async (req, res) => {
     const r = await axios.get(TRENDING_BASE_API, { timeout: 8000 });
     if (r.data.pairs) {
       let basePairs = r.data.pairs.filter(p => p.chainId === 'base' && parseFloat(p.priceUsd) > 0);
-      basePairs.sort((a,b) => (b.volume?.h24||0)-(a.volume?.h24||0));
-      return res.json({ success: true, trending: basePairs.slice(0,10).map(p => ({ symbol: p.baseToken?.symbol||'?', address: p.baseToken?.address||'', price: p.priceUsd||'0', volume24h: p.volume?.h24||0, priceChange: p.priceChange?.h24||0, liquidity: p.liquidity?.usd||0, url: p.url })) });
+      basePairs.sort((a, b) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0));
+      return res.json({ success: true, trending: basePairs.slice(0, 10).map(p => ({ symbol: p.baseToken?.symbol || '?', address: p.baseToken?.address || '', price: p.priceUsd || '0', volume24h: p.volume?.h24 || 0, priceChange: p.priceChange?.h24 || 0, liquidity: p.liquidity?.usd || 0, url: p.url })) });
     }
     res.json({ success: true, trending: [] });
-  } catch(err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 // ========== CHAIN AUTO-DETECTION ==========
@@ -1209,12 +1215,12 @@ app.get("/api/trending/base", async (req, res) => {
 const SUPPORTED_CHAINS = ['ethereum', 'bsc', 'base'];
 const CHAIN_LABELS = {
   ethereum: '⟠ Ethereum',
-  bsc:      '🟡 BNB Chain',
-  base:     '🔵 Base',
-  polygon:  'Polygon',
+  bsc: '🟡 BNB Chain',
+  base: '🔵 Base',
+  polygon: 'Polygon',
   arbitrum: 'Arbitrum',
-  avalanche:'Avalanche',
-  solana:   '◎ Solana',
+  avalanche: 'Avalanche',
+  solana: '◎ Solana',
 };
 
 async function detectEVMChain(address) {
@@ -1240,7 +1246,7 @@ async function detectEVMChain(address) {
       }
     }
     return { chain: bestChain, found: true, allChains };
-  } catch(e) {
+  } catch (e) {
     return { chain: null, found: false, allChains: [] };
   }
 }
@@ -1256,7 +1262,7 @@ app.get("/api/token/:address", async (req, res) => {
       try {
         const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${mint}`, { timeout: 5000 });
         if (searchRes.data.pairs?.[0]) tokenSymbol = searchRes.data.pairs[0].baseToken?.symbol || '';
-      } catch(e) {}
+      } catch (e) { }
     }
     let cgDetails = null;
     if (tokenSymbol) cgDetails = await getCoinGeckoDetails(tokenSymbol);
@@ -1274,9 +1280,9 @@ app.get("/api/token/:address", async (req, res) => {
       const cmcRes = await axios.get(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${tokenSymbol}`, { headers: { 'X-CMC_PRO_API_KEY': CMC_API_KEY }, timeout: 5000 });
       const cmcData = cmcRes.data?.data?.[tokenSymbol];
       if (cmcData) platformPresence.coinmarketcap = { listed: true, name: cmcData.name };
-    } catch(e) {}
+    } catch (e) { }
     res.json({
-      success: true, tokenAddress: mint, name: market?.name || market?.symbol || mint.slice(0,6)+"...", symbol: market?.symbol || "?",
+      success: true, tokenAddress: mint, name: market?.name || market?.symbol || mint.slice(0, 6) + "...", symbol: market?.symbol || "?",
       price: formattedPrice, rawPrice: market?.price || 0, liquidity: market?.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A",
       volume24h: market?.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : "N/A",
       priceChange24h: market?.priceChange24h != null ? `${market.priceChange24h.toFixed(2)}%` : "N/A",
@@ -1308,9 +1314,9 @@ app.post("/api/alert-by-username", async (req, res) => {
   saveData(ALERTS_FILE, alerts);
   if (bot && botInitialized) {
     if (mutedUsers[chatId]) {
-      bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0,6)}...\`\nTarget: $${price} (${dir})\n\n⚠️ *Your alerts are currently muted.* You will not receive notifications. Use /unmute to enable alerts.`, { parse_mode: "Markdown" }).catch(e => console.error(e));
+      bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0, 6)}...\`\nTarget: $${price} (${dir})\n\n⚠️ *Your alerts are currently muted.* You will not receive notifications. Use /unmute to enable alerts.`, { parse_mode: "Markdown" }).catch(e => console.error(e));
     } else {
-      bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0,6)}...\`\nTarget: $${price} (${dir})\n\nYou will receive a Telegram message + sound when this hits!`, { parse_mode: "Markdown" }).catch(e => console.error(e));
+      bot.sendMessage(chatId, `🔔 *Alert Set via Web!*\nToken: \`${tokenAddress.slice(0, 6)}...\`\nTarget: $${price} (${dir})\n\nYou will receive a Telegram message + sound when this hits!`, { parse_mode: "Markdown" }).catch(e => console.error(e));
     }
   }
   res.json({ success: true, message: `Alert set for @${cleanUsername}` });
@@ -1318,8 +1324,8 @@ app.post("/api/alert-by-username", async (req, res) => {
 
 // Health check endpoint
 app.get("/health", (req, res) => {
-  res.json({ 
-    status: "ok", 
+  res.json({
+    status: "ok",
     botRunning: botInitialized,
     botUsername: bot ? "initialized" : "not",
     alertsCount: Object.keys(alerts).length,
@@ -1368,11 +1374,11 @@ const userStates = {}; // tracks per-user conversation state
 
 function setupBotHandlers() {
   if (!bot) return;
-  
+
   const notificationReminded = {};
   function sendNotificationReminder(chatId) {
     if (!notificationReminded[chatId]) {
-      bot.sendMessage(chatId, "🔔 *Notification Reminder*\n\nTo receive price alerts with sound, please ensure Telegram notifications are enabled on your device.\n\nGo to Telegram Settings → Notifications and Sounds → Enable for this bot.\n\nYou can also mute/unmute alerts using:\n`/mute` – disable all alerts\n`/unmute` – enable alerts\n\n_This message will not appear again._", { parse_mode: "Markdown" }).catch(e=>{});
+      bot.sendMessage(chatId, "🔔 *Notification Reminder*\n\nTo receive price alerts with sound, please ensure Telegram notifications are enabled on your device.\n\nGo to Telegram Settings → Notifications and Sounds → Enable for this bot.\n\nYou can also mute/unmute alerts using:\n`/mute` – disable all alerts\n`/unmute` – enable alerts\n\n_This message will not appear again._", { parse_mode: "Markdown" }).catch(e => { });
       notificationReminded[chatId] = true;
     }
   }
@@ -1419,12 +1425,12 @@ function setupBotHandlers() {
               ]
             }
           }
-        ).catch(e => {});
+        ).catch(e => { });
         notificationReminded[chatId] = true;
       }
     }, 1500);
   });
-  
+
   bot.on('message', async (msg) => {
     const username = msg.from?.username;
     const chatId = msg.chat.id;
@@ -1443,7 +1449,7 @@ function setupBotHandlers() {
       bot.sendMessage(chatId,
         `${text === '📈 Alert Above' ? '📈' : '📉'} *Alert ${direction.toUpperCase()} Selected*\n\n📌 *Step 1:* Please paste the *Token Contract Address* below:`,
         { parse_mode: 'Markdown', reply_markup: { keyboard: [[{ text: '📈 Alert Above' }, { text: '📉 Alert Below' }], [{ text: '📜 History' }]], resize_keyboard: true } }
-      ).catch(e => {});
+      ).catch(e => { });
       return;
     }
 
@@ -1468,13 +1474,13 @@ function setupBotHandlers() {
       // Step 1: Waiting for token address
       if (state.step === 'waiting_address') {
         const isSolana = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text);
-        const isEth    = /^0x[0-9a-fA-F]{40}$/.test(text);
+        const isEth = /^0x[0-9a-fA-F]{40}$/.test(text);
 
         if (!isSolana && !isEth) {
           bot.sendMessage(chatId,
             '❌ *Invalid Address!*\nPlease paste a valid:\n• *Solana* address: `Dfh5DzRgSvvCFDoYc2ciTkMrbDfRKybA4SoFbPmApump`\n• *Ethereum/BNB* address: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`',
             { parse_mode: 'Markdown' }
-          ).catch(e => {});
+          ).catch(e => { });
           return;
         }
 
@@ -1482,7 +1488,7 @@ function setupBotHandlers() {
         if (isEth) {
           // Send detecting message
           const detectMsg = await bot.sendMessage(chatId,
-            `🔍 *Detecting Chain...*\n\`${text.slice(0,16)}...\`\n\n⏳ Checking DexScreener for chain info...`,
+            `🔍 *Detecting Chain...*\n\`${text.slice(0, 16)}...\`\n\n⏳ Checking DexScreener for chain info...`,
             { parse_mode: 'Markdown' }
           ).catch(e => null);
 
@@ -1491,9 +1497,9 @@ function setupBotHandlers() {
           if (!detected.found) {
             // No pairs found anywhere
             if (detectMsg) bot.editMessageText(
-              `❌ *Token Not Found!*\n\`${text.slice(0,16)}...\`\n\n⚠️ No trading pairs found for this address on any chain.\n\n• Make sure it's a valid token contract\n• Token may not have liquidity yet\n• Try again in a few minutes`,
+              `❌ *Token Not Found!*\n\`${text.slice(0, 16)}...\`\n\n⚠️ No trading pairs found for this address on any chain.\n\n• Make sure it's a valid token contract\n• Token may not have liquidity yet\n• Try again in a few minutes`,
               { chat_id: chatId, message_id: detectMsg.message_id, parse_mode: 'Markdown' }
-            ).catch(e => {});
+            ).catch(e => { });
             delete userStates[chatId];
             return;
           }
@@ -1504,9 +1510,9 @@ function setupBotHandlers() {
               .map(c => CHAIN_LABELS[c] || c)
               .join(', ');
             if (detectMsg) bot.editMessageText(
-              `❌ *Unsupported Chain!*\n\`${text.slice(0,16)}...\`\n\n📍 Token found on: *${foundOn}*\n\n⚠️ HVBS currently supports:\n• ◎ *Solana*\n• ⟠ *Ethereum*\n• 🟡 *BNB Chain (BSC)*\n• 🔵 *Base*\n\nPlease paste a token from a supported chain.`,
+              `❌ *Unsupported Chain!*\n\`${text.slice(0, 16)}...\`\n\n📍 Token found on: *${foundOn}*\n\n⚠️ HVBS currently supports:\n• ◎ *Solana*\n• ⟠ *Ethereum*\n• 🟡 *BNB Chain (BSC)*\n• 🔵 *Base*\n\nPlease paste a token from a supported chain.`,
               { chat_id: chatId, message_id: detectMsg.message_id, parse_mode: 'Markdown' }
-            ).catch(e => {});
+            ).catch(e => { });
             delete userStates[chatId];
             return;
           }
@@ -1535,9 +1541,9 @@ function setupBotHandlers() {
 
             if (detectMsg) {
               bot.editMessageText(
-                `✅ *${chainLabel} — ${symbol} (Auto-detected!)*\n\`${text.slice(0,10)}...\`\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${market.price < 0.01 ? (market.price * 1.2).toFixed(10) : (market.price * 1.2).toFixed(6)}\``,
+                `✅ *${chainLabel} — ${symbol} (Auto-detected!)*\n\`${text.slice(0, 10)}...\`\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${market.price < 0.01 ? (market.price * 1.2).toFixed(10) : (market.price * 1.2).toFixed(6)}\``,
                 { chat_id: chatId, message_id: detectMsg.message_id, parse_mode: 'Markdown' }
-              ).catch(e => {});
+              ).catch(e => { });
             }
           } else {
             const cid = String(chatId);
@@ -1549,9 +1555,9 @@ function setupBotHandlers() {
 
             if (detectMsg) {
               bot.editMessageText(
-                `✅ *${chainLabel} (Auto-detected!)*\n\`${text.slice(0,10)}...\`\n\n⚠️ Could not fetch live price right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD):\nExample: \`0.02593\``,
+                `✅ *${chainLabel} (Auto-detected!)*\n\`${text.slice(0, 10)}...\`\n\n⚠️ Could not fetch live price right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD):\nExample: \`0.02593\``,
                 { chat_id: chatId, message_id: detectMsg.message_id, parse_mode: 'Markdown' }
-              ).catch(e => {});
+              ).catch(e => { });
             }
           }
           return;
@@ -1566,7 +1572,7 @@ function setupBotHandlers() {
         const fetchMsg = await bot.sendMessage(chatId,
           `✅ *${chainLabel} address accepted!*\n\`${text}\`\n\n⏳ Fetching live price...`,
           { parse_mode: 'Markdown' }
-        ).catch(e => {});
+        ).catch(e => { });
 
         // Fetch live price
         try {
@@ -1587,16 +1593,16 @@ function setupBotHandlers() {
 
             if (fetchMsg) {
               bot.editMessageText(
-                `✅ *${chainLabel} — ${symbol}*\n\`${text.slice(0,10)}...\`\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${market.price < 0.01 ? (market.price * 1.2).toFixed(10) : (market.price * 1.2).toFixed(6)}\``,
+                `✅ *${chainLabel} — ${symbol}*\n\`${text.slice(0, 10)}...\`\n\n💰 *Live Price:* ${priceDisplay}\n${changeEmoji} 24h Change: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`${market.price < 0.01 ? (market.price * 1.2).toFixed(10) : (market.price * 1.2).toFixed(6)}\``,
                 { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }
-              ).catch(e => {});
+              ).catch(e => { });
             }
           } else {
             if (fetchMsg) {
               bot.editMessageText(
-                `✅ *${chainLabel} address saved!*\n\`${text.slice(0,10)}...\`\n\n⚠️ Could not fetch live price right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD):\nExample: \`0.02593\``,
+                `✅ *${chainLabel} address saved!*\n\`${text.slice(0, 10)}...\`\n\n⚠️ Could not fetch live price right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD):\nExample: \`0.02593\``,
                 { chat_id: chatId, message_id: fetchMsg.message_id, parse_mode: 'Markdown' }
-              ).catch(e => {});
+              ).catch(e => { });
             }
 
             const cid = String(chatId);
@@ -1606,7 +1612,7 @@ function setupBotHandlers() {
             if (history[cid].length > 10) history[cid].pop();
             saveData(HISTORY_FILE, history);
           }
-        } catch(e) {
+        } catch (e) {
           console.error('Price fetch error in bot:', e.message);
         }
         return;
@@ -1619,7 +1625,7 @@ function setupBotHandlers() {
           bot.sendMessage(chatId,
             '❌ *Invalid Price!*\nPlease enter a valid number.\n\nExample: `0.02593`',
             { parse_mode: 'Markdown' }
-          ).catch(e => {});
+          ).catch(e => { });
           return;
         }
 
@@ -1631,11 +1637,11 @@ function setupBotHandlers() {
 
         const chainLabel = chain === 'bsc' ? '🟡 BNB' : chain === 'base' ? '🔵 Base' : chain === 'ethereum' ? '⟠ ETH' : '◎ SOL';
         sendMainKeyboard(chatId,
-          `✅ *Alert Set Successfully!*\n\n📍 Token [${chainLabel}]: \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
+          `✅ *Alert Set Successfully!*\n\n📍 Token [${chainLabel}]: \`${address.slice(0, 8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
         );
 
         bot.sendMessage(chatId,
-          `🔔 *Alert Active:*\n\`${address.slice(0,8)}...\` [${chainLabel}] → *${direction.toUpperCase()}* $${targetPrice}\n\nTap below to cancel it manually anytime:`,
+          `🔔 *Alert Active:*\n\`${address.slice(0, 8)}...\` [${chainLabel}] → *${direction.toUpperCase()}* $${targetPrice}\n\nTap below to cancel it manually anytime:`,
           {
             parse_mode: 'Markdown',
             reply_markup: {
@@ -1644,18 +1650,18 @@ function setupBotHandlers() {
               ]
             }
           }
-        ).catch(e => {});
+        ).catch(e => { });
 
         // Check if already triggered
         const market = chain === 'bsc' ? await getMarketDataBNB(address) : chain === 'base' ? await getMarketDataBase(address) : chain === 'ethereum' ? await getMarketDataEth(address) : await getMarketData(address);
         if (market) {
           const already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
           if (already) {
-            bot.sendMessage(chatId, `⚠️ Current price ($${market.price}) already meets condition! Alert triggered now.`).catch(e => {});
+            bot.sendMessage(chatId, `⚠️ Current price ($${market.price}) already meets condition! Alert triggered now.`).catch(e => { });
             bot.sendMessage(chatId,
-              `🚨 *PRICE ALERT!*\nToken [${chainLabel}]: \`${address.slice(0,8)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[📈 View Chart](${market.chartUrl})`,
+              `🚨 *PRICE ALERT!*\nToken [${chainLabel}]: \`${address.slice(0, 8)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[📈 View Chart](${market.chartUrl})`,
               { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔇 Stop Sound', callback_data: 'stop_sound' }]] } }
-            ).catch(e => {});
+            ).catch(e => { });
             playSound(chatId);
             delete alerts[chatId][address];
             saveData(ALERTS_FILE, alerts);
@@ -1673,7 +1679,7 @@ function setupBotHandlers() {
       userStates[chatId] = { step: 'waiting_price_with_direction', address: text, chain: isEthAddr ? null : 'solana' };
 
       const fetchMsg = await bot.sendMessage(chatId,
-        `🔍 *Address detected!*\n\`${text.slice(0,12)}...\`\n\n⏳ Fetching live price...`,
+        `🔍 *Address detected!*\n\`${text.slice(0, 12)}...\`\n\n⏳ Fetching live price...`,
         { parse_mode: 'Markdown' }
       ).catch(e => null);
 
@@ -1709,7 +1715,7 @@ function setupBotHandlers() {
 
       if (fetchMsg) {
         bot.editMessageText(
-          `✅ *${chainLabel} — ${market?.symbol || '?'}*\n\`${text.slice(0,12)}...\`${priceInfo}\n\n📌 Choose alert direction:`,
+          `✅ *${chainLabel} — ${market?.symbol || '?'}*\n\`${text.slice(0, 12)}...\`${priceInfo}\n\n📌 Choose alert direction:`,
           {
             chat_id: chatId,
             message_id: fetchMsg.message_id,
@@ -1723,69 +1729,69 @@ function setupBotHandlers() {
               ]
             }
           }
-        ).catch(e => {});
+        ).catch(e => { });
       }
       return;
     }
   });
-  
+
   bot.onText(/\/help/, (msg) => {
-    bot.sendMessage(msg.chat.id, `📖 *Help*\n• /search pippin\n• /alerts So111... 0.02 above\n• /forcecheck\n• /testbeep\n• /mute – turn off alerts\n• /unmute – turn on alerts\n• /stopsound\n• /setalert – set custom notification sound`, { parse_mode: "Markdown" }).catch(e=>{});
+    bot.sendMessage(msg.chat.id, `📖 *Help*\n• /search pippin\n• /alerts So111... 0.02 above\n• /forcecheck\n• /testbeep\n• /mute – turn off alerts\n• /unmute – turn on alerts\n• /stopsound\n• /setalert – set custom notification sound`, { parse_mode: "Markdown" }).catch(e => { });
   });
-  
+
   bot.onText(/\/testbeep/, (msg) => {
     playSound(msg.chat.id);
-    bot.sendMessage(msg.chat.id, "🔊 Testing sound.").catch(e=>{});
+    bot.sendMessage(msg.chat.id, "🔊 Testing sound.").catch(e => { });
   });
-  
+
   bot.onText(/\/forcecheck/, async (msg) => {
     await checkAllAlerts();
-    bot.sendMessage(msg.chat.id, "✅ Force check done.").catch(e=>{});
+    bot.sendMessage(msg.chat.id, "✅ Force check done.").catch(e => { });
   });
-  
+
   bot.onText(/\/search (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const result = await searchTokenBySymbol(match[1].trim());
     if (result?.address) {
-      bot.sendMessage(chatId, `🔍 *Found:* ${result.symbol}\nAddress: \`${result.address}\`\nPrice: $${result.price}\n[View](${result.url})`, { parse_mode: "Markdown" }).catch(e=>{});
+      bot.sendMessage(chatId, `🔍 *Found:* ${result.symbol}\nAddress: \`${result.address}\`\nPrice: $${result.price}\n[View](${result.url})`, { parse_mode: "Markdown" }).catch(e => { });
     } else {
-      bot.sendMessage(chatId, `❌ No token found for "${match[1].trim()}".`).catch(e=>{});
+      bot.sendMessage(chatId, `❌ No token found for "${match[1].trim()}".`).catch(e => { });
     }
   });
-  
+
   bot.onText(/\/clearalerts/, (msg) => {
     const chatId = msg.chat.id;
-    if (alerts[chatId]) { delete alerts[chatId]; saveData(ALERTS_FILE, alerts); bot.sendMessage(chatId, "✅ All alerts cleared.").catch(e=>{}); }
-    else bot.sendMessage(chatId, "📭 No active alerts.").catch(e=>{});
+    if (alerts[chatId]) { delete alerts[chatId]; saveData(ALERTS_FILE, alerts); bot.sendMessage(chatId, "✅ All alerts cleared.").catch(e => { }); }
+    else bot.sendMessage(chatId, "📭 No active alerts.").catch(e => { });
   });
-  
+
   bot.onText(/\/stopsound/, (msg) => {
     const chatId = msg.chat.id;
-    if (stopSound(chatId)) bot.sendMessage(chatId, "🔇 Sound stopped.").catch(e=>{});
-    else bot.sendMessage(chatId, "No active sound.").catch(e=>{});
+    if (stopSound(chatId)) bot.sendMessage(chatId, "🔇 Sound stopped.").catch(e => { });
+    else bot.sendMessage(chatId, "No active sound.").catch(e => { });
   });
-  
+
   bot.onText(/\/mute/, (msg) => {
     const chatId = msg.chat.id;
     mutedUsers[chatId] = true;
     saveData(MUTE_FILE, mutedUsers);
-    bot.sendMessage(chatId, "🔇 *Alerts muted.* You will no longer receive price alerts. Use /unmute to enable again.", { parse_mode: "Markdown" }).catch(e=>{});
+    bot.sendMessage(chatId, "🔇 *Alerts muted.* You will no longer receive price alerts. Use /unmute to enable again.", { parse_mode: "Markdown" }).catch(e => { });
   });
-  
+
   bot.onText(/\/unmute/, (msg) => {
     const chatId = msg.chat.id;
     delete mutedUsers[chatId];
     saveData(MUTE_FILE, mutedUsers);
-    bot.sendMessage(chatId, "🔔 *Alerts unmuted.* You will now receive price alerts.", { parse_mode: "Markdown" }).catch(e=>{});
+    bot.sendMessage(chatId, "🔔 *Alerts unmuted.* You will now receive price alerts.", { parse_mode: "Markdown" }).catch(e => { });
   });
-  
+
   bot.onText(/\/checkprice (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const market = await getMarketData(match[1].trim(), 2);
-    if (market) bot.sendMessage(chatId, `💰 Price: $${market.price}`).catch(e=>{});
-    else bot.sendMessage(chatId, "❌ Price fetch failed.").catch(e=>{});
+    if (market) bot.sendMessage(chatId, `💰 Price: $${market.price}`).catch(e => { });
+    else bot.sendMessage(chatId, "❌ Price fetch failed.").catch(e => { });
   });
-  
+
   bot.onText(/\/trending/, async (msg) => {
     const chatId = msg.chat.id;
     const msgSend = await bot.sendMessage(chatId, "⏳ Fetching...");
@@ -1793,11 +1799,11 @@ function setupBotHandlers() {
     if (!trending.length) return bot.editMessageText("❌ No data.", { chat_id: chatId, message_id: msgSend.message_id });
     let text = "*🔥 Trending Solana Tokens*\n\n";
     trending.forEach((t, i) => {
-      text += `${i+1}. *${t.symbol}* – $${parseFloat(t.price).toFixed(8)}\n   💧 $${Math.round(t.liquidity).toLocaleString()} | 📊 $${Math.round(t.volume24h).toLocaleString()}\n   📈 ${t.priceChange}%\n   [View](${t.url})\n\n`;
+      text += `${i + 1}. *${t.symbol}* – $${parseFloat(t.price).toFixed(8)}\n   💧 $${Math.round(t.liquidity).toLocaleString()} | 📊 $${Math.round(t.volume24h).toLocaleString()}\n   📈 ${t.priceChange}%\n   [View](${t.url})\n\n`;
     });
-    await bot.editMessageText(text, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e=>console.error(e));
+    await bot.editMessageText(text, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e => console.error(e));
   });
-  
+
   bot.onText(/\/add (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const address = match[1].trim();
@@ -1805,45 +1811,45 @@ function setupBotHandlers() {
     if (!watchlists[chatId].includes(address)) {
       watchlists[chatId].push(address);
       saveData(WATCHLIST_FILE, watchlists);
-      bot.sendMessage(chatId, `✅ Added \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" }).catch(e=>{});
-    } else bot.sendMessage(chatId, `⚠️ Already in watchlist.`).catch(e=>{});
+      bot.sendMessage(chatId, `✅ Added \`${address.slice(0, 6)}...\``, { parse_mode: "Markdown" }).catch(e => { });
+    } else bot.sendMessage(chatId, `⚠️ Already in watchlist.`).catch(e => { });
   });
-  
+
   bot.onText(/\/remove (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const address = match[1].trim();
     if (watchlists[chatId]?.includes(address)) {
       watchlists[chatId] = watchlists[chatId].filter(a => a !== address);
       saveData(WATCHLIST_FILE, watchlists);
-      bot.sendMessage(chatId, `🗑 Removed \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" }).catch(e=>{});
-    } else bot.sendMessage(chatId, `❌ Not found.`).catch(e=>{});
+      bot.sendMessage(chatId, `🗑 Removed \`${address.slice(0, 6)}...\``, { parse_mode: "Markdown" }).catch(e => { });
+    } else bot.sendMessage(chatId, `❌ Not found.`).catch(e => { });
   });
-  
+
   bot.onText(/\/watchlist/, async (msg) => {
     const chatId = msg.chat.id;
     const list = watchlists[chatId] || [];
-    if (!list.length) return bot.sendMessage(chatId, "📭 Empty.").catch(e=>{});
+    if (!list.length) return bot.sendMessage(chatId, "📭 Empty.").catch(e => { });
     let text = "*📋 Your Watchlist*\n\n";
     for (let addr of list.slice(0, 15)) {
       const market = await getMarketData(addr);
-      if (market) text += `\`${addr.slice(0,6)}...\` – $${market.price} | ${market.priceChange24h}%\n`;
-      else text += `\`${addr.slice(0,6)}...\` – (no data)\n`;
+      if (market) text += `\`${addr.slice(0, 6)}...\` – $${market.price} | ${market.priceChange24h}%\n`;
+      else text += `\`${addr.slice(0, 6)}...\` – (no data)\n`;
     }
-    bot.sendMessage(chatId, text, { parse_mode: "Markdown" }).catch(e=>{});
+    bot.sendMessage(chatId, text, { parse_mode: "Markdown" }).catch(e => { });
   });
-  
+
   bot.onText(/\/myalerts/, (msg) => {
     const chatId = msg.chat.id;
     const userAlerts = alerts[chatId] || {};
     const entries = Object.entries(userAlerts);
-    if (entries.length === 0) return bot.sendMessage(chatId, "📭 No active alerts.").catch(e=>{});
-    
+    if (entries.length === 0) return bot.sendMessage(chatId, "📭 No active alerts.").catch(e => { });
+
     // Send each alert as a separate message with a Cancel button
-    bot.sendMessage(chatId, `*🔔 Your Active Alerts (${entries.length}):*`, { parse_mode: "Markdown" }).catch(e=>{});
+    bot.sendMessage(chatId, `*🔔 Your Active Alerts (${entries.length}):*`, { parse_mode: "Markdown" }).catch(e => { });
     for (let [addr, { price, direction }] of entries) {
       const dirEmoji = direction === 'above' ? '📈' : '📉';
       bot.sendMessage(chatId,
-        `${dirEmoji} *${direction.toUpperCase()}* Alert\n📍 Token: \`${addr.slice(0,8)}...\`\n💰 Target: *$${price}*`,
+        `${dirEmoji} *${direction.toUpperCase()}* Alert\n📍 Token: \`${addr.slice(0, 8)}...\`\n💰 Target: *$${price}*`,
         {
           parse_mode: "Markdown",
           reply_markup: {
@@ -1852,70 +1858,70 @@ function setupBotHandlers() {
             ]
           }
         }
-      ).catch(e=>{});
+      ).catch(e => { });
     }
   });
-  
+
   bot.onText(/\/removealert (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const address = match[1].trim();
     if (alerts[chatId]?.[address]) {
       delete alerts[chatId][address];
       saveData(ALERTS_FILE, alerts);
-      bot.sendMessage(chatId, `🗑 Removed alert for \`${address.slice(0,6)}...\``, { parse_mode: "Markdown" }).catch(e=>{});
-    } else bot.sendMessage(chatId, `❌ No active alert.`).catch(e=>{});
+      bot.sendMessage(chatId, `🗑 Removed alert for \`${address.slice(0, 6)}...\``, { parse_mode: "Markdown" }).catch(e => { });
+    } else bot.sendMessage(chatId, `❌ No active alert.`).catch(e => { });
   });
-  
+
   bot.onText(/\/alerts (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const parts = match[1].trim().split(/\s+/);
-    if (parts.length < 2) return bot.sendMessage(chatId, "❌ Usage: `/alerts <address> <price> [above|below]`", { parse_mode: "Markdown" }).catch(e=>{});
+    if (parts.length < 2) return bot.sendMessage(chatId, "❌ Usage: `/alerts <address> <price> [above|below]`", { parse_mode: "Markdown" }).catch(e => { });
     const address = parts[0];
     const targetPrice = parseFloat(parts[1]);
     let direction = (parts[2] || 'above').toLowerCase();
     if (direction !== 'above' && direction !== 'below') direction = 'above';
-    if (isNaN(targetPrice)) return bot.sendMessage(chatId, "❌ Invalid price.").catch(e=>{});
+    if (isNaN(targetPrice)) return bot.sendMessage(chatId, "❌ Invalid price.").catch(e => { });
     const isSolAddr = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
     const isEthAddr = /^0x[0-9a-fA-F]{40}$/.test(address);
-    if (!isSolAddr && !isEthAddr) return bot.sendMessage(chatId, "❌ Invalid address! Use a Solana (Base58) or Ethereum (0x...) address.").catch(e=>{});
+    if (!isSolAddr && !isEthAddr) return bot.sendMessage(chatId, "❌ Invalid address! Use a Solana (Base58) or Ethereum (0x...) address.").catch(e => { });
     if (!alerts[chatId]) alerts[chatId] = {};
     alerts[chatId][address] = { price: targetPrice, direction };
     saveData(ALERTS_FILE, alerts);
     sendNotificationReminder(chatId);
-    bot.sendMessage(chatId, `🔔 Alert set for \`${address.slice(0,6)}...\` at $${targetPrice} (${direction}).`, { parse_mode: "Markdown" }).catch(e=>{});
+    bot.sendMessage(chatId, `🔔 Alert set for \`${address.slice(0, 6)}...\` at $${targetPrice} (${direction}).`, { parse_mode: "Markdown" }).catch(e => { });
     const market = await getMarketData(address);
     if (market) {
       let already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
       if (already) {
-        bot.sendMessage(chatId, `⚠️ Price already meets condition! Current: $${market.price}. Alert triggered.`).catch(e=>{});
+        bot.sendMessage(chatId, `⚠️ Price already meets condition! Current: $${market.price}. Alert triggered.`).catch(e => { });
         const options = {
           parse_mode: "Markdown",
           reply_markup: {
             inline_keyboard: [[{ text: "🔇 Stop Sound", callback_data: "stop_sound" }]]
           }
         };
-        bot.sendMessage(chatId, `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0,6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`, options).catch(e=>{});
+        bot.sendMessage(chatId, `🚨 *PRICE ALERT!*\nToken: \`${address.slice(0, 6)}...\`\nDirection: ${direction}\nTarget: $${targetPrice}\nCurrent: $${market.price}\n\n[View Chart](${market.chartUrl})`, options).catch(e => { });
         playSound(chatId);
         delete alerts[chatId][address];
         saveData(ALERTS_FILE, alerts);
       }
     }
   });
-  
+
   bot.onText(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, async (msg) => {
     const chatId = msg.chat.id;
     const address = msg.text.trim();
     const msgSend = await bot.sendMessage(chatId, "⏳ Analyzing...");
     const market = await getMarketData(address, 2);
     const risk = calculateRiskScore(market);
-    let response = `🔍 *Token:* \`${address.slice(0,6)}...\`\n\n`;
+    let response = `🔍 *Token:* \`${address.slice(0, 6)}...\`\n\n`;
     if (market) {
       response += `💰 Price: $${market.price}\n💧 Liquidity: ${market.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A"}\n📊 24h Vol: ${market.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : "N/A"}\n📈 24h Change: ${market.priceChange24h ? `${market.priceChange24h}%` : "N/A"}\n🏦 Market Cap: ${market.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : "N/A"}\n🟢 Buys 24h: ${market.buyCount}\n🔴 Sells 24h: ${market.sellCount}\n\n`;
     } else {
       response += `❌ No market data found.\n\n`;
     }
     response += `🎯 Risk: ${risk.score}/100 – ${risk.level}\n📋 ${risk.reasons.join("\n")}\n\n📈 [View Chart](${market?.chartUrl || `https://dexscreener.com/solana/${address}`})`;
-    await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e=>console.error(e));
+    await bot.editMessageText(response, { chat_id: chatId, message_id: msgSend.message_id, parse_mode: "Markdown", disable_web_page_preview: true }).catch(e => console.error(e));
   });
 
   bot.onText(/\/setalert/, (msg) => {
@@ -1923,13 +1929,13 @@ function setupBotHandlers() {
     const audioPath = './beep.mp3';
     const exists = fs.existsSync(audioPath);
     let message = "🔊 *How to set custom notification sound for this bot:*\n\n" +
-                  "1️⃣ Open this chat\n" +
-                  "2️⃣ Tap on the bot's name at the top\n" +
-                  "3️⃣ Go to *Notifications* → *Sound*\n" +
-                  "4️⃣ Choose any sound you like (or use the downloaded file below)\n\n" +
-                  "📌 *Tip:* You can download the sound file below and save it to your phone's 'Notifications' folder, then it will appear in the sound list.\n\n" +
-                  "⚙️ You can change or remove it anytime from the same settings.\n\n" +
-                  "✅ After setting, you will hear that sound for all future price alerts from this bot!";
+      "1️⃣ Open this chat\n" +
+      "2️⃣ Tap on the bot's name at the top\n" +
+      "3️⃣ Go to *Notifications* → *Sound*\n" +
+      "4️⃣ Choose any sound you like (or use the downloaded file below)\n\n" +
+      "📌 *Tip:* You can download the sound file below and save it to your phone's 'Notifications' folder, then it will appear in the sound list.\n\n" +
+      "⚙️ You can change or remove it anytime from the same settings.\n\n" +
+      "✅ After setting, you will hear that sound for all future price alerts from this bot!";
     if (exists) {
       bot.sendDocument(chatId, audioPath, {
         caption: "🔊 *Sample beep sound – download and save to your device*",
@@ -1938,7 +1944,7 @@ function setupBotHandlers() {
     } else {
       message += "\n\n⚠️ *Note:* No sound file available for download. Please use your phone's default sounds.";
     }
-    bot.sendMessage(chatId, message, { parse_mode: "Markdown" }).catch(e=>{});
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" }).catch(e => { });
   });
 
   bot.on('callback_query', async (callbackQuery) => {
@@ -1946,8 +1952,8 @@ function setupBotHandlers() {
     const data = callbackQuery.data;
 
     if (data === 'stop_sound') {
-      if (stopSound(chatId)) bot.sendMessage(chatId, "🔇 Sound stopped.").catch(e=>{});
-      else bot.sendMessage(chatId, "No active sound to stop.").catch(e=>{});
+      if (stopSound(chatId)) bot.sendMessage(chatId, "🔇 Sound stopped.").catch(e => { });
+      else bot.sendMessage(chatId, "No active sound to stop.").catch(e => { });
       bot.answerCallbackQuery(callbackQuery.id);
 
     } else if (data.startsWith('cancel_alert:')) {
@@ -1961,24 +1967,24 @@ function setupBotHandlers() {
         saveData(ALERTS_FILE, alerts);
         // Edit the inline button message to show cancelled status
         bot.editMessageText(
-          `✅ *Alert Cancelled!*\n\n📍 Token: \`${address.slice(0,8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target was: *$${price}*\n\n_This alert has been removed._`,
+          `✅ *Alert Cancelled!*\n\n📍 Token: \`${address.slice(0, 8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target was: *$${price}*\n\n_This alert has been removed._`,
           {
             chat_id: chatId,
             message_id: callbackQuery.message.message_id,
             parse_mode: 'Markdown'
           }
-        ).catch(e => {});
+        ).catch(e => { });
         bot.answerCallbackQuery(callbackQuery.id, { text: '✅ Alert cancelled successfully!' });
       } else {
         // Alert already triggered or doesn't exist
         bot.editMessageText(
-          `⚠️ *Alert Already Removed*\n\n📍 Token: \`${address.slice(0,8)}...\`\n\n_This alert was already triggered or cancelled._`,
+          `⚠️ *Alert Already Removed*\n\n📍 Token: \`${address.slice(0, 8)}...\`\n\n_This alert was already triggered or cancelled._`,
           {
             chat_id: chatId,
             message_id: callbackQuery.message.message_id,
             parse_mode: 'Markdown'
           }
-        ).catch(e => {});
+        ).catch(e => { });
         bot.answerCallbackQuery(callbackQuery.id, { text: '⚠️ Alert not found!' });
       }
 
@@ -1987,7 +1993,7 @@ function setupBotHandlers() {
       bot.sendMessage(chatId,
         "📈 *Set Alert – Price Goes ABOVE*\n\nPlease send the *Token Address* and *Target Price* separated by a space.\n\nExample:\n`Dfh5DzRgSvvCFDoYc2ciTk... 0.02593`\n\n_Just paste it and send!_",
         { parse_mode: "Markdown" }
-      ).catch(e=>{});
+      ).catch(e => { });
       bot.answerCallbackQuery(callbackQuery.id);
 
     } else if (data === 'alert_below') {
@@ -1995,7 +2001,7 @@ function setupBotHandlers() {
       bot.sendMessage(chatId,
         "📉 *Set Alert – Price Goes BELOW*\n\nPlease send the *Token Address* and *Target Price* separated by a space.\n\nExample:\n`Dfh5DzRgSvvCFDoYc2ciTk... 0.02593`\n\n_Just paste it and send!_",
         { parse_mode: "Markdown" }
-      ).catch(e=>{});
+      ).catch(e => { });
       bot.answerCallbackQuery(callbackQuery.id);
 
     } else if (data === 'chain_eth' || data === 'chain_bsc') {
@@ -2005,13 +2011,13 @@ function setupBotHandlers() {
         return;
       }
       const chosenChain = data === 'chain_eth' ? 'ethereum' : 'bsc';
-      const chainLabel  = data === 'chain_eth' ? '⟠ Ethereum' : '🟡 BNB Chain';
+      const chainLabel = data === 'chain_eth' ? '⟠ Ethereum' : '🟡 BNB Chain';
       const addr = state.address;
       userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: addr, chain: chosenChain };
       bot.editMessageText(
-        `✅ *${chainLabel} selected!*\n\`${addr.slice(0,16)}...\`\n\n⏳ Fetching live price...`,
+        `✅ *${chainLabel} selected!*\n\`${addr.slice(0, 16)}...\`\n\n⏳ Fetching live price...`,
         { chat_id: chatId, message_id: callbackQuery.message.message_id, parse_mode: 'Markdown' }
-      ).catch(e => {});
+      ).catch(e => { });
       bot.answerCallbackQuery(callbackQuery.id);
       try {
         const market = chosenChain === 'bsc' ? await getMarketDataBNB(addr) : await getMarketDataEth(addr);
@@ -2022,19 +2028,19 @@ function setupBotHandlers() {
         if (history[cid].length > 10) history[cid].pop();
         saveData(HISTORY_FILE, history);
         if (market?.price) {
-          const pd = market.price < 0.01 ? `$${market.price.toFixed(10)}` : `$${market.price.toLocaleString(undefined,{maximumFractionDigits:8})}`;
+          const pd = market.price < 0.01 ? `$${market.price.toFixed(10)}` : `$${market.price.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
           const ce = market.priceChange24h >= 0 ? '📈' : '📉';
           bot.sendMessage(chatId,
-            `✅ *${chainLabel} — ${market.symbol||'?'}*\n\`${addr.slice(0,10)}...\`\n\n💰 *Live Price:* ${pd}\n${ce} 24h: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity||0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):`,
+            `✅ *${chainLabel} — ${market.symbol || '?'}*\n\`${addr.slice(0, 10)}...\`\n\n💰 *Live Price:* ${pd}\n${ce} 24h: ${market.priceChange24h?.toFixed(2)}%\n💧 Liquidity: $${Math.round(market.liquidity || 0).toLocaleString()}\n\n📌 *Step 2:* Enter your *Target Price* (USD):`,
             { parse_mode: 'Markdown' }
-          ).catch(e => {});
+          ).catch(e => { });
         } else {
           bot.sendMessage(chatId,
-            `✅ *${chainLabel} address saved!*\n\`${addr.slice(0,10)}...\`\n\n⚠️ Price not found right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD): Example: \`0.02593\``,
+            `✅ *${chainLabel} address saved!*\n\`${addr.slice(0, 10)}...\`\n\n⚠️ Price not found right now.\n\n📌 *Step 2:* Enter your *Target Price* manually (USD): Example: \`0.02593\``,
             { parse_mode: 'Markdown' }
-          ).catch(e => {});
+          ).catch(e => { });
         }
-      } catch(e) { console.error('BNB price fetch error:', e.message); }
+      } catch (e) { console.error('BNB price fetch error:', e.message); }
 
     } else if (data === 'setup_sound') {
       const audioPath = './beep.mp3';
@@ -2057,9 +2063,9 @@ function setupBotHandlers() {
         bot.sendMessage(chatId,
           guideMsg + "\n\n⚠️ *Sound file not found on server.* Please ask the admin to upload beep.mp3 to the server.",
           { parse_mode: "Markdown" }
-        ).catch(e=>{});
+        ).catch(e => { });
       }
-      if (soundExists) bot.sendMessage(chatId, guideMsg, { parse_mode: "Markdown" }).catch(e=>{});
+      if (soundExists) bot.sendMessage(chatId, guideMsg, { parse_mode: "Markdown" }).catch(e => { });
       bot.answerCallbackQuery(callbackQuery.id);
 
     } else if (data.startsWith('dir_above:') || data.startsWith('dir_below:')) {
@@ -2075,14 +2081,14 @@ function setupBotHandlers() {
       const dirEmoji = direction === 'above' ? '📈' : '📉';
 
       bot.editMessageText(
-        `${dirEmoji} *${direction.toUpperCase()} alert selected!*\n[${chainLabel}] \`${address.slice(0,12)}...\`\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`0.00025\``,
+        `${dirEmoji} *${direction.toUpperCase()} alert selected!*\n[${chainLabel}] \`${address.slice(0, 12)}...\`\n\n📌 *Step 2:* Enter your *Target Price* (USD):\nExample: \`0.00025\``,
         {
           chat_id: chatId,
           message_id: callbackQuery.message.message_id,
           parse_mode: 'Markdown',
           reply_markup: { inline_keyboard: [] }
         }
-      ).catch(e => {});
+      ).catch(e => { });
       bot.answerCallbackQuery(callbackQuery.id);
     }
   });
@@ -2107,7 +2113,7 @@ app.get("/api/whale-alerts", async (req, res) => {
 
   try {
     let poolAddress = gtCache[token]?.pool;
-    
+
     // 1. Resolve pool address if not cached
     if (!poolAddress) {
       const poolRes = await axios.get(`https://api.geckoterminal.com/api/v2/networks/solana/tokens/${token}/pools?page=1`, {
@@ -2140,7 +2146,7 @@ app.get("/api/whale-alerts", async (req, res) => {
         if (amount >= threshold) {
           const walletRaw = attr.tx_from_address || attr.tx_hash;
           const displayWallet = walletRaw.substring(0, 6) + "..." + walletRaw.substring(walletRaw.length - 4);
-          
+
           let typeLabel = "Fresh Wallet";
           let typeClass = "type-fresh";
           if (amount >= 50000) { typeLabel = "Whale"; typeClass = "type-whale"; }
@@ -2173,7 +2179,7 @@ app.get("/api/payment-config", (req, res) => {
   try {
     const kp = getBackendKeypair();
     res.json({ success: true, recipient: kp.publicKey.toString() });
-  } catch(e) {
+  } catch (e) {
     res.status(500).json({ success: false, error: "Backend wallet not configured" });
   }
 });
@@ -2184,8 +2190,8 @@ app.post("/build-payment-tx", async (req, res) => {
   if (!wallet || !currency || !amount) return res.status(400).json({ success: false, error: "Missing fields" });
   try {
     const connection = new Connection(SOLANA_RPC, "confirmed");
-    const fromPub    = new PublicKey(wallet);
-    const payer      = getBackendKeypair();
+    const fromPub = new PublicKey(wallet);
+    const payer = getBackendKeypair();
     const { blockhash } = await connection.getLatestBlockhash();
     const tx = new Transaction({ recentBlockhash: blockhash, feePayer: fromPub });
 
@@ -2197,7 +2203,7 @@ app.post("/build-payment-tx", async (req, res) => {
 
     const serialized = tx.serialize({ requireAllSignatures: false });
     res.json({ success: true, transaction: Buffer.from(serialized).toString("base64") });
-  } catch(err) {
+  } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -2219,7 +2225,7 @@ app.post("/verify-payment", async (req, res) => {
     if (!result.ok) return res.status(400).json({ success: false, error: result.error });
 
     // Activate subscription
-    const now     = new Date();
+    const now = new Date();
     const expires = new Date(now.getTime() + SUB_DURATION_DAYS * 86400000);
     subscriptions[wallet] = {
       wallet, active: true,
@@ -2240,7 +2246,7 @@ app.post("/verify-payment", async (req, res) => {
       timestamp: now.toISOString(),
       status: "queued",
       txSignature: null,
-      reason: `subscription:${wallet.slice(0,8)}`
+      reason: `subscription:${wallet.slice(0, 8)}`
     };
     if (!burnHistory.history) burnHistory.history = [];
     burnHistory.history.unshift(burnEntry);
@@ -2254,14 +2260,14 @@ app.post("/verify-payment", async (req, res) => {
         burnEntry.status = "done";
         burnEntry.txSignature = sig;
         burnHistory.totalBurned = (burnHistory.totalBurned || 0) + SUB_PRICE_USD;
-        burnHistory.burnCount   = (burnHistory.burnCount   || 0) + 1;
+        burnHistory.burnCount = (burnHistory.burnCount || 0) + 1;
         saveJSON(BURN_FILE, burnHistory);
       }
     }).catch(console.error);
 
-    console.log(`✅ Subscription activated: ${wallet.slice(0,8)}… via ${currency}`);
+    console.log(`✅ Subscription activated: ${wallet.slice(0, 8)}… via ${currency}`);
     res.json({ success: true, expiresAt: expires.toISOString(), burnTx: "queued" });
-  } catch(err) {
+  } catch (err) {
     console.error("verify-payment error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
@@ -2288,11 +2294,11 @@ app.get("/subscription-status", (req, res) => {
 app.get("/burn-stats", (req, res) => {
   res.json({
     success: true,
-    totalBurned:    burnHistory.totalBurned    || 0,
+    totalBurned: burnHistory.totalBurned || 0,
     totalUsdBurned: burnHistory.totalUsdBurned || 0,
-    totalRevenue:   burnHistory.totalRevenue   || 0,
-    burnCount:      burnHistory.burnCount      || 0,
-    history:        (burnHistory.history || []).slice(0, 30)
+    totalRevenue: burnHistory.totalRevenue || 0,
+    burnCount: burnHistory.burnCount || 0,
+    history: (burnHistory.history || []).slice(0, 30)
   });
 });
 
@@ -2335,10 +2341,10 @@ app.post("/admin/trigger-burn", requireAdmin, async (req, res) => {
     if (!burnHistory.history) burnHistory.history = [];
     burnHistory.history.unshift(entry);
     burnHistory.totalBurned = (burnHistory.totalBurned || 0) + amount;
-    burnHistory.burnCount   = (burnHistory.burnCount   || 0) + 1;
+    burnHistory.burnCount = (burnHistory.burnCount || 0) + 1;
     saveJSON(BURN_FILE, burnHistory);
     res.json({ success: true, txSignature: sig });
-  } catch(err) {
+  } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -2348,7 +2354,7 @@ app.post("/admin/override-subscription", requireAdmin, (req, res) => {
   const { wallet, days } = req.body;
   if (!wallet) return res.status(400).json({ success: false, error: "wallet required" });
   const d = parseInt(days) || 30;
-  const now     = new Date();
+  const now = new Date();
   const expires = new Date(now.getTime() + d * 86400000);
   subscriptions[wallet] = {
     wallet, active: true,
@@ -2363,7 +2369,7 @@ app.post("/admin/override-subscription", requireAdmin, (req, res) => {
 });
 
 // Serve admin, payment pages
-app.get("/admin",   (req, res) => res.sendFile(process.cwd() + "/admin.html"));
+app.get("/admin", (req, res) => res.sendFile(process.cwd() + "/admin.html"));
 app.get("/payment", (req, res) => res.sendFile(process.cwd() + "/payment.html"));
 
 // ═══════════════════════════════════════════════════════════════════════════

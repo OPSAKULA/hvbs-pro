@@ -18,10 +18,38 @@ let walletAddress   = null;
 let selectedCurrency = "SOL";
 let solPrice        = 0;
 
-// ─── PHANTOM WALLET CONNECT ───────────────────────────────────────────────────
+// HVBS Extension ID (Pasted actual Chrome Extension ID from developer console)
+const HVBS_EXTENSION_ID = "kcnpmhpeadncriproeagjmgdijblhhjek";
+
+// ─── PHANTOM / HVBS WALLET CONNECT ─────────────────────────────────────────────
 async function connectWallet() {
+  // 1. Try to connect to our custom HVBS Extension first
+  if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+    try {
+      const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage(HVBS_EXTENSION_ID, { type: "CONNECT_WALLET" }, (res) => {
+          // Check for lastError to prevent uncaught runtime errors if ID doesn't exist
+          if (chrome.runtime.lastError) {
+            resolve(null);
+          } else {
+            resolve(res);
+          }
+        });
+      });
+      if (response && response.success) {
+        walletAddress = response.walletAddress;
+        onWalletConnected(walletAddress);
+        showToast("✅ HVBS Wallet Connected!", "success");
+        return walletAddress;
+      }
+    } catch (e) {
+      console.log("HVBS extension not active or pending unlock, falling back to Phantom.");
+    }
+  }
+
+  // 2. Fallback to Phantom Wallet if HVBS extension is not present/unlocked
   if (typeof window.solana === "undefined" || !window.solana.isPhantom) {
-    showToast("⚠️ Phantom wallet not found! Please install it from phantom.app", "error");
+    showToast("⚠️ Wallet not found! Please install Phantom or HVBS Wallet.", "error");
     window.open("https://phantom.app/", "_blank");
     return null;
   }
