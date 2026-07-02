@@ -312,7 +312,8 @@ function initBot() {
     bot.on('polling_error', (error) => {
       console.error("Polling error:", error.code, error.message);
       lastPollingActivity = Date.now();
-      scheduleReconnect();
+      const isConflict = error.code === 'ETELEGRAM' && /409/.test(error.message);
+      scheduleReconnect(isConflict);
     });
 
     bot.on('webhook_error', (error) => {
@@ -321,7 +322,7 @@ function initBot() {
 
     bot.on('error', (error) => {
       console.error("Bot error:", error);
-      scheduleReconnect();
+      scheduleReconnect(false);
     });
 
     // Track activity so the watchdog can detect a silently-stuck poller
@@ -336,31 +337,40 @@ function initBot() {
     }).catch((err) => {
       console.error("❌ Failed to connect to Telegram API:", err.message);
       botInitialized = false;
-      scheduleReconnect();
+      scheduleReconnect(false);
     });
 
   } catch (err) {
     console.error("❌ Bot initialization error:", err);
     botInitialized = false;
-    scheduleReconnect();
+    scheduleReconnect(false);
   }
 }
 
 // Central reconnect scheduler: stops any existing polling/instance cleanly,
 // then re-creates the bot after a backoff delay. Handles network errors,
 // Telegram API disconnects, and Render restarts uniformly.
-function scheduleReconnect() {
-  if (reconnecting) return;
+//
+// isConflict=true means Telegram returned "409 Conflict: terminated by other
+// getUpdates request" — this happens during a Render deploy, when the old
+// instance and the new instance briefly run at the same time and both poll
+// with the same bot token. Racing to reconnect every few seconds only makes
+// both sides fight longer, so for a conflict we wait a fixed, longer window
+// (giving Render time to fully kill the old instance) instead of the normal
+// fast exponential backoff.
+function scheduleReconnect(isConflict = false) {
+  if (reconnecting || shuttingDown) return;
   reconnecting = true;
   botInitialized = false;
-  const delay = getBackoffDelay();
+  const delay = isConflict ? 15000 : getBackoffDelay();
   reconnectAttempts++;
-  console.log(`🔄 Reconnecting Telegram bot in ${delay / 1000}s (attempt ${reconnectAttempts})...`);
+  const reason = isConflict ? "duplicate instance (409 conflict)" : "connection error";
+  console.log(`🔄 Reconnecting Telegram bot in ${delay / 1000}s — ${reason} (attempt ${reconnectAttempts})...`);
 
   setTimeout(async () => {
     try {
       if (bot) {
-        try { await bot.stopPolling(); } catch (e) { /* ignore */ }
+        try { await bot.stopPolling({ cancel: true }); } catch (e) { /* ignore */ }
         bot.removeAllListeners();
         bot = null;
       }
@@ -384,14 +394,14 @@ setInterval(async () => {
   if (!TELEGRAM_BOT_TOKEN) return;
   try {
     if (!bot || !botInitialized) {
-      if (!reconnecting) scheduleReconnect();
+      if (!reconnecting) scheduleReconnect(false);
       return;
     }
     await bot.getMe();
     lastPollingActivity = Date.now();
   } catch (err) {
     console.error("⚠️ Watchdog getMe() failed:", err.message);
-    scheduleReconnect();
+    scheduleReconnect(false);
   }
 }, 3 * 60 * 1000);
 
@@ -2456,6 +2466,31 @@ app.get("/payment", (req, res) => res.sendFile(process.cwd() + "/payment.html"))
 app.get("*", (req, res) => {
   res.sendFile(process.cwd() + "/index.html");
 });
+
+// ─── GRACEFUL SHUTDOWN (stops duplicate-instance 409 conflicts at the root) ──
+// Render sends SIGTERM to the OLD instance as soon as the NEW deploy becomes
+// healthy, but gives it a grace period before force-killing it. Without a
+// handler, the old process just keeps polling Telegram during that grace
+// window — which is exactly what causes the two instances to fight over
+// getUpdates and throw "409 Conflict". By stopping polling the instant
+// SIGTERM arrives, the old instance releases Telegram's polling lock
+// immediately, so the new instance starts cleanly with no conflict at all.
+let shuttingDown = false;
+async function gracefulShutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`🛑 ${signal} received — this instance is being replaced, stopping Telegram polling immediately...`);
+  try {
+    if (bot) await bot.stopPolling({ cancel: true });
+    console.log("✅ Polling stopped cleanly, exiting.");
+  } catch (e) {
+    console.error("Error stopping polling during shutdown:", e.message);
+  } finally {
+    process.exit(0);
+  }
+}
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 // Previously these only logged and let the process keep running. If an
 // uncaught error left the event loop / bot instance in a broken state, the
