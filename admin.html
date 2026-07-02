@@ -237,7 +237,7 @@ async function adminAuth() {
   }
 
   const addr = window.HVBS.walletAddress;
-  const ADMIN_WALLET = "FoEd1FMU2ZCaYEatWKj2mRYqpUuWB3vUAtQnThn2p54V";
+  const ADMIN_WALLET = "DKaLRLF17JeAnHpYsBgRZnNVFPnKC2gnDn5cHUtLMsAz";
   if (addr !== ADMIN_WALLET) {
     document.getElementById("auth-error").textContent = `❌ Not admin wallet. Connected: ${addr?.slice(0,8)}…`;
     return;
