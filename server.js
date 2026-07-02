@@ -417,29 +417,30 @@ setInterval(() => {
     .catch((e) => console.error("Self-ping failed:", e.message));
 }, 10 * 60 * 1000);
 
-const activeSounds = {};
+const activeSounds = {}; // tracks last-sent alert sound per chat (for /api/sound-status)
 
 function stopSound(chatId) {
   if (activeSounds[chatId]) {
-    if (activeSounds[chatId].type === 'beep' && activeSounds[chatId].intervalId) {
-      clearInterval(activeSounds[chatId].intervalId);
-    } else if (activeSounds[chatId].type === 'custom' && activeSounds[chatId].process) {
-      try {
-        if (process.platform === 'win32') {
-          exec(`taskkill /F /PID ${activeSounds[chatId].process.pid}`, () => { });
-        } else {
-          activeSounds[chatId].process.kill('SIGTERM');
-        }
-      } catch (e) { }
-    }
     delete activeSounds[chatId];
     return true;
   }
   return false;
 }
 
+// Delivers the alert sound to the USER, not the server.
+// The previous version called exec("aplay ...")/afplay/PowerShell Beep,
+// which plays audio on whatever machine is running node — fine on a
+// developer's own Windows PC, but completely silent and pointless on a
+// headless Render container (no sound card, no aplay binary, nobody there
+// to hear it). Telegram bots can't remotely trigger sound on a user's
+// phone directly — the correct way is to send the audio file as a message,
+// so Telegram itself plays/notifies it on the recipient's device.
 function playSound(chatId) {
-  stopSound(chatId);
+  if (!bot) {
+    console.warn(`playSound(${chatId}) skipped — bot not initialized`);
+    return;
+  }
+
   const soundDir = "./sounds";
   const exts = [".mp3", ".wav", ".m4a"];
   let soundFile = null;
@@ -447,26 +448,24 @@ function playSound(chatId) {
     const testPath = path.join(soundDir, `${chatId}${ext}`);
     if (fs.existsSync(testPath)) { soundFile = testPath; break; }
   }
-  if (soundFile) {
-    let playerProcess;
-    if (process.platform === "win32") playerProcess = exec(`start "" "${soundFile}"`);
-    else if (process.platform === "darwin") playerProcess = exec(`afplay "${soundFile}"`);
-    else playerProcess = exec(`aplay "${soundFile}"`);
-    activeSounds[chatId] = { type: 'custom', process: playerProcess };
-  } else {
-    let beepCount = 0;
-    const beepInterval = setInterval(() => {
-      if (beepCount >= 60) {
-        clearInterval(beepInterval);
-        if (activeSounds[chatId]?.type === 'beep') delete activeSounds[chatId];
-        return;
-      }
-      if (process.platform === "win32") exec(`powershell -c "[System.Console]::Beep(880,300)"`, () => { });
-      else process.stdout.write('\x07');
-      beepCount++;
-    }, 1000);
-    activeSounds[chatId] = { type: 'beep', intervalId: beepInterval };
+  // No custom sound uploaded for this user → fall back to the default beep.
+  if (!soundFile && fs.existsSync("./beep.mp3")) soundFile = "./beep.mp3";
+
+  if (!soundFile) {
+    console.warn(`No sound file found for chat ${chatId} (no custom upload and no beep.mp3)`);
+    bot.sendMessage(chatId, "⚠️ No alert sound file is configured on the server yet.").catch(e => { });
+    return;
   }
+
+  activeSounds[chatId] = { file: soundFile, sentAt: Date.now() };
+  bot.sendAudio(chatId, soundFile, { title: "🔔 HVBS Price Alert" })
+    .catch((err) => {
+      console.error(`Failed to send alert sound to ${chatId}:`, err.message);
+      // Fallback: some chats/clients reject sendAudio for certain files — try sendVoice as backup.
+      bot.sendVoice(chatId, soundFile).catch((e2) => {
+        console.error(`Fallback sendVoice also failed for ${chatId}:`, e2.message);
+      });
+    });
 }
 
 // ========== MARKET DATA ==========
