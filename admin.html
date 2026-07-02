@@ -227,6 +227,7 @@
 <script src="subscription.js"></script>
 <script>
 let adminAuthToken = null;
+const BACKEND_URL = "https://hvbs-pro-z5k2.onrender.com";
 
 // ─── ADMIN AUTH ───────────────────────────────────────────────────────────────
 async function adminAuth() {
@@ -247,7 +248,7 @@ async function adminAuth() {
   if (!authData) return;
 
   // Verify with backend
-  const res = await fetch("/admin/verify-auth", {
+  const res = await fetch(BACKEND_URL + "/admin/verify-auth", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(authData)
@@ -272,7 +273,7 @@ async function loadAdminData() {
 
 async function loadSubscriptions() {
   try {
-    const res  = await fetch("/admin/subscriptions", {
+    const res  = await fetch(BACKEND_URL + "/admin/subscriptions", {
       headers: { "X-Admin-Token": adminAuthToken }
     });
     const data = await res.json();
@@ -310,7 +311,7 @@ async function loadSubscriptions() {
 
 async function loadBurnStats() {
   try {
-    const res  = await fetch("/burn-stats");
+    const res  = await fetch(BACKEND_URL + "/burn-stats");
     const data = await res.json();
     document.getElementById("stat-total-burned").textContent = Number(data.totalBurned || 0).toLocaleString();
     document.getElementById("stat-burned-usd").textContent   = "$" + Number(data.totalUsdBurned || 0).toFixed(2);
@@ -348,7 +349,7 @@ async function triggerBurn() {
   log("🔥 Triggering manual burn…");
 
   try {
-    const res  = await fetch("/admin/trigger-burn", {
+    const res  = await fetch(BACKEND_URL + "/admin/trigger-burn", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Admin-Token": adminAuthToken }
     });
@@ -384,7 +385,7 @@ async function submitOverride() {
   if (!wallet) { status.textContent = "⚠️ Enter a wallet address"; status.style.color = "#f59e0b"; return; }
 
   try {
-    const res  = await fetch("/admin/override-subscription", {
+    const res  = await fetch(BACKEND_URL + "/admin/override-subscription", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Admin-Token": adminAuthToken },
       body: JSON.stringify({ wallet, days })
