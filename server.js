@@ -282,14 +282,22 @@ saveData(ALERTS_FILE, alerts);
 
 let bot;
 let botInitialized = false;
+let lastPollingActivity = Date.now();     // updated on any incoming update/error event
+let reconnectAttempts = 0;
+let reconnecting = false;
+
+// Exponential backoff, capped at 60s
+function getBackoffDelay() {
+  return Math.min(5000 * Math.pow(2, reconnectAttempts), 60000);
+}
 
 function initBot() {
-  if (botInitialized) return;
   try {
     if (!TELEGRAM_BOT_TOKEN) {
       console.error("❌ Telegram bot token not set! Add TELEGRAM_BOT_TOKEN to .env");
       return;
     }
+
     bot = new TelegramBot(TELEGRAM_BOT_TOKEN, {
       polling: true,
       autoStart: true,
@@ -299,37 +307,105 @@ function initBot() {
       }
     });
 
+    // Any polling error (network drop, ETELEGRAM, EFATAL, 409 conflict, timeouts, etc.)
+    // triggers a full reconnect with exponential backoff instead of only two error codes.
     bot.on('polling_error', (error) => {
       console.error("Polling error:", error.code, error.message);
-      if (error.code === 'EFATAL' || error.message.includes('409')) {
-        console.log("Attempting to restart polling...");
-        setTimeout(() => {
-          bot.stopPolling().then(() => {
-            bot.startPolling();
-          }).catch(e => console.error("Restart failed:", e));
-        }, 5000);
-      }
+      lastPollingActivity = Date.now();
+      scheduleReconnect();
+    });
+
+    bot.on('webhook_error', (error) => {
+      console.error("Webhook error:", error.code, error.message);
     });
 
     bot.on('error', (error) => {
       console.error("Bot error:", error);
+      scheduleReconnect();
     });
+
+    // Track activity so the watchdog can detect a silently-stuck poller
+    bot.on('message', () => { lastPollingActivity = Date.now(); });
+    bot.on('callback_query', () => { lastPollingActivity = Date.now(); });
 
     bot.getMe().then((botInfo) => {
       console.log(`🤖 Telegram bot started as @${botInfo.username}`);
       botInitialized = true;
+      reconnectAttempts = 0;
+      lastPollingActivity = Date.now();
     }).catch((err) => {
       console.error("❌ Failed to connect to Telegram API:", err.message);
-      bot = null;
+      botInitialized = false;
+      scheduleReconnect();
     });
 
   } catch (err) {
     console.error("❌ Bot initialization error:", err);
-    bot = null;
+    botInitialized = false;
+    scheduleReconnect();
   }
 }
 
+// Central reconnect scheduler: stops any existing polling/instance cleanly,
+// then re-creates the bot after a backoff delay. Handles network errors,
+// Telegram API disconnects, and Render restarts uniformly.
+function scheduleReconnect() {
+  if (reconnecting) return;
+  reconnecting = true;
+  botInitialized = false;
+  const delay = getBackoffDelay();
+  reconnectAttempts++;
+  console.log(`🔄 Reconnecting Telegram bot in ${delay / 1000}s (attempt ${reconnectAttempts})...`);
+
+  setTimeout(async () => {
+    try {
+      if (bot) {
+        try { await bot.stopPolling(); } catch (e) { /* ignore */ }
+        bot.removeAllListeners();
+        bot = null;
+      }
+    } catch (e) {
+      console.error("Error while tearing down bot instance:", e.message);
+    } finally {
+      reconnecting = false;
+      initBot();
+    }
+  }, delay);
+}
+
 initBot();
+
+// ─── WATCHDOG ────────────────────────────────────────────────────────────────
+// Independently verifies Telegram connectivity every 3 minutes. If the bot
+// looks initialized but hasn't shown any sign of life (no events, and getMe
+// itself fails) it forces a reconnect — this catches "silent hang" cases
+// where polling_error never fires but the poller is effectively dead.
+setInterval(async () => {
+  if (!TELEGRAM_BOT_TOKEN) return;
+  try {
+    if (!bot || !botInitialized) {
+      if (!reconnecting) scheduleReconnect();
+      return;
+    }
+    await bot.getMe();
+    lastPollingActivity = Date.now();
+  } catch (err) {
+    console.error("⚠️ Watchdog getMe() failed:", err.message);
+    scheduleReconnect();
+  }
+}, 3 * 60 * 1000);
+
+// ─── KEEP-ALIVE SELF-PING ────────────────────────────────────────────────────
+// Render's free web services spin down after ~15 minutes without incoming
+// HTTP traffic; outbound Telegram polling does not count as traffic, so the
+// whole process (and the bot with it) can be suspended until the next manual
+// deploy or visit. Pinging our own /health endpoint keeps the service awake.
+setInterval(() => {
+  const selfUrl = process.env.RENDER_EXTERNAL_URL || process.env.SELF_URL;
+  if (!selfUrl) return;
+  axios.get(`${selfUrl.replace(/\/$/, "")}/health`, { timeout: 10000 })
+    .catch((e) => console.error("Self-ping failed:", e.message));
+}, 10 * 60 * 1000);
 
 const activeSounds = {};
 
@@ -1329,7 +1405,9 @@ app.get("/health", (req, res) => {
     botRunning: botInitialized,
     botUsername: bot ? "initialized" : "not",
     alertsCount: Object.keys(alerts).length,
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    lastPollingActivitySecondsAgo: Math.floor((Date.now() - lastPollingActivity) / 1000),
+    reconnectAttempts
   });
 });
 
@@ -2379,8 +2457,22 @@ app.get("*", (req, res) => {
   res.sendFile(process.cwd() + "/index.html");
 });
 
-process.on("uncaughtException", console.error);
-process.on("unhandledRejection", console.error);
+// Previously these only logged and let the process keep running. If an
+// uncaught error left the event loop / bot instance in a broken state, the
+// process never crashed, so Render never restarted it — the only fix was a
+// manual "Clear build cache & deploy". Now we log, then exit so Render's
+// process manager restarts the service automatically (auto-restart on crash
+// is standard Render behavior for web services).
+process.on("uncaughtException", (err) => {
+  console.error("💥 Uncaught exception:", err);
+  console.error("Restarting process in 2s so the platform can bring it back up...");
+  setTimeout(() => process.exit(1), 2000);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("💥 Unhandled rejection:", reason);
+  console.error("Restarting process in 2s so the platform can bring it back up...");
+  setTimeout(() => process.exit(1), 2000);
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
