@@ -345,6 +345,14 @@ function initBot() {
       console.log(`🤖 Telegram bot started as @${botInfo.username}`);
       botInitialized = true;
       lastPollingActivity = Date.now();
+      // CRITICAL: must run on every (re)connect, not just the first one.
+      // Each reconnect creates a brand-new `bot` object with zero
+      // listeners — without re-attaching here, /start and every command
+      // go permanently silent after the very first reconnect (which
+      // happens on basically every deploy), even though cron-based
+      // alerts keep working since those call bot.sendMessage() directly.
+      setupBotHandlers();
+      console.log("✅ Telegram bot handlers attached");
     }).catch((err) => {
       console.error("❌ Failed to connect to Telegram API:", err.message);
       botInitialized = false;
@@ -2234,14 +2242,8 @@ function setupBotHandlers() {
   });
 }
 
-// Wait for bot to be ready before setting handlers
-const checkBotInterval = setInterval(() => {
-  if (botInitialized) {
-    clearInterval(checkBotInterval);
-    setupBotHandlers();
-    console.log("✅ Telegram bot handlers attached");
-  }
-}, 1000);
+// (Handler attachment now happens inside initBot()'s bot.getMe().then(),
+// on every successful connect/reconnect — see initBot() above.)
 
 // ========== REAL WHALE ALERTS API ==========
 const gtCache = {};
