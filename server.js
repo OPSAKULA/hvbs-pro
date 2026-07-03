@@ -285,10 +285,22 @@ let botInitialized = false;
 let lastPollingActivity = Date.now();     // updated on any incoming update/error event
 let reconnectAttempts = 0;
 let reconnecting = false;
+let lastReconnectAt = 0;
 
 // Exponential backoff, capped at 60s
 function getBackoffDelay() {
   return Math.min(5000 * Math.pow(2, reconnectAttempts), 60000);
+}
+
+// For 409 conflicts specifically: escalates further (up to 5 minutes) the
+// more times it keeps happening back-to-back. A single conflict during a
+// Render deploy resolves in one or two cycles; if it keeps recurring, some
+// OTHER process is persistently polling with the same bot token (e.g. the
+// bot also running locally on a PC, or a second deployment) — no amount of
+// fast retrying fixes that, so we back off hard and warn instead of
+// hammering Telegram's API.
+function getConflictDelay() {
+  return Math.min(15000 * Math.pow(1.6, reconnectAttempts), 5 * 60 * 1000);
 }
 
 function initBot() {
@@ -332,7 +344,6 @@ function initBot() {
     bot.getMe().then((botInfo) => {
       console.log(`🤖 Telegram bot started as @${botInfo.username}`);
       botInitialized = true;
-      reconnectAttempts = 0;
       lastPollingActivity = Date.now();
     }).catch((err) => {
       console.error("❌ Failed to connect to Telegram API:", err.message);
@@ -362,18 +373,37 @@ function scheduleReconnect(isConflict = false) {
   if (reconnecting || shuttingDown) return;
   reconnecting = true;
   botInitialized = false;
-  const delay = isConflict ? 15000 : getBackoffDelay();
+  const delay = isConflict ? getConflictDelay() : getBackoffDelay();
   reconnectAttempts++;
+  lastReconnectAt = Date.now();
   const reason = isConflict ? "duplicate instance (409 conflict)" : "connection error";
-  console.log(`🔄 Reconnecting Telegram bot in ${delay / 1000}s — ${reason} (attempt ${reconnectAttempts})...`);
+  console.log(`🔄 Reconnecting Telegram bot in ${Math.round(delay / 1000)}s — ${reason} (attempt ${reconnectAttempts})...`);
+
+  if (isConflict && reconnectAttempts >= 4) {
+    console.warn(
+      "⚠️⚠️ REPEATED 409 CONFLICTS: another process is actively polling this bot token RIGHT NOW " +
+      "(e.g. the bot also running on a local PC/laptop, or a second Render service/deploy with the " +
+      "same TELEGRAM_BOT_TOKEN). This is NOT something the code can fix automatically — please stop " +
+      "the other running instance. Backing off to reduce API hammering in the meantime."
+    );
+  }
 
   setTimeout(async () => {
     try {
       if (bot) {
-        try { await bot.stopPolling({ cancel: true }); } catch (e) { /* ignore */ }
+        // Graceful stop (not cancel:true) — lets Telegram's server register
+        // that polling has actually ended before we start a new one. A
+        // forced cancel + instant restart was racing Telegram's own
+        // cleanup of the previous long-poll, causing the bot to conflict
+        // with itself even though only one process was ever running.
+        try { await bot.stopPolling(); } catch (e) { /* ignore */ }
         bot.removeAllListeners();
         bot = null;
       }
+      // Give Telegram's server a couple seconds to fully release the
+      // previous connection before opening a new one — restarting
+      // instantly was itself a source of self-inflicted 409s.
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (e) {
       console.error("Error while tearing down bot instance:", e.message);
     } finally {
@@ -399,11 +429,33 @@ setInterval(async () => {
     }
     await bot.getMe();
     lastPollingActivity = Date.now();
+    // Only trust "stable" after a real gap since the last reconnect —
+    // otherwise a bot stuck in a conflict loop keeps getting its backoff
+    // reset every 3 minutes and never escalates far enough to matter.
+    if (reconnectAttempts > 0 && Date.now() - lastReconnectAt > 3 * 60 * 1000) {
+      reconnectAttempts = 0;
+    }
   } catch (err) {
     console.error("⚠️ Watchdog getMe() failed:", err.message);
     scheduleReconnect(false);
   }
 }, 3 * 60 * 1000);
+
+// ─── PROACTIVE REFRESH ───────────────────────────────────────────────────────
+// node-telegram-bot-api has a known behavior where its internal polling loop
+// can silently stall without emitting any error — /health still reports
+// "ok" (getMe only checks auth, not that updates are actually being
+// fetched), so nothing above catches it. Rather than trying to detect that
+// exact failure mode, we do a full, clean polling refresh on a fixed
+// schedule regardless of health — the same effect as a manual "Deploy
+// latest commit", just automatic. Uses the same graceful teardown as
+// scheduleReconnect, so this does not cause self-conflicts.
+setInterval(() => {
+  if (!reconnecting && !shuttingDown && botInitialized) {
+    console.log("♻️ Proactive polling refresh (scheduled, not an error).");
+    scheduleReconnect(false);
+  }
+}, 20 * 60 * 1000);
 
 // ─── KEEP-ALIVE SELF-PING ────────────────────────────────────────────────────
 // Render's free web services spin down after ~15 minutes without incoming
@@ -1416,7 +1468,8 @@ app.get("/health", (req, res) => {
     alertsCount: Object.keys(alerts).length,
     uptime: process.uptime(),
     lastPollingActivitySecondsAgo: Math.floor((Date.now() - lastPollingActivity) / 1000),
-    reconnectAttempts
+    reconnectAttempts,
+    likelyDuplicateInstanceRunningElsewhere: reconnectAttempts >= 4
   });
 });
 
