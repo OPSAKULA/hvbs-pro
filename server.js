@@ -301,6 +301,11 @@ const DEXSCREENER_BASE_PAIRS = "https://api.dexscreener.com/token-pairs/v1/base/
 const GECKO_TERMINAL_BASE_API = "https://api.geckoterminal.com/api/v2/networks/base/tokens/";
 const TRENDING_BASE_API = "https://api.dexscreener.com/latest/dex/search?q=base";
 
+// ========== ROBINHOOD CHAIN CONSTANTS ==========
+// Robinhood Chain — Arbitrum-based Ethereum L2, Chain ID 4663, ETH gas, launched July 1, 2026
+const DEXSCREENER_ROBINHOOD_PAIRS = "https://api.dexscreener.com/token-pairs/v1/robinhood/";
+const TRENDING_ROBINHOOD_API = "https://api.dexscreener.com/latest/dex/search?q=robinhood";
+
 const ALERTS_FILE = "./alerts.json";
 const WATCHLIST_FILE = "./watchlist.json";
 const USERNAME_MAP_FILE = "./username_chatid_map.json";
@@ -1631,13 +1636,168 @@ app.get("/api/trending/base", async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
+// ========== ROBINHOOD CHAIN MARKET DATA FUNCTIONS ==========
+async function getMarketDataRobinhood(address, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await axios.get(`${DEXSCREENER_ROBINHOOD_PAIRS}${address}`, { timeout: 6000 });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        const p = res.data[0];
+        const price = parseFloat(p.priceUsd);
+        if (price && !isNaN(price) && price > 0) {
+          return {
+            price,
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || '?',
+            name: p.baseToken?.name || '',
+            chartUrl: p.url || `https://dexscreener.com/robinhood/${address}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || ''
+          };
+        }
+      }
+    } catch (e) { }
+
+    try {
+      const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 6000 });
+      const pairs = searchRes.data.pairs || [];
+      const rhPairs = pairs.filter(p => p.chainId === 'robinhood');
+      if (rhPairs.length > 0) {
+        const p = rhPairs[0];
+        const price = parseFloat(p.priceUsd);
+        if (price && !isNaN(price) && price > 0) {
+          return {
+            price,
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || '?',
+            name: p.baseToken?.name || '',
+            chartUrl: p.url || `https://dexscreener.com/robinhood/${address}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || ''
+          };
+        }
+      }
+    } catch (e) { }
+
+    if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
+  }
+  return null;
+}
+
+async function getHolderCountRobinhood(address) {
+  // No dedicated holder-count provider for Robinhood Chain yet — returns 0 (shown as N/A on the frontend)
+  return 0;
+}
+
+async function getBuyersSellersRobinhood(address) {
+  try {
+    const res = await axios.get(`${DEXSCREENER_ROBINHOOD_PAIRS}${address}`, { timeout: 6000 });
+    if (Array.isArray(res.data) && res.data.length > 0) {
+      let b1 = 0, s1 = 0, b6 = 0, s6 = 0, b24 = 0, s24 = 0;
+      for (const p of res.data) {
+        b1 += p.txns?.h1?.buys || 0; s1 += p.txns?.h1?.sells || 0;
+        b6 += p.txns?.h6?.buys || 0; s6 += p.txns?.h6?.sells || 0;
+        b24 += p.txns?.h24?.buys || 0; s24 += p.txns?.h24?.sells || 0;
+      }
+      return { h1: { buys: b1, sells: s1 }, h6: { buys: b6, sells: s6 }, h24: { buys: b24, sells: s24 } };
+    }
+  } catch (e) { }
+  return { h1: { buys: 0, sells: 0 }, h6: { buys: 0, sells: 0 }, h24: { buys: 0, sells: 0 } };
+}
+
+async function getDEXListingsRobinhood(tokenAddress) {
+  try {
+    const res = await axios.get(`${DEXSCREENER_SEARCH}${tokenAddress}`, { timeout: 6000 });
+    const pairs = res.data.pairs || [];
+    const exchanges = new Map();
+    for (const pair of pairs) {
+      if (pair.chainId === 'robinhood' && pair.dexId && !exchanges.has(pair.dexId)) {
+        exchanges.set(pair.dexId, { name: pair.dexId, type: 'DEX', url: pair.url || null, baseToken: pair.baseToken?.symbol || 'N/A', quoteToken: pair.quoteToken?.symbol || 'N/A' });
+      }
+    }
+    return Array.from(exchanges.values());
+  } catch (e) { return []; }
+}
+
+// ========== ROBINHOOD CHAIN TOKEN ENDPOINT ==========
+app.get("/api/token/robinhood/:address", async (req, res) => {
+  const address = req.params.address;
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+    return res.status(400).json({ success: false, error: "Invalid Robinhood Chain token address. Must be 0x followed by 40 hex characters." });
+  }
+  try {
+    const [market, holderCount, buyersSellers] = await Promise.all([
+      getMarketDataRobinhood(address),
+      getHolderCountRobinhood(address),
+      getBuyersSellersRobinhood(address)
+    ]);
+    const risk = calculateRiskScore(market, holderCount);
+    let tokenSymbol = market?.symbol || '';
+    let cgDetails = null;
+    if (tokenSymbol) cgDetails = await getCoinGeckoDetails(tokenSymbol);
+    const dexListings = await getDEXListingsRobinhood(address);
+    let cexListings = [];
+    if (cgDetails?.id) cexListings = await getCEXListings(cgDetails.id);
+    const allExchanges = [...dexListings, ...cexListings];
+    let formattedPrice = 'N/A';
+    if (market) {
+      const priceNum = market.price;
+      formattedPrice = priceNum < 0.01 ? `$${priceNum.toFixed(10)}` : `$${priceNum.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
+    }
+    let platformPresence = { coingecko: { listed: !!cgDetails, name: cgDetails?.name || null }, coinmarketcap: { listed: false, name: null } };
+    try {
+      if (tokenSymbol) {
+        const cmcRes = await axios.get(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${tokenSymbol}`, { headers: { 'X-CMC_PRO_API_KEY': CMC_API_KEY }, timeout: 5000 });
+        const cmcData = cmcRes.data?.data?.[tokenSymbol];
+        if (cmcData) platformPresence.coinmarketcap = { listed: true, name: cmcData.name };
+      }
+    } catch (e) { }
+    res.json({
+      success: true, chain: 'robinhood', tokenAddress: address,
+      name: market?.name || market?.symbol || address.slice(0, 8) + '...',
+      symbol: market?.symbol || '?',
+      price: formattedPrice, rawPrice: market?.price || 0,
+      liquidity: market?.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : 'N/A',
+      volume24h: market?.volume24h ? `$${Math.round(market.volume24h).toLocaleString()}` : 'N/A',
+      priceChange24h: market?.priceChange24h != null ? `${market.priceChange24h.toFixed(2)}%` : 'N/A',
+      marketCap: market?.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : 'N/A',
+      holderCount, topHolders: [],
+      buyersSellers, riskScore: risk.score, riskLevel: risk.level, riskReasons: risk.reasons,
+      chartUrl: market?.chartUrl || `https://dexscreener.com/robinhood/${address}`,
+      exchanges: allExchanges, socialLinks: cgDetails?.links || {}, logo: cgDetails?.image || null,
+      coingeckoUrl: cgDetails?.coingeckoUrl || null, platformPresence
+    });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.get("/api/trending/robinhood", async (req, res) => {
+  try {
+    const r = await axios.get(TRENDING_ROBINHOOD_API, { timeout: 8000 });
+    if (r.data.pairs) {
+      let rhPairs = r.data.pairs.filter(p => p.chainId === 'robinhood' && parseFloat(p.priceUsd) > 0);
+      rhPairs.sort((a, b) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0));
+      return res.json({ success: true, trending: rhPairs.slice(0, 10).map(p => ({ symbol: p.baseToken?.symbol || '?', address: p.baseToken?.address || '', price: p.priceUsd || '0', volume24h: p.volume?.h24 || 0, priceChange: p.priceChange?.h24 || 0, liquidity: p.liquidity?.usd || 0, url: p.url })) });
+    }
+    res.json({ success: true, trending: [] });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
 // ========== CHAIN AUTO-DETECTION ==========
-// Supported chains: solana, ethereum, bsc, base
-const SUPPORTED_CHAINS = ['ethereum', 'bsc', 'base'];
+// Supported chains: solana, ethereum, bsc, base, robinhood
+const SUPPORTED_CHAINS = ['ethereum', 'bsc', 'base', 'robinhood'];
 const CHAIN_LABELS = {
   ethereum: '⟠ Ethereum',
   bsc: '🟡 BNB Chain',
   base: '🔵 Base',
+  robinhood: '🪶 Robinhood',
   polygon: 'Polygon',
   arbitrum: 'Arbitrum',
   avalanche: 'Avalanche',
