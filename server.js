@@ -203,6 +203,22 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("."));
 
+// ─── GLOBAL REQUEST/RESPONSE LOGGER (diagnostic only — does not change any
+// behavior, headers, or response body). Logs every request that actually
+// reaches this backend, and every response sent back, so it's possible to
+// tell from Render logs whether the frontend is even reaching this server
+// at all (vs. calling a wrong/old URL, which would show NOTHING here).
+app.use((req, res, next) => {
+  const start = Date.now();
+  const origin = req.headers.origin || req.headers.referer || "no-origin/referer-header";
+  console.log(`[REQUEST] ${req.method} ${req.originalUrl} | Origin: ${origin} | IP: ${req.ip}`);
+  res.on("finish", () => {
+    const ms = Date.now() - start;
+    console.log(`[RESPONSE] ${req.method} ${req.originalUrl} | Status: ${res.statusCode} | ${ms}ms`);
+  });
+  next();
+});
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = "./sounds";
