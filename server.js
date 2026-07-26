@@ -223,16 +223,52 @@ console.log(
   "Telegram Token Prefix:",
   TELEGRAM_BOT_TOKEN ? TELEGRAM_BOT_TOKEN.substring(0, 10) : "NOT FOUND"
 );
-const CMC_API_KEY = process.env.CMC_API_KEY;
+// ─── API KEYS (env-only — never hardcoded) ──────────────────────────────────
+const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY || "";
+const CMC_API_KEY = process.env.CMC_API_KEY || process.env.COINMARKETCAP_API_KEY || "";
+const HELIUS_API_KEY = process.env.HELIUS_API_KEY || "";
+const HELIUS_RPC_URL = HELIUS_API_KEY ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}` : null;
+function coingeckoHeaders() {
+  return COINGECKO_API_KEY ? { "x-cg-demo-api-key": COINGECKO_API_KEY } : {};
+}
+function cmcHeaders() {
+  return CMC_API_KEY ? { "X-CMC_PRO_API_KEY": CMC_API_KEY } : null;
+}
 
+// ─── STARTUP PROVIDER STATUS LOG (never prints key values) ──────────────────
+function logProviderStatus() {
+  console.log("─────────────────────────────────────────────");
+  console.log("🔌 Token Scanner Provider Status:");
+  console.log(`   • DexScreener   : ✅ Ready (Public API, no key required)`);
+  console.log(`   • CoinGecko     : ${COINGECKO_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
+  console.log(`   • CoinMarketCap : ${CMC_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
+  console.log(`   • Helius        : ${HELIUS_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
+  console.log("─────────────────────────────────────────────");
+}
+logProviderStatus();
+
+// ─── DEXSCREENER — PRIMARY PROVIDER (latest official endpoints, no key needed) ──
+const DEXSCREENER_TOKENS_V1 = "https://api.dexscreener.com/tokens/v1/solana/";
 const DEXSCREENER_TOKEN_PAIRS = "https://api.dexscreener.com/token-pairs/v1/solana/";
 const DEXSCREENER_SEARCH = "https://api.dexscreener.com/latest/dex/search?q=";
 const TRENDING_API = "https://api.dexscreener.com/latest/dex/search?q=solana";
 const JUPITER_PRICE_API = "https://api.jup.ag/price/v2?ids=";
+
+// ─── FALLBACK PROVIDERS ──────────────────────────────────────────────────────
 const COINGECKO_SEARCH = "https://api.coingecko.com/api/v3/search?query=";
 const COINGECKO_COIN_DATA = "https://api.coingecko.com/api/v3/coins/";
+const COINGECKO_SOLANA_CONTRACT = "https://api.coingecko.com/api/v3/coins/solana/contract/";
 const GECKO_TERMINAL_API = "https://api.geckoterminal.com/api/v2/networks/solana/tokens/";
 const SOLSCAN_TOPHOLDERS = "https://api.solscan.io/v2/token/holders?tokenAddress=";
+
+// Basic base58 Solana address validator (32-byte pubkey)
+function isValidSolanaAddress(addr) {
+  if (!addr || typeof addr !== "string") return false;
+  try {
+    const decoded = bs58.decode(addr.trim());
+    return decoded.length === 32;
+  } catch (e) { return false; }
+}
 
 // ========== ETHEREUM CONSTANTS ==========
 const DEXSCREENER_ETH_PAIRS = "https://api.dexscreener.com/token-pairs/v1/ethereum/";
@@ -529,95 +565,275 @@ function playSound(chatId) {
 }
 
 // ========== MARKET DATA ==========
-async function getMarketData(mint, retries = 2) {
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const res = await axios.get(`${DEXSCREENER_TOKEN_PAIRS}${mint}`, { timeout: 6000 });
-      if (Array.isArray(res.data) && res.data.length > 0) {
-        const p = res.data[0];
-        const price = parseFloat(p.priceUsd);
-        if (price && !isNaN(price) && price > 0) {
-          return {
-            price,
-            liquidity: p.liquidity?.usd || 0,
-            volume24h: p.volume?.h24 || 0,
-            priceChange24h: p.priceChange?.h24 || 0,
-            marketCap: p.marketCap || 0,
-            symbol: p.baseToken?.symbol || "?",
-            name: p.baseToken?.name || "",
-            chartUrl: p.url || `https://dexscreener.com/solana/${mint}`,
-            buyCount: p.txns?.h24?.buys || 0,
-            sellCount: p.txns?.h24?.sells || 0,
-            pairAddress: p.pairAddress || ""
-          };
-        }
-      }
-    } catch (e) { }
+// Lightweight per-scan logger — never prints API keys, only status/metadata
+function scanLog(mint, msg) {
+  const tag = mint ? `${mint.slice(0, 4)}...${mint.slice(-4)}` : "?";
+  console.log(`[SCAN ${tag}] ${msg}`);
+}
 
-    try {
-      const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${mint}`, { timeout: 6000 });
-      const pairs = searchRes.data.pairs || [];
-      const solPairs = pairs.filter(p => p.chainId === "solana");
-      if (solPairs.length > 0) {
-        const p = solPairs[0];
-        const price = parseFloat(p.priceUsd);
-        if (price && !isNaN(price) && price > 0) {
-          return {
-            price,
-            liquidity: p.liquidity?.usd || 0,
-            volume24h: p.volume?.h24 || 0,
-            priceChange24h: p.priceChange?.h24 || 0,
-            marketCap: p.marketCap || 0,
-            symbol: p.baseToken?.symbol || "?",
-            name: p.baseToken?.name || "",
-            chartUrl: p.url || `https://dexscreener.com/solana/${mint}`,
-            buyCount: p.txns?.h24?.buys || 0,
-            sellCount: p.txns?.h24?.sells || 0,
-            pairAddress: p.pairAddress || ""
-          };
-        }
-      }
-    } catch (e) { }
+// Normalizes a DexScreener pair object into our internal market shape
+function pairToMarket(p, mint) {
+  const price = parseFloat(p.priceUsd);
+  if (!price || isNaN(price) || price <= 0) return null;
+  return {
+    price,
+    liquidity: p.liquidity?.usd || 0,
+    volume24h: p.volume?.h24 || 0,
+    priceChange24h: p.priceChange?.h24 || 0,
+    marketCap: p.marketCap || 0,
+    fdv: p.fdv || 0,
+    symbol: p.baseToken?.symbol || "?",
+    name: p.baseToken?.name || "",
+    chartUrl: p.url || `https://dexscreener.com/solana/${mint}`,
+    buyCount: p.txns?.h24?.buys || 0,
+    sellCount: p.txns?.h24?.sells || 0,
+    pairAddress: p.pairAddress || "",
+    dexId: p.dexId || "",
+    quoteToken: p.quoteToken?.symbol || "",
+    provider: "dexscreener"
+  };
+}
 
-    try {
-      const jupRes = await axios.get(`${JUPITER_PRICE_API}${mint}`, { timeout: 5000 });
-      const tokenData = jupRes.data?.data?.[mint];
-      if (tokenData) {
-        const price = parseFloat(tokenData.price);
-        if (price && price > 0) {
-          return {
-            price, liquidity: 0, volume24h: 0, priceChange24h: 0, marketCap: 0,
-            symbol: tokenData.mintSymbol || "?", name: "",
-            chartUrl: `https://dexscreener.com/solana/${mint}`,
-            buyCount: 0, sellCount: 0, pairAddress: ""
-          };
-        }
+// PRIMARY: DexScreener (no API key required). Tries the latest tokens/v1
+// endpoint first, then token-pairs/v1, then the search endpoint — all are
+// still "DexScreener" and require no fallback provider switch.
+async function getMarketDataDexScreener(mint) {
+  const ep1 = `${DEXSCREENER_TOKENS_V1}${mint}`;
+  try {
+    scanLog(mint, `→ Provider: DexScreener | Endpoint: ${ep1}`);
+    const res = await axios.get(ep1, { timeout: 6000 });
+    const pairs = Array.isArray(res.data) ? res.data : [];
+    if (pairs.length > 0) {
+      const m = pairToMarket(pairs[0], mint);
+      if (m) {
+        scanLog(mint, `✅ DexScreener (tokens/v1) SUCCESS | HTTP ${res.status}`);
+        return m;
       }
-    } catch (e) { }
-
-    try {
-      const geckoRes = await axios.get(`${GECKO_TERMINAL_API}${mint}`, { timeout: 5000 });
-      const attrs = geckoRes.data?.data?.attributes;
-      if (attrs) {
-        const price = parseFloat(attrs.price_usd);
-        if (price && price > 0) {
-          return {
-            price,
-            liquidity: parseFloat(attrs.total_reserve_in_usd) || 0,
-            volume24h: parseFloat(attrs.volume_usd?.h24) || 0,
-            priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
-            marketCap: parseFloat(attrs.market_cap_usd) || 0,
-            symbol: attrs.symbol || "?",
-            name: attrs.name || "",
-            chartUrl: `https://dexscreener.com/solana/${mint}`,
-            buyCount: 0, sellCount: 0, pairAddress: ""
-          };
-        }
-      }
-    } catch (e) { }
-
-    if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
+    }
+    scanLog(mint, `⚠️ DexScreener (tokens/v1) returned no usable pairs | HTTP ${res.status} — falling back to token-pairs/v1`);
+  } catch (e) {
+    scanLog(mint, `❌ DexScreener (tokens/v1) FAILED | HTTP ${e.response?.status || "N/A"} | Reason: ${e.message} — falling back to token-pairs/v1`);
   }
+
+  const ep2 = `${DEXSCREENER_TOKEN_PAIRS}${mint}`;
+  try {
+    scanLog(mint, `→ Provider: DexScreener | Endpoint: ${ep2}`);
+    const res = await axios.get(ep2, { timeout: 6000 });
+    if (Array.isArray(res.data) && res.data.length > 0) {
+      const m = pairToMarket(res.data[0], mint);
+      if (m) {
+        scanLog(mint, `✅ DexScreener (token-pairs/v1) SUCCESS | HTTP ${res.status}`);
+        return m;
+      }
+    }
+    scanLog(mint, `⚠️ DexScreener (token-pairs/v1) returned no usable pairs | HTTP ${res.status} — falling back to search endpoint`);
+  } catch (e) {
+    scanLog(mint, `❌ DexScreener (token-pairs/v1) FAILED | HTTP ${e.response?.status || "N/A"} | Reason: ${e.message} — falling back to search endpoint`);
+  }
+
+  const ep3 = `${DEXSCREENER_SEARCH}${mint}`;
+  try {
+    scanLog(mint, `→ Provider: DexScreener | Endpoint: ${ep3}`);
+    const searchRes = await axios.get(ep3, { timeout: 6000 });
+    const pairs = searchRes.data.pairs || [];
+    const solPairs = pairs.filter(p => p.chainId === "solana");
+    if (solPairs.length > 0) {
+      const m = pairToMarket(solPairs[0], mint);
+      if (m) {
+        scanLog(mint, `✅ DexScreener (search) SUCCESS | HTTP ${searchRes.status}`);
+        return m;
+      }
+    }
+    scanLog(mint, `⚠️ DexScreener (search) returned no usable pairs | HTTP ${searchRes.status}`);
+  } catch (e) {
+    scanLog(mint, `❌ DexScreener (search) FAILED | HTTP ${e.response?.status || "N/A"} | Reason: ${e.message}`);
+  }
+
+  scanLog(mint, `❌ DexScreener (all endpoints) exhausted — no data. Falling back to next provider (Jupiter/GeckoTerminal)`);
+  return null;
+}
+
+// SECONDARY (still keyless): Jupiter price + GeckoTerminal, used only if
+// DexScreener itself returned nothing.
+async function getMarketDataJupiterGecko(mint) {
+  const ep1 = `${JUPITER_PRICE_API}${mint}`;
+  try {
+    scanLog(mint, `→ Provider: Jupiter | Endpoint: ${ep1}`);
+    const jupRes = await axios.get(ep1, { timeout: 5000 });
+    const tokenData = jupRes.data?.data?.[mint];
+    if (tokenData) {
+      const price = parseFloat(tokenData.price);
+      if (price && price > 0) {
+        scanLog(mint, `✅ Jupiter SUCCESS | HTTP ${jupRes.status}`);
+        return {
+          price, liquidity: 0, volume24h: 0, priceChange24h: 0, marketCap: 0, fdv: 0,
+          symbol: tokenData.mintSymbol || "?", name: "",
+          chartUrl: `https://dexscreener.com/solana/${mint}`,
+          buyCount: 0, sellCount: 0, pairAddress: "", provider: "jupiter"
+        };
+      }
+    }
+    scanLog(mint, `⚠️ Jupiter returned no price data | HTTP ${jupRes.status} — falling back to GeckoTerminal`);
+  } catch (e) {
+    scanLog(mint, `❌ Jupiter FAILED | HTTP ${e.response?.status || "N/A"} | Reason: ${e.message} — falling back to GeckoTerminal`);
+  }
+
+  const ep2 = `${GECKO_TERMINAL_API}${mint}`;
+  try {
+    scanLog(mint, `→ Provider: GeckoTerminal | Endpoint: ${ep2}`);
+    const geckoRes = await axios.get(ep2, { timeout: 5000 });
+    const attrs = geckoRes.data?.data?.attributes;
+    if (attrs) {
+      const price = parseFloat(attrs.price_usd);
+      if (price && price > 0) {
+        scanLog(mint, `✅ GeckoTerminal SUCCESS | HTTP ${geckoRes.status}`);
+        return {
+          price,
+          liquidity: parseFloat(attrs.total_reserve_in_usd) || 0,
+          volume24h: parseFloat(attrs.volume_usd?.h24) || 0,
+          priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
+          marketCap: parseFloat(attrs.market_cap_usd) || 0,
+          fdv: parseFloat(attrs.fdv_usd) || 0,
+          symbol: attrs.symbol || "?",
+          name: attrs.name || "",
+          chartUrl: `https://dexscreener.com/solana/${mint}`,
+          buyCount: 0, sellCount: 0, pairAddress: "", provider: "geckoterminal",
+          totalSupply: attrs.total_supply || null
+        };
+      }
+    }
+    scanLog(mint, `⚠️ GeckoTerminal returned no price data | HTTP ${geckoRes.status}`);
+  } catch (e) {
+    scanLog(mint, `❌ GeckoTerminal FAILED | HTTP ${e.response?.status || "N/A"} | Reason: ${e.message}`);
+  }
+
+  scanLog(mint, `❌ Jupiter/GeckoTerminal exhausted — no data. Falling back to next provider (CoinGecko)`);
+  return null;
+}
+
+// FALLBACK PROVIDER: CoinGecko (used only when DexScreener/Jupiter/GeckoTerminal
+// all fail or return incomplete data). Uses COINGECKO_API_KEY if set.
+async function getMarketDataCoinGecko(mint) {
+  const ep = `${COINGECKO_SOLANA_CONTRACT}${mint}`;
+  scanLog(mint, `→ Provider: CoinGecko | Endpoint: ${ep} | Key: ${COINGECKO_API_KEY ? "Loaded" : "Missing (unauthenticated request)"}`);
+  try {
+    const res = await axios.get(ep, { timeout: 6000, headers: coingeckoHeaders() });
+    const data = res.data;
+    const price = data?.market_data?.current_price?.usd;
+    if (!price) {
+      scanLog(mint, `⚠️ CoinGecko returned no price data | HTTP ${res.status} — falling back to CoinMarketCap`);
+      return null;
+    }
+    scanLog(mint, `✅ CoinGecko SUCCESS | HTTP ${res.status}`);
+    return {
+      price,
+      liquidity: 0,
+      volume24h: data?.market_data?.total_volume?.usd || 0,
+      priceChange24h: data?.market_data?.price_change_percentage_24h || 0,
+      marketCap: data?.market_data?.market_cap?.usd || 0,
+      fdv: data?.market_data?.fully_diluted_valuation?.usd || 0,
+      totalSupply: data?.market_data?.total_supply || null,
+      circulatingSupply: data?.market_data?.circulating_supply || null,
+      symbol: (data?.symbol || "?").toUpperCase(),
+      name: data?.name || "",
+      chartUrl: `https://dexscreener.com/solana/${mint}`,
+      buyCount: 0, sellCount: 0, pairAddress: "", provider: "coingecko",
+      logo: data?.image?.large || data?.image?.small || null,
+      description: data?.description?.en ? data.description.en.split(". ").slice(0, 2).join(". ") : null,
+      links: {
+        homepage: data?.links?.homepage?.[0] || null,
+        twitter: data?.links?.twitter_screen_name ? `https://twitter.com/${data.links.twitter_screen_name}` : null,
+        telegram: data?.links?.telegram_channel_identifier ? `https://t.me/${data.links.telegram_channel_identifier}` : null,
+        discord: data?.links?.discord_server ? `https://discord.gg/${data.links.discord_server}` : null,
+        github: data?.links?.repos_url?.github?.[0] || null
+      }
+    };
+  } catch (e) {
+    scanLog(mint, `❌ CoinGecko FAILED | HTTP ${e.response?.status || "N/A"} | Reason: ${e.message} — falling back to CoinMarketCap`);
+    return null;
+  }
+}
+
+// FALLBACK PROVIDER: CoinMarketCap (used only as a last resort; requires
+// CMC_API_KEY / COINMARKETCAP_API_KEY). CMC's free tier doesn't support
+// direct contract-address lookup on Solana, so this best-effort call is
+// skipped entirely if no key is configured.
+async function getMarketDataCMC(mint) {
+  const headers = cmcHeaders();
+  if (!headers) {
+    scanLog(mint, `⏭️  Provider: CoinMarketCap | Skipped — API key Missing`);
+    return null;
+  }
+  const mapEp = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?address=${mint}`;
+  scanLog(mint, `→ Provider: CoinMarketCap | Endpoint: ${mapEp} | Key: Loaded`);
+  try {
+    const mapRes = await axios.get(mapEp, { headers, timeout: 6000 });
+    const match = mapRes.data?.data?.[0];
+    if (!match?.id) {
+      scanLog(mint, `⚠️ CoinMarketCap map lookup found no match | HTTP ${mapRes.status}`);
+      return null;
+    }
+    const quoteEp = `https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?id=${match.id}`;
+    scanLog(mint, `→ Provider: CoinMarketCap | Endpoint: ${quoteEp}`);
+    const quoteRes = await axios.get(quoteEp, { headers, timeout: 6000 });
+    const coin = quoteRes.data?.data?.[match.id];
+    const usd = coin?.quote?.USD;
+    if (!usd?.price) {
+      scanLog(mint, `⚠️ CoinMarketCap returned no price data | HTTP ${quoteRes.status}`);
+      return null;
+    }
+    scanLog(mint, `✅ CoinMarketCap SUCCESS | HTTP ${quoteRes.status}`);
+    return {
+      price: usd.price,
+      liquidity: 0,
+      volume24h: usd.volume_24h || 0,
+      priceChange24h: usd.percent_change_24h || 0,
+      marketCap: usd.market_cap || 0,
+      fdv: usd.fully_diluted_market_cap || 0,
+      totalSupply: coin.total_supply || null,
+      circulatingSupply: coin.circulating_supply || null,
+      symbol: coin.symbol || "?",
+      name: coin.name || "",
+      chartUrl: `https://dexscreener.com/solana/${mint}`,
+      buyCount: 0, sellCount: 0, pairAddress: "", provider: "coinmarketcap"
+    };
+  } catch (e) {
+    scanLog(mint, `❌ CoinMarketCap FAILED | HTTP ${e.response?.status || "N/A"} | Reason: ${e.message}`);
+    return null;
+  }
+}
+
+// Orchestrator: DexScreener PRIMARY → instant fallback to CoinGecko → CMC.
+// Providers run with short timeouts so a slow/rate-limited provider never
+// stalls the response; the moment one fails we move to the next.
+async function getMarketData(mint) {
+  scanLog(mint, `🔍 Starting scan | Token Address: ${mint}`);
+
+  let market = await getMarketDataDexScreener(mint);
+  if (market && market.price > 0) {
+    scanLog(mint, `🏁 Final provider used: DEXSCREENER`);
+    return market;
+  }
+
+  market = await getMarketDataJupiterGecko(mint);
+  if (market && market.price > 0) {
+    scanLog(mint, `🏁 Final provider used: ${market.provider.toUpperCase()}`);
+    return market;
+  }
+
+  market = await getMarketDataCoinGecko(mint);
+  if (market && market.price > 0) {
+    scanLog(mint, `🏁 Final provider used: COINGECKO`);
+    return market;
+  }
+
+  market = await getMarketDataCMC(mint);
+  if (market && market.price > 0) {
+    scanLog(mint, `🏁 Final provider used: COINMARKETCAP`);
+    return market;
+  }
+
+  scanLog(mint, `🏁 Final result: ALL PROVIDERS FAILED — no market data available`);
   return null;
 }
 
@@ -636,13 +852,15 @@ async function getTopHolders(mint) {
       }));
     }
   } catch (e) { console.log("Solscan holders error:", e.message); }
-  try {
-    const heliusRes = await axios.post(`https://mainnet.helius-rpc.com/?api-key=35d9c070-00bd-4523-acd7-6b728e9c1127`, {
-      jsonrpc: "2.0", id: 1, method: "getTokenLargestAccounts", params: [mint]
-    }, { timeout: 7000 });
-    const accounts = heliusRes.data?.result?.value || [];
-    return accounts.slice(0, 10).map((acc, i) => ({ rank: i + 1, address: acc.address || "Unknown", amount: acc.uiAmount || 0, percentage: "N/A", isContract: false }));
-  } catch (e) { console.log("Helius holders error:", e.message); }
+  if (HELIUS_RPC_URL) {
+    try {
+      const heliusRes = await axios.post(HELIUS_RPC_URL, {
+        jsonrpc: "2.0", id: 1, method: "getTokenLargestAccounts", params: [mint]
+      }, { timeout: 7000 });
+      const accounts = heliusRes.data?.result?.value || [];
+      return accounts.slice(0, 10).map((acc, i) => ({ rank: i + 1, address: acc.address || "Unknown", amount: acc.uiAmount || 0, percentage: "N/A", isContract: false }));
+    } catch (e) { console.log("Helius holders error:", e.message); }
+  }
   return [];
 }
 
@@ -681,7 +899,7 @@ async function getDEXListings(tokenAddress) {
 async function getCEXListings(coingeckoId) {
   if (!coingeckoId) return [];
   try {
-    const res = await axios.get(`${COINGECKO_COIN_DATA}${coingeckoId}/tickers`, { timeout: 6000 });
+    const res = await axios.get(`${COINGECKO_COIN_DATA}${coingeckoId}/tickers`, { timeout: 6000, headers: coingeckoHeaders() });
     const tickers = res.data.tickers || [];
     const exchanges = new Map();
     for (const t of tickers) {
@@ -695,11 +913,11 @@ async function getCEXListings(coingeckoId) {
 
 async function getCoinGeckoDetails(tokenSymbol) {
   try {
-    const searchRes = await axios.get(`${COINGECKO_SEARCH}${encodeURIComponent(tokenSymbol)}`, { timeout: 6000 });
+    const searchRes = await axios.get(`${COINGECKO_SEARCH}${encodeURIComponent(tokenSymbol)}`, { timeout: 6000, headers: coingeckoHeaders() });
     const coins = searchRes.data.coins || [];
     if (!coins.length) return null;
     const cgId = coins[0].id;
-    const detailRes = await axios.get(`${COINGECKO_COIN_DATA}${cgId}`, { timeout: 6000 });
+    const detailRes = await axios.get(`${COINGECKO_COIN_DATA}${cgId}`, { timeout: 6000, headers: coingeckoHeaders() });
     const data = detailRes.data;
     return {
       id: cgId, symbol: data.symbol, name: data.name, image: data.image?.large || data.image?.small || null,
@@ -719,8 +937,50 @@ async function getCoinGeckoDetails(tokenSymbol) {
 async function getHolderCount(mint) {
   try {
     const res = await axios.get(`${GECKO_TERMINAL_API}${mint}`, { timeout: 5000 });
-    return res.data?.data?.attributes?.holders || 0;
-  } catch (e) { return 0; }
+    const holders = res.data?.data?.attributes?.holders;
+    if (holders) return holders;
+  } catch (e) { }
+  // Fallback: approximate via Helius largest-accounts (only if key configured)
+  if (HELIUS_RPC_URL) {
+    try {
+      const heliusRes = await axios.post(HELIUS_RPC_URL, {
+        jsonrpc: "2.0", id: 1, method: "getTokenLargestAccounts", params: [mint]
+      }, { timeout: 7000 });
+      const accounts = heliusRes.data?.result?.value || [];
+      if (accounts.length > 0) return accounts.length;
+    } catch (e) { }
+  }
+  return 0;
+}
+
+// FALLBACK PROVIDER: Helius DAS API (getAsset) — supply, decimals, logo,
+// description, creator, and website/social metadata. Only used as a
+// fallback and only runs if HELIUS_API_KEY is configured.
+async function getHeliusTokenMetadata(mint) {
+  if (!HELIUS_RPC_URL) return null;
+  try {
+    const res = await axios.post(HELIUS_RPC_URL, {
+      jsonrpc: "2.0", id: 1, method: "getAsset", params: { id: mint }
+    }, { timeout: 7000 });
+    const asset = res.data?.result;
+    if (!asset) return null;
+    const meta = asset.content?.metadata || {};
+    const links = asset.content?.links || {};
+    const creators = asset.creators || [];
+    return {
+      supply: asset.token_info?.supply != null && asset.token_info?.decimals != null
+        ? asset.token_info.supply / Math.pow(10, asset.token_info.decimals)
+        : null,
+      decimals: asset.token_info?.decimals ?? null,
+      logo: asset.content?.links?.image || asset.content?.files?.[0]?.uri || null,
+      name: meta.name || null,
+      symbol: meta.symbol || null,
+      description: meta.description || null,
+      website: links.external_url || null,
+      creator: creators.length > 0 ? creators[0].address : null,
+      provider: "helius"
+    };
+  } catch (e) { return null; }
 }
 
 function calculateRiskScore(market, holderCount = 0) {
@@ -1399,10 +1659,25 @@ async function detectEVMChain(address) {
 // ========== MAIN API ENDPOINTS ==========
 app.get("/api/token/:address", async (req, res) => {
   const mint = req.params.address;
+  console.log(`\n══════════ NEW TOKEN SCAN ══════════`);
+  console.log(`[SCAN] Token Address: ${mint}`);
+  if (!isValidSolanaAddress(mint)) {
+    console.log(`[SCAN] ❌ Invalid Solana address — rejecting request`);
+    return res.status(400).json({ success: false, error: "Invalid Solana token address" });
+  }
   try {
-    const [market, holderCount, topHolders, buyersSellers] = await Promise.all([getMarketData(mint), getHolderCount(mint), getTopHolders(mint), getBuyersSellers(mint)]);
+    // Run all independent provider lookups in parallel. getMarketData() itself
+    // already does DexScreener (primary) → CoinGecko → CMC internally, instantly
+    // moving to the next provider without delaying the overall response.
+    const [market, holderCount, topHolders, buyersSellers, heliusMeta] = await Promise.all([
+      getMarketData(mint),
+      getHolderCount(mint),
+      getTopHolders(mint),
+      getBuyersSellers(mint),
+      getHeliusTokenMetadata(mint)
+    ]);
     const risk = calculateRiskScore(market, holderCount);
-    let tokenSymbol = market?.symbol || '';
+    let tokenSymbol = market?.symbol || heliusMeta?.symbol || '';
     if (!tokenSymbol) {
       try {
         const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${mint}`, { timeout: 5000 });
@@ -1411,6 +1686,16 @@ app.get("/api/token/:address", async (req, res) => {
     }
     let cgDetails = null;
     if (tokenSymbol) cgDetails = await getCoinGeckoDetails(tokenSymbol);
+    // If CoinGecko search-by-symbol found nothing, try the direct contract fallback
+    if (!cgDetails) {
+      const cgContract = await getMarketDataCoinGecko(mint);
+      if (cgContract) {
+        cgDetails = {
+          id: null, name: cgContract.name, image: cgContract.logo,
+          links: cgContract.links, coingeckoUrl: null, description: cgContract.description
+        };
+      }
+    }
     const dexListings = await getDEXListings(mint);
     let cexListings = [];
     if (cgDetails?.id) cexListings = await getCEXListings(cgDetails.id);
@@ -1421,11 +1706,26 @@ app.get("/api/token/:address", async (req, res) => {
       formattedPrice = priceNum < 0.01 ? `$${priceNum.toFixed(10)}` : `$${priceNum.toLocaleString(undefined, { maximumFractionDigits: 8 })}`;
     }
     let platformPresence = { coingecko: { listed: !!cgDetails, name: cgDetails?.name || null }, coinmarketcap: { listed: false, name: null } };
-    try {
-      const cmcRes = await axios.get(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${tokenSymbol}`, { headers: { 'X-CMC_PRO_API_KEY': CMC_API_KEY }, timeout: 5000 });
-      const cmcData = cmcRes.data?.data?.[tokenSymbol];
-      if (cmcData) platformPresence.coinmarketcap = { listed: true, name: cmcData.name };
-    } catch (e) { }
+    const cmcAuthHeaders = cmcHeaders();
+    if (cmcAuthHeaders && tokenSymbol) {
+      try {
+        const cmcRes = await axios.get(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${tokenSymbol}`, { headers: cmcAuthHeaders, timeout: 5000 });
+        const cmcData = cmcRes.data?.data?.[tokenSymbol];
+        if (cmcData) platformPresence.coinmarketcap = { listed: true, name: cmcData.name };
+      } catch (e) { }
+    }
+
+    // Merge best-available fields across providers (DexScreener primary,
+    // CoinGecko/Helius filling gaps) without altering any existing field name.
+    const fdv = market?.fdv || 0;
+    const supply = market?.totalSupply || heliusMeta?.supply || null;
+    const description = cgDetails?.description || heliusMeta?.description || null;
+    const website = cgDetails?.links?.homepage || heliusMeta?.website || null;
+    const creator = heliusMeta?.creator || null;
+    const logo = cgDetails?.image || heliusMeta?.logo || null;
+
+    console.log(`[SCAN] ✅ Scan complete | Token: ${mint} | Final Provider: ${(market?.provider || "none").toUpperCase()} | Price: ${formattedPrice} | Holders: ${holderCount}`);
+    console.log(`══════════════════════════════════════\n`);
     res.json({
       success: true, tokenAddress: mint, name: market?.name || market?.symbol || mint.slice(0, 6) + "...", symbol: market?.symbol || "?",
       price: formattedPrice, rawPrice: market?.price || 0, liquidity: market?.liquidity ? `$${Math.round(market.liquidity).toLocaleString()}` : "N/A",
@@ -1434,10 +1734,25 @@ app.get("/api/token/:address", async (req, res) => {
       marketCap: market?.marketCap ? `$${Math.round(market.marketCap).toLocaleString()}` : "N/A",
       holderCount, topHolders, buyersSellers, riskScore: risk.score, riskLevel: risk.level, riskReasons: risk.reasons,
       chartUrl: market?.chartUrl || `https://dexscreener.com/solana/${mint}`,
-      exchanges: allExchanges, socialLinks: cgDetails?.links || {}, logo: cgDetails?.image || null,
-      coingeckoUrl: cgDetails?.coingeckoUrl || null, platformPresence
+      exchanges: allExchanges, socialLinks: cgDetails?.links || {}, logo,
+      coingeckoUrl: cgDetails?.coingeckoUrl || null, platformPresence,
+      // Additional metadata (additive fields; existing fields above are unchanged)
+      fdv: fdv ? `$${Math.round(fdv).toLocaleString()}` : "N/A",
+      rawFdv: fdv,
+      supply,
+      pairAddress: market?.pairAddress || null,
+      dex: market?.dexId || null,
+      quoteToken: market?.quoteToken || null,
+      description,
+      website,
+      creator,
+      dataProvider: market?.provider || "unknown"
     });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) {
+    console.log(`[SCAN] ❌ Scan FAILED | Token: ${mint} | Reason: ${err.message}`);
+    console.log(`══════════════════════════════════════\n`);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.get("/api/trending", async (req, res) => {
@@ -2568,6 +2883,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   if (!fs.existsSync("./sounds")) fs.mkdirSync("./sounds");
   console.log("✅ APIs ready");
+  logProviderStatus();
   console.log("✅ Health check at /health");
   console.log("✅ Subscription system active");
   console.log("✅ Admin panel at /admin");
