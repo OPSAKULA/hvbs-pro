@@ -87,6 +87,7 @@
     #chainBtnEthereum.chain-btn-active { background: linear-gradient(135deg,#1e1b4b,#1e3a8a) !important; border-color: #627eea !important; color: #627eea !important; box-shadow: 0 0 12px rgba(98,126,234,0.3); }
     #chainBtnBSC.chain-btn-active { background: linear-gradient(135deg,#2a1800,#3d2200) !important; border-color: #F3BA2F !important; color: #F3BA2F !important; box-shadow: 0 0 12px rgba(243,186,47,0.3); }
     #chainBtnBase.chain-btn-active { background: linear-gradient(135deg,#00143d,#001f6b) !important; border-color: #0052FF !important; color: #0052FF !important; box-shadow: 0 0 12px rgba(0,82,255,0.3); }
+    #chainBtnRobinhood.chain-btn-active { background: linear-gradient(135deg,#1a2400,#2b3a00) !important; border-color: #C1FF00 !important; color: #C1FF00 !important; box-shadow: 0 0 12px rgba(193,255,0,0.3); }
     .result-card { padding: 1.8rem; margin-top: 1.5rem; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
     .token-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #334155; }
@@ -200,10 +201,10 @@
     .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #334155; border-top-color: #10b981; border-radius: 50%; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .multi-chain-alerts { background: rgba(20,30,45,0.6); backdrop-filter: blur(16px); border: 1px solid rgba(139,92,246,0.4); padding: 1.8rem; margin: 2rem 0; border-radius: 2rem; }
-    .chain-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 0; }
+    .chain-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 0; }
     .chain-card-wrapper { perspective: 800px; perspective-origin: 50% 50%; }
-    .chain-card { background: rgba(15,23,42,0.85); backdrop-filter: blur(8px); border-radius: 1.5rem; padding: 1.2rem; text-align: center; border: 1px solid #334155; transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; transform-style: preserve-3d; will-change: transform; position: relative; }
-    .chain-card-wrapper:not(.solana-wrapper):not(.ethereum-wrapper):not(.bnb-wrapper):not(.base-wrapper):hover .chain-card { transform: rotateX(-6deg) rotateY(6deg) translateY(-6px); border-color: #10b981; box-shadow: 8px 8px 24px rgba(16,185,129,0.15), -2px -2px 12px rgba(139,92,246,0.1); }
+    .chain-card { background: rgba(15,23,42,0.85); backdrop-filter: blur(8px); border-radius: 1.2rem; padding: 0.9rem 0.6rem; text-align: center; border: 1px solid #334155; transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; transform-style: preserve-3d; will-change: transform; position: relative; }
+    .chain-card-wrapper:not(.solana-wrapper):not(.ethereum-wrapper):not(.bnb-wrapper):not(.base-wrapper):not(.robinhood-wrapper):hover .chain-card { transform: rotateX(-6deg) rotateY(6deg) translateY(-6px); border-color: #10b981; box-shadow: 8px 8px 24px rgba(16,185,129,0.15), -2px -2px 12px rgba(139,92,246,0.1); }
     @keyframes solanaSpin3D {
       0%   { transform: perspective(500px) rotateY(0deg)   scale(1);    box-shadow: 0 0 12px rgba(20,241,149,0.2); }
       6%   { transform: perspective(500px) rotateY(90deg)  scale(1.06); box-shadow: 0 0 35px rgba(20,241,149,0.6); }
@@ -252,17 +253,30 @@
     @keyframes baseFlash { 0%{opacity:0;} 6%{opacity:0;} 13%{opacity:0.22;} 22%{opacity:0.06;} 36%{opacity:0;} 100%{opacity:0;} }
     .base-card { animation: baseSpin3D 5s ease-in-out infinite; border-color: #0052FF !important; box-shadow: 0 0 12px rgba(0,82,255,0.2); }
     .base-card::before { content:''; position:absolute; inset:0; border-radius:1.5rem; background:radial-gradient(circle at center,rgba(0,82,255,0.5),rgba(0,82,255,0.25)); animation:baseFlash 5s ease-in-out infinite; pointer-events:none; z-index:1; }
-    .chain-card-wrapper:not(.solana-wrapper):not(.ethereum-wrapper):not(.bnb-wrapper):not(.base-wrapper):hover .chain-card { transform: rotateX(-6deg) rotateY(6deg) translateY(-6px); border-color: #10b981; box-shadow: 8px 8px 24px rgba(16,185,129,0.15), -2px -2px 12px rgba(139,92,246,0.1); }
-    .chain-logo { width:72px; height:72px; margin:0 auto 0.8rem; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#0f172a; padding:10px; position:relative; z-index:2; overflow:hidden; }
-    .chain-logo svg, .chain-logo img { width:52px; height:52px; object-fit:contain; }
-    .chain-logo .bnb-logo-img { width:62px; height:62px; object-fit:contain; border-radius:4px; }
-    .chain-name { font-size:1.2rem; font-weight:700; margin-bottom:0.5rem; position:relative; z-index:2; }
-    .chain-status { display:inline-block; padding:0.2rem 1rem; border-radius:2rem; font-size:0.75rem; font-weight:600; margin:0.5rem 0; position:relative; z-index:2; }
+    @keyframes robinhoodSpin3D {
+      0%   { transform: perspective(500px) rotateY(0deg)   scale(1);    box-shadow: 0 0 12px rgba(193,255,0,0.25); }
+      6%   { transform: perspective(500px) rotateY(90deg)  scale(1.06); box-shadow: 0 0 35px rgba(193,255,0,0.65); }
+      13%  { transform: perspective(500px) rotateY(180deg) scale(1.1);  box-shadow: 0 0 55px rgba(193,255,0,0.75), 0 0 90px rgba(193,255,0,0.35); }
+      20%  { transform: perspective(500px) rotateY(270deg) scale(1.06); box-shadow: 0 0 35px rgba(193,255,0,0.65); }
+      28%  { transform: perspective(500px) rotateY(360deg) scale(1.02); box-shadow: 0 0 18px rgba(193,255,0,0.35); }
+      36%  { transform: perspective(500px) rotateY(360deg) scale(1);    box-shadow: 0 0 12px rgba(193,255,0,0.25); }
+      100% { transform: perspective(500px) rotateY(360deg) scale(1);    box-shadow: 0 0 12px rgba(193,255,0,0.25); }
+    }
+    @keyframes robinhoodFlash { 0%{opacity:0;} 6%{opacity:0;} 13%{opacity:0.22;} 22%{opacity:0.06;} 36%{opacity:0;} 100%{opacity:0;} }
+    .robinhood-card { animation: robinhoodSpin3D 5s ease-in-out infinite; border-color: #C1FF00 !important; box-shadow: 0 0 12px rgba(193,255,0,0.25); }
+    .robinhood-card::before { content:''; position:absolute; inset:0; border-radius:1.5rem; background:radial-gradient(circle at center,rgba(193,255,0,0.5),rgba(193,255,0,0.2)); animation:robinhoodFlash 5s ease-in-out infinite; pointer-events:none; z-index:1; }
+    .chain-card-wrapper:not(.solana-wrapper):not(.ethereum-wrapper):not(.bnb-wrapper):not(.base-wrapper):not(.robinhood-wrapper):hover .chain-card { transform: rotateX(-6deg) rotateY(6deg) translateY(-6px); border-color: #10b981; box-shadow: 8px 8px 24px rgba(16,185,129,0.15), -2px -2px 12px rgba(139,92,246,0.1); }
+    .chain-logo { width:52px; height:52px; margin:0 auto 0.6rem; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#0f172a; padding:7px; position:relative; z-index:2; overflow:hidden; }
+    .chain-logo svg, .chain-logo img { width:38px; height:38px; object-fit:contain; }
+    .chain-logo .bnb-logo-img { width:44px; height:44px; object-fit:contain; border-radius:4px; }
+    .chain-name { font-size:0.92rem; font-weight:700; margin-bottom:0.35rem; position:relative; z-index:2; }
+    .chain-status { display:inline-block; padding:0.15rem 0.7rem; border-radius:2rem; font-size:0.62rem; font-weight:600; margin:0.35rem 0; position:relative; z-index:2; }
     .status-live { background:#10b98120; color:#10b981; border:1px solid #10b981; }
     .status-coming { background:#f59e0b20; color:#fbbf24; border:1px solid #f59e0b; }
-    .chain-desc { font-size:0.75rem; color:#94a3b8; margin-top:0.4rem; position:relative; z-index:2; }
-    @media (max-width:900px) { .chain-grid { grid-template-columns: repeat(2,1fr); } }
-    @media (max-width:540px) { .chain-grid { grid-template-columns:1fr; } }
+    .chain-desc { font-size:0.62rem; color:#94a3b8; margin-top:0.3rem; position:relative; z-index:2; }
+    @media (max-width:1000px) { .chain-grid { grid-template-columns: repeat(3,1fr); } }
+    @media (max-width:640px) { .chain-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width:400px) { .chain-grid { grid-template-columns:1fr; } }
     .ai-token-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; margin:1.5rem 0; }
     .ai-token-card { background:linear-gradient(145deg,#0f172a,#0b1120); border-radius:1.5rem; padding:1.2rem 0.8rem; text-align:center; border:1px solid #2d3a5e; transition:all 0.2s ease; cursor:default; backdrop-filter:blur(4px); }
     .ai-token-card:hover { transform:translateY(-5px); border-color:#10b981; box-shadow:0 10px 20px -5px rgba(16,185,129,0.2); background:#111827; }
@@ -557,6 +571,7 @@
       <button id="chainBtnEthereum" onclick="selectChain('ethereum')" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #334155;background:#0f172a;color:#94a3b8;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">⟠ Ethereum</button>
       <button id="chainBtnBSC" onclick="selectChain('bsc')" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #334155;background:#0f172a;color:#94a3b8;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">🟡 BNB Chain</button>
       <button id="chainBtnBase" onclick="selectChain('base')" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #334155;background:#0f172a;color:#94a3b8;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">🔵 Base</button>
+      <button id="chainBtnRobinhood" onclick="selectChain('robinhood')" style="display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1.2rem;border-radius:2rem;border:2px solid #334155;background:#0f172a;color:#94a3b8;font-weight:700;cursor:pointer;font-size:0.88rem;transition:all 0.2s;">🪶 Robinhood</button>
     </div>
     <div id="chainInputHint" style="font-size:0.78rem;color:#64748b;margin-bottom:0.8rem;">💡 Example: <span style="color:#10b981;font-family:monospace;">EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v</span></div>
     <div class="input-group">
@@ -621,7 +636,7 @@
     <p style="color:#c4b5fd;font-size:0.92rem;margin-bottom:0.5rem;line-height:1.6;">Unlock <strong style="color:#a78bfa;">unlimited</strong> real-time price alerts, multi-chain monitoring, priority Telegram notifications, and advanced analytics — all in one PRO dashboard.</p>
     <ul style="color:#c4b5fd;font-size:0.86rem;list-style:none;padding:0;margin:0.8rem 0 1.4rem;display:flex;flex-wrap:wrap;gap:0.5rem 1.5rem;">
       <li>✅ Unlimited alerts</li>
-      <li>✅ Multi-chain (SOL, ETH, BNB, Base)</li>
+      <li>✅ Multi-chain (SOL, ETH, BNB, Base, Robinhood)</li>
       <li>✅ Priority Telegram alerts</li>
       <li>✅ Advanced token analytics</li>
     </ul>
@@ -765,6 +780,16 @@
             </svg>
           </div>
           <div class="chain-name" style="color:#0052FF;">Base</div>
+          <div class="chain-status status-live">✅ Live</div>
+          <div class="chain-desc">Fully integrated • Scanner, alerts, anti‑scam shield</div>
+        </div>
+      </div>
+      <div class="chain-card-wrapper robinhood-wrapper">
+        <div class="chain-card robinhood-card">
+          <div class="chain-logo">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAAFoCAYAAAB65WHVAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAATMVJREFUeAHtnWmsHNd15283F5F8XKTYogJZNEI6g2REUgbiDyLpL4lkmRLgRV5IyRsmgUjHkwyihY4Ry4ukwAuSmKTlQSZ2RHkmsWVZlAa25cFYlEMlwSRc/MEZi6SADGAyEBlApBzHJN8TRVJkT53qV923bt/l3HtP7ecHPLx+tdxb3a/rX6f+99xTvTe84Q0DgWAwGIher4dar24Lf+uAbbJt5d/qNrY2XG1itvVdVyewx1nH95Md0+JlAzG19LJYft2l5Oc1sWjZZbF4abIs+52sm0p/Jz9XXk6+DLCzmF1+2dnPqRNzh/vA6+NzpOVzxPTpnpg50xfTZ3ri5eNzx69PzEvWuY89lpB2Yvo27UvxfkLboPxuurREXqZqi01r5HYz5P10+qf+ltdly1262sMKtK5j23L1Q9K9dv1jfL5Mpr5cbWHXU+3jS5P6MH3BQYBBfFdef0EsX3FJXJO8nkqWrVx9MRVhu8hCmwPEMtN+8raY/cb7z5xJRPzFecnvXirsJxNBP3Yk+fss/B6KuRCiMMErE9e5WnSflG2FnP/YbdV+MnTCL+MSYuOxqAKtawgTPcsHZxNi01VM7sf3y4H9QGPawewLUEUQRURJRQNC/CuJCIPwvun618TyNyaivPpCGvk2n0lxB+E+dni+OPrCfHHyeE/8y5H54tgL89KovO1Qf8eK+r5jhBvQBYyYiNsVVev6UF+ryOtQEbTasNypab0O7DaY6NrVdkwUYPpHYY4t1lqpO7ItsWbdeXH1itfEDetBlBNBTl4X3LswR8CYSNkngg4Hom2ItI8mP4f3XxEk2nWzMer+ncWKp00nMO3L+2BFXT0OeRvTupEV4hJoV0Stu8LIy00fkPy37Q1SYrqqmbbR/R3Sl+5vzD5U2/q0Z2oXouI168+nkfGaDRdKEOMioRRqXFvggx87PFc8v3++OLJ/QSLec0WZFHFeYQIuV99lCr8t4nVt69I5eR/ddvD68uXL2oi91/P0oHWhuO3ktYmwutxlh1Dhai9kPXYZpv0YQtr23WdtEhX/SmJPrN94XqxcE2JT2Lxj6kg2pL3QY/Dxv82vwb8+dnieOLBnoTi0f14acTt7RgpiDEWek2USe/7rtvUJsvr9/sS2Oi1No2TbBSwTaJOi2yJomz8T8mbLFPAQyhDGstvLAMvitzbNpBHyjbedi/CNq7UX/KE6rrh2wM8+vO8KsX/PgtQWkbNNcr0Q/v+rOKfaIvo2vZPXgVBD5Kxrx9Re7rXJ4tA1YIqsTQefbWc6OHV9Wf8818XEdqHAtB0SUZcRHamAZbEmiZTX33Y+zbDwB+MJ+wpXEYKJ8aeLQu0P1z8MPkJkfTCNsOeP967ge4KhrsJr84RDrUtAp2vqclMQKqMLgHPb27I4bNGsvN52JQiJiJt2laW8nSoaEOV1G18VN9/xiiZKLvK2n3K/IqnfMZ06Plcc2jdfPPfkopxY2/AJFMq6M6zjeV3EHS5guihkmBwLeV26r8mD1nXoEwXaRNyHplgbdb6opKJ8ayLKm8+hJnZUg1+Osp8PrP7tivyF8G/ftZwGmFxzKLFCntutF+vYwKcplhwF2IDR1QZg0kx1Wbbc5EhMtC8LtM6iUBtVO46hioG0Jlz5Y27Dsv/R6nWvzkbKMaJcV9+4LOr9/lOx/scroiPrGEuvrlC8B+zdhm7gz8dBsFoc11577UCn7rq/bZ3b3oAN15uy7WNbHiNyIX0X3Sbm/cBA3zu2TIu3bTqHSIMrQ3wwHrXPPpj1RVJm1OzXJgwqfm/XlPjRswvFyRfniBCaLsxFnf++gmvbP8MUXcugBgnlxlxXCmyEXeUXoQ3RgQpYGB/cNp3+rg/UlkUR/VK2W59o++AzC9JsELBBfCgq6gzZpmiKupP2DVxdboV2kFDXwCBwEDD2dr2IaBWweUax/ZYRZafR8l3T4t1bp5XBviKFgqJtW340JaFZJGVTVJof1A/pi71PTom9uxca0/acrVZwLlRlKZr+jm3HZYtY2wSBxpjV2TrdgZgOUF0nt0FJ6EXA533UJfKGCSQfuO+sWLOhqdFykRR1ASmb2GOY3H/vE4u0XnWdv+tYMBaEaT/AtY3t8zHZv7p2dfvJ6NZZp3rbbA7ba9NB2ZZRE9NvHb+gN21+JfWW3cJcVd5xWe369FVl/nMsIf69ezuIpL+1Y4m3/eFDzPnjs29R56mvleGyL3TinWELjo0etE7JXQdjehPyvro3h1keul3RbRTVXtaW2cYYbSkEejJGjEBRiAWDB3PBse0rhOvCBBkg39q+RPxoz8JRIacyhFUX7Ybc+QJV25CYCN0V2evEOedBy1kcJoX3OSiKN0aFzz+yzKjZ1ddYmGcI85arFtImZme0HyjiBB713iSiVn3qIoIOqu2o+41tM8a3NmGNoCdCbcfVwPeKWEcbAcBeFYvoI0uTe/cWTMSs+zvoaERx4tQk4fOxQ+pg36jrQqLu8TqoBXLgBwvFt3cuEScDBxR9qOv5b4JqfMu2jU5DR4OEtoZjbkdsB0Up5FX+w0OvqNlFEKLkdyai/C6jMFODvVUeBCz3FZSuZFkU3R/dxfvpXYuTn6lCMj/qcv4X7V/bxNe0TBcUjywO34NVG7MdCLa9ogcHXF8coEyRd0fMJqoStbL67YrlUN/3CfU/9j6ptz5cmERKtw12OQVUbduOHfAVZtPykUDLK10fbtmRapl+ddEXiAz34F8o1IODDA02K0Id1PNpq3jAo/7W9sWFZn2oaG/1K7xDlomxQOX3AsjvMUNdlhPobAPbh4I5QLkjCjC3CzHLy/znQ9Giux46I665DqZiF3Gbz4JcDmX7/xTWR/gxQ0T9rR1uoS7SkgwNHssMNn36kmtFqxel0X5qLQ4Z39sT1zoXRf5zqY/Btp+ujXQ69n3TRBNMwvNgw9qhpgsXkaJmCKrrMsrw9oezE+/f9PrU9qA4V0K2L9o/jtnHFf3rhFjdX142iqDllepOmIOxbddV4HOAAcC7Hjotbt70ivCHasBIt14I9pO7BO3/AWYmPr5zSfBAYnpEJehEEb5zL2Ag0LRORrU/JgYJfW/5fSyQKqLj2Cu1aTn2DuKdW2bEB7ed9cxlrks+cMhxsBibKSOitm2DzcrBHyf401BB7/uPTA33JA7YYrWAQkt0US6mjxDtyfqZsDh0G2Ybh3RYtMjW/coLdsaWxGdetfqirmVBZzv4nIiUYFPpGDfN/7wgiv78Xb+EevAtBU2KvOX2AOz43ShY1kXQpo3Vg6f0m8uInDF9xBwHZGfcce/ZNDujvIgJG1EJwcLJFAmk5D2+Y4l4OYmsXeef6TUFVZz/2Ltq2zptMKpO9cbuSHXwMZQdXdvavvHWV8U9O3+h2Bl1i45CIm6OiItFtZUyyrpDCbkbMu9TRjGm0VHU6Py3bevaz7at9okq6o7Y8LzI2w4qP5kaiJr/IBHmdRvPeexV59zXmL5YzN00+TPCC7ZrELGu53MsmKwOn3bmLFmy5EF5YfbbdHXSNYTtkJoi2vThps3nxIOP/czgNevoCVzEWgXVfpbdoRe5vkh6hte27fSsWnMxCVrOpzU+bN50zDlMsW9IG9S6kxsUlLR3IosjpoNY/6UIimo/jZq3J1HzbaaoGZsNgd0ulKLsC46U60fI96zInOkxpmi6ivO/7EjcR/90f6cRdKbaugawB+GzPZbY9oqIsCFD44HHfi5+/S0XRDw95LIy6RFtw+DBfp4xn3tR/zNd1J3vaxhNvyqmz/S9Mz2qirBjoOyXJIKmpMxj8fGHxhkaM4JmFh8VlP1wZFwOTfqcaY8VKuXtemCpKJOyskdcfYdsn3smYVVWRFFQWTfXrLgkPvnozy1ec8hIeAwspEwVhE9qkYGnudz//tcHV8kL2Z5CwyjS9Fy2i7peO0jYFigGMGE24B/+xc8TkQ59sknPc7lvOxSwZVEfmvK/CD9OqOB486Zz4sKFnvh/P54vqoLami0ikM0JtNqZ7W/suqYClsZHPnVWfPC+s2L+Fa6t2/b+WbCbSzP+d/MXDMRbfvN8Ktb//E/zxMXzxRx3kdljsf64PPanZtCNXqseNNWtAFC2LYI9dtd2YGl87ql/my0JOtpL0Ix4l+1Nsx3SHMqchOKzP421YQIsj08llkfso7aozn/bPmX71n11JSb32QW0UeZAn9wvBtt2N21+RXz52VOKOKd7Sb9jrsqmRH9qBspvpv7ETBCi3C7D9B3SzUbF9Kvfbvl1l8SX97ycnnu+UJ//unblfUKngZuy5HTLyT1o0351S7tzcWdiZ2x96AzC0qCEI1ymLmQTqcoHLA94mAV0f3h/qSdgpbi0U1vNrqqMjapS7NwTTwo9EsG1MJg4spNcF9kWaZn0EH36H8OBZ64QD993lZg53RdFUaQdQtnWhED7dlaloNvA+uBDv/lniaVxSThaFPG3oLGfE4s1E4rvmITvd800WzHs2KDW9P3vf13Uk8WBKsUV25ZtDNDrEiV7JjGejNxeUWB8cMhrHvrNRYpzejSCRlhD/e9qblsZaijGPrDfQ9/v68Dw2mff8X7LkzGgLyQD9SuTc7TqcTCfaBuD2lYW6OrW9XUN2zqijJZ9k85D1qnbZL+h0NGXn30Z+VRt6tvEGFzH0gvYh2kGtslQPmAH9aoFRPrh5Bx9x5Zp63Yh578PlIOP6vG49jXmQRdBbN6g7rVuG1c/H9w2LbY8dFq0A46OGZWeY12zLtiQLy0PHsae/0UnG1AyKpZEhUlI6+JV3/XHZ8T7f/+sKJayvwAs0ky7Wbv+Qnq3++O/q3+Gh6+e2rafiKBNuXmYxjDrMfhYLlggU+M/f/G0uO0jM1mryD17htcxxLTDYsy0nZ727197y4XEk74gfvz3C6NnHvpoSow94trPVQMpOIuDijIiaxBnmBm46nqKEqEMU3dcGRWhNkcR9oh/m0dfmJfOPJw5XW6wUrYLAP311QWUjWPWqekm1EAa3c5nTyHFmaL/kIi7F7GMYVRsGRUxIiuLvg2fCS9qzrSbVddfFA/veTk9t8uEqgSGT399dQEVtrZc5fgogHbwOc6jIxPuARbda7UN3WtXv6HLGMaH2Noctjbk9UV8V8fn3PIVr4nPJ3fFy4lFuujUX19GAh3rs8TuC/jkLrr6ghQdP3EeHYUwRwCygLtm//ksZ5i6YPvuus7NWFH2az/NlX7yZyiR9s1RDtGyIsbnRgJNMfGkDH8GM0PIP3JWsUUAMXnTHAEzVRFiOWCWVwuI8xeedEfSvtoUomWufUYPgkUK9YQHHQtFFG5rF7CNeALjUqG6f1jP8JuSmJl+HGEzRUEhsBQTYmLODz1gd3wBYXcUpU8++LgEEx40Refyb5XQDwZTAjV7NNVkHWdti8pvSnSDMth9OMJm6ozvLFaqcRT3OZVNDcfYHdR3+kUKvleaXVlpJiH94MU5hiLSjOrcL1M0M2eEmE5+fnp4+PvU8eHvmdNCnDw+3Cb7nb4+YW/vmuuGvxcvg0dLzS5bMfyZWjZcD79/dXW2HvPdkgWojO9h+Pc9tsjSxJH0yn3I7ET/mUBjvN26UlxFOlc+KcPgACH+yb6hwB5NxPjokeT1i4kYFz2p1cLiJUKsWjP8edNqKB42/N10QKQ/lYg05RNaqhDntF/1kVekjZfwpvwHBGOFNmZ/Fvmu8Hwixj99Ifn9j7NifEI0gky0b7lDiBs2jCNyM7bvdHXfd4ig7980+eTwqoQ2tG+ymYRlP6sLgBmCO1HlQusGC3XbgAj5H58R4lAizPt/UG1kTAlE1LdvtYl19l0u4zvt1weI8z0bl4vpkmccYsFoZs7i0G0cG+ZTFfbXifPnnvxZWtN5dgtR3BfEN0rA+nos0k0HIuVvbh/aFm0RZRO3bBbiwx/HRNUZmDkDPm35t3P08Dzxqc2vK/TpLCoo4UXqobbcKGaadhGJ3D7bf/zPfyHWbjgv/KG+mnJqXBf54W4htt8txO4/H9oXFzpQ5gWsmgM/GA4y+nnV1Z0jVy2/LK66+pI4uGfh8Eh6zTpfnQIdU1mOamaNut1dD54Rb7sjewKwvvJV2DLrUXhui6lXwDQNiJi33yPEd3cJ8e8vi1ajOz8hw2R/YuX0BkPbI7IHEY/7/F+1+tJEqVLKYBGzPpRSC/ZnxETfUGz//f9Fvpek+mBYMBkz4DH/1z8S4msPNGfAr0ie3z88Y+JF2hdMQDYJlCqVi/5PtFpBZI3p01ugy5qNo2v/nVumxX+6/4zAwYLL0ABR86c/MBQlZgx8HquuF2LFf6jLjFz7/lD0/9SJOeLYkXmiLjgjc12aXcxgYFGsWnNRfHmP7z0lxUCcLhc6tF2K42HK5LFkAPAb2wVjACbE/PkPYeCwflkcJu5++9VRIq3TOsqBQZl0aFP3lFm1YZfS+1aB8tkOcp0/+ejPhT8UXxhd+VBMu6ZqeExTADuDxdnO9GkhvvoZeCUHMfJvEyERsu/5o+8jK64UOp6mE1lsOQpfULknvgU+ZEwfAra9qaWXleJHVVkXvv2yGDcV8Jt//21CfOcRwSDYv2c4SzJPUaVJMQPw9j6mll0WX3jqZ2LRUv/5E75lS2NxCnSs5xxTnB/W/8HOXyj1NaoSvpD6z0zTgFoYv3fzcBYgg+ex0Z0G5flpuguN72N5EvDdvePf0dtTlGOWweqpU6B9DiyzQnxS82zr7rj3jFi38VXTnshlZcDRchuAPN/fSyLnk/8qGE9gwPAn+0z2hum8dEXDA+Gf3opn3a3nxQe20c0uMumfDqzQR02vUQ8ks0JcnjZm3U2bXxEfTD883Sw9IfTPMgv1hn3oIZdzVN0k/uaJRJxvaf9swCLIdOCx7aYxGtt5SWGFhJ//H7jvrLh58ysCi0l8swFAHzvY1SaAtjh0y7Ip3KGomSMZMCi49aHTAj/Q5nOljbUqTH35fCmZOgG351+6VzCBZOcxRNEz2ixY03k1cGzjc06Hn/9bHjyDHjQ0iW9RT6JCWxyALMy69aHI6SdpjY3EwIeZP5Mjw9YjNbUu8GDfC4tvW+BMDVq++5e6paF1aSjOfzfpoOGTYYOGJkIDV3U/lMWhE2ZK5HbvSGyNyep0un4pImYXbFO0FYj0PvE+ztSg5idBk3lcd7Ux5z8OiKA/cO+0oMI37VjdL6OPDetjrAzsvjBT8N13YT+kMqJYk//NNBnI1PjEe3lmYBHAZzo5FT7mvBl4Lg/nXVunxTu3zhjXh2hgbFDbN/nAsR25ErtVwHf+oHZEtYpppBjPjGkiIM5/+F5OoysSqIedx8eqUCn3/P/gvWfFL7/xsnZdkTOlTfSLOgDMtEcZmIwy9J0nWhI09DzaNA1ecATdZCCNDsSZ0+iKZXLSSkbIuVzu+Q9+9Od2v5z8nrQoYlyEEKC/8qpYK8gCDuVDi33Ya9qjx7YcQbcNKHj0CRbnUjh0QNQQ/Lm7fMXlxI8e3s1jEyJs6XehQH+lCLTtICEH8d1b6cx5N5h0noHhNdNEIMf5E+/nHOeygPocYSVZy4hQcec/+NFQ/Q6LaVAw2oOmLMBvwnSQ4DvfaZ3JU4S9UKSNwtQNznGuhuf3ee4wka3hU3PDB/z5f/fOf0/Tfr1aJ/ap+9jiRtSdQz933nvW8cBXjmSZcLhUaHXAMxrtuMRXngdRDZB69wc7QqpohqPWPpqwOHxqbsRw06ZXxM13qFMse4i/QzMwmC7B4lwt/imM8mxA9beQ/i73/Id6HT5TwV1gyzZnv4M8aEwStm3d0NrQzQkdIP7GZGDE/JNY4JsOzw6sHrcHbbMaBoZtyjj/J4Gp4JDdAcQGpkEF+4voyGad3LnNZW3o8PGkQm6NfAquMHVlxz08O7AOwEDhDPbpdFpCoueMmPN/EhDnu3ecHrbsIbAUaXn90AZ9H9+SbQtV6m7eZLtlsKW4FSmeLMxNBsQAxPnZ3YKpCS8dFwGYAqVqz/91t56zlD42tIjUR3Q1uxDB9QGsjcn6q7YUt6JgG6NNpHU13sviXDdgYpA/dTr/81743Tt/kT6D0bg1IsD1fRRWsMURkph9J7oQUlG4bAwW7qaRiTNP3a4fM6dFzfA9//NeOFgdd95r9m0wQSs2CSOjr1uo/u2j+qYBxFWrL2qsDV9B7DnWYVJ3bG2xzdEkWJzrzckgi0MFOxeinPPfNIGFIrNtdBSStvZNpURjaz6r+3zy67p8Qp8RVzWRXdcWC2xXYHGuP9NRg4QZcqGlepz/dz04eWsQ8iQVDH2qgvu2dVBG1Jy1ge3f9zjZrmgrWblQFud6QxNBZ5R5/tuj9lVrLk6UJQ1NOVYnpqiQ1OIwiTx0uvy615LbghnL3lQf5MRRCTv0+ZJM8XC50OYwQxJB2wg5/2UfuofYV98OlCXNcqPTrQKeu5qtyzLidDaJVqCp/BTo1G86tw+2W54i8yWZqsjEmSvSNYPpQgU69Pw3iS+miNIYEOctD5whqWInzx6ceKKKrmEqPwXS6ianc0/0KPRJ6brXWGTfimkDLM5dpazzf+Dd7813nBNr1p3Xt+ZZD9+0LqgWh6vRjPsf1Q0MqoKsM/fVq5xOxF3H6RpUYJoCi3MzofGgqzr/MYOOg1E1ztBnD7oy5KwedEiYngEFRlauvqjbUvh/cKZ9espv+TWLcxsAH/Oh32Fx7jZ1OP/1Wrh2/fl0hmFoYOt65GDftELd2Zc7t4UW4dddLU0MlN/qa7Y4mgyn0jF2qM//sKSDLQ+dyQ0YGltHVrKT6ZtWxAD1NsaPsPIR3AzdCKsrSV33N0fRTYXFmclTxvmP9aHzy5eveE286y532l3Ig7e90uwwloe+3oYP6lUR82EPHH8zTYLFmZmkqPPfJ2o2axGkEmPT7rB4P5MQ0+lvbXpFSavT+Uc670gHD/R1DRZnpnx8LdVJppZeFu/aYp7vgUldNnrQupUhedD4tDqdd2TbjukK39nF4syUiWsAEg/YHDov2pa6LOus0YPWrQwJ0d+RhPnuQvxFTe1m2sDiJYJpCbbSnPUBM5sQB4iz6kWnLQXOMgR61157rfeR6Ir1Q/T8yIGTtr0EvvBJCGqbHIEzzQDyheEHnuP3wycwj4tqBtesEOKvDoqS8Dn/XdqgapUQWO2aOdMXW9YtF6+cmUPiQ0c9k1DmTufAoCkVBktIJgjD1B8Qshs2CPHhbYmg/UiIjz0kWsHipaJCbLaFewJK/jU+jS/1opMoWp2I4irfbIKkWBJEz+s2nkNu7VNeVGbg2I4FmWkHt28V4k+fEo1nqhSBxp7/usg3VIuEps/xNjBYOLVsXF9D/q2+dkEi0DdvPpf8M6i95dDt/M19hqkbEFF/ZJtgnGDP/wFyma4NP/EfetGhE/U0tTgwGRymbSCk/63NtnKioz0Mr2Px/TAZphncvqWsKLQYwLopHt87bQyxE1yGUfTiZfnlrtrPuoen9HUDfroQ3LTNjbe+isjcSPcwLA8Va/nWhqNmpn1MLRNiw62isZQj0Njzv9zADaLod0pRtKyzrscFykQ/UeUDQTU3YgYMewRtMEwzeNNq0VjKGySkTDpQ7/TDgz954orvw2IzrMWSXORrbhi7FbSwGDPdockWx8raXFx0GmTSEV0GR5iGQRQNGpk7EovNoYr4qBZHaBStr7kR4gn3kMtsyxmmfVzzRtFY6jNRJTao89GwvD7drAi0y+YYtTZriQRncUAdVL33HPJh+IywcgTNME2genumyGDOFIjmI+616y+kP1iXQh0o7Ls2NDV80x3YvOci4CiaYepMPcSZMpgLzxaDSXxYlyJ7eGzGXNuG8m95FDItirTJVRSpKKg/eKYM2jJ9WQUGwprsExfF8utEy/DRnPwEFnAbwI+eOY0zLGQxnysCuGlCnH1EM1Rgs/1YnJsClA79ziNCfPcvhZiOKRFec/7kKSHevEEwEm9aIyqmap3I6xVM/358h38lMLQHLav6TRMlRfNXDEdLiO18Rl2ZOgIPev29m4X45vZ2izPwyw0eyCuKtetFzegRbePaXj/1HAr6h+AUaNWDHqbWXTIc1OSBTa63bYdZZ2uTqQMQOXflKdwfuS+x/Fp3Ox/Pr1YeQatgAkNXhTvs9pMZHTDjGgYLJ7Z0DB72XRur5va6W1/VHIhPdSgqOKKuK9vv6Y44f+jjglG4YX1dfXmTvUo5E1G2YfPOAgwWqhrrGjzsuzaWGxxWrXtVORgf9LmC/vszdeWxxNLY94xoPSzOZuo7Pd1kxZYR7A3SwcJFSzFlMca667Q45LSPdRvP65oSeNQri88EFXk/po58NxkQ/MZ20XrevpnF2cb620QDcNkTxeB6bmGGMw9aJtv4HVt1oz0xohm6b9wceYaeo0eE+OoDovVAdHjflwVjAOyNZnvyxQaBpvRkXdE6wDlRJcM8c1C7d8Q2mLnvnG5XJyBj46HfFq0HJl9sY3G28qHa17D2vWunZXliE+sGC01e9KhYksu8vmmTz8zBQeA22EFHpi50JWPjl1cI8dn/zpNSbED0XP98cJ+yErHohf/GjXgtHRVLco0mrnnrBeF7IP6wMDcNsDW6IM5/8j85nc7FtocFk0OvZ/AEKgBTn8OZZgcM7Q1dWVGKiNc1YYX95roCGRvwFOo2w+KMo9n54GVklUk50cuGOdGY+hzONDvAXBgpZpAP08YAsQ1TBV3I2IA6G5/9Op3wgB3URuAi1uysFt/nmoYEpvltb8zNJzHTx4TZa9bL6XUhV5uYGtEsznUDBgW/+SXRerbtFGIVQVU2EOZPvE+I9/26ED89IloFXMTgDqNZYMtRhK539ws2h+3Zr+g86KG9cVnEH1z+AN2wMNcREGcYFGx7fY2PPUSXz/vQ7wjx/P7h60P7RKv48LYmWhtVacu4X5j6vWbdMPDV5T+P8qBdPsgwe4PqDbnaYa+57oDYtH1QEPzU27cKEnbcMxZnYLpFNsd7ttB9TvUmzGvW/50xQGVzOCPoNW89L+KF02ceuxAs1PXkaw8kt+gviFYDokPlp8Ig6rO7RSsB3/l3/1h0BJ/AcoDe9+bZsT1bkGwV6LUbLs5OTsFMHsmgEFe2N+oGiA3Udm4zMEuQSnTg82rrIGqW2cJkhOmVqcKdjDXN7sa3n3McREjd5tiCSUzZ7H+m/RkblLME257hct9OTjvEY9e5fAKGtFc2SKgzqEc7b3Clgvimp8j7cJTcBGBQcPvdotVQzhKEi1mba5KAP38DPz1GIi4jZN2tdh/aOEgIpUVXrX5N4JFrrXJ03Aa6kLFBOREFCka1+WJ2C1fxU5A1L4yVqy+JqWWTbTir2a02hN5mBobXGSzaTaMLGRtUE1GyglFtvZjBhexjnRkUNKHasxQuwMD6AG6jQK9DznTxORCmOXQhYwNynSkmomR3Gm29mGWTUbhQlGzPxgSc+X3BqTBNGDQK9FpUBF1mZgdTFl3I2KDKdYZZgm2/0/jdh3hQcJLYOvhjTbwx8aGt5UYzsrKjq1ZfTK6W2JKhPgODKj3Da6Yqnt/X/owNylxneP5im+804EJ2yx2CQeFTazo/q1BNt9NO9c7Kjq5xRs/YYkeuNly+NVMmXcjYgHQ6ylznNj9/ET4rHhT0IfQZrTBYeDHfkjpIKBft1z97MOZAimqDoaLtPiqQpdNR0OaJKADlZ9VtMNU6J4v4T0TQWfQMK1auMc1u8QnhmSbR9sL7lOl0XZi4Q1lmtR3E1ONQl0+uV1OajWl2K6+/YPGfdZ4zR8JNp+236gBlOl3bbSCq7JZ2EV77eXL55Hoo4r9yzdjmMJYbdfvPcuOup6EI5LZMVXSh8D51Ol2bJ+50p0IdFXS6tnbd2LkwRtBrcqOJLgG2ZXHgqzox1QAz39o8LRmgTKfrgkffnQp1WFy2bmxO9JhVykAhMGlxrLmodG6Ca2o0mWzmW5uB6nSU6XRd8OgZFcxTwGk0UOde5AQa8vGG5UUBl0URe9Vgy6MquhINUlWn64JH/7sP8qAgnmK0a/mKS6kXPeol8aFzAq0LscfYrhqYA+bBxbrQlWiQYmpyFzx6sIGoHu/VDYrTLnnCCvjQOYHO+88ho5Y9xDZMlXQhGqSqV9wFj57SBmo3MbOe8enJEEXL5CaqrDRG0K68vgyMUDNV0ZVokKJecRc8eh4UDMVWrRP7EBN9wJo9SDYjN1ElP0Aod+zK68u2s5XhY9Guki5Eg1Q1Nrrg0WcV6th3xjJAro8pfTFpM48EOj9AqOvYxUDgsj5YqMuGo0E/2u7RAx/exuLsD2VxN737sHzF5VEB/9wgoX2A0NSoaZn7QJhy6ErGBlWKWBc8eqrc8O5BWdzN7Eqsun6oxekgYTalcDwX3PfKgA39mSr45nZ+KgqWLnj0XKGujuQ1Vx4LHD2T8Oo3ZvYGxqYI75wpj64U3qeaxv3NL4lWwxXqqPEpdWEjr6tZBA2MLY7/iLE4Qg6AI+gq6ELFNapBwS7U2AC4Qh01ocGsXTuvllLtRgKtLzEak9fMxZKqogsV1yAa/DDRrXoXHo5LdafBhCBnuAF27ZTHA1OBhgwOfYlRtRCIz4AgF0uqgi5Eg5QzBcEGavvDcSkf8cVk+DyP1ZThpm8Dpnsvns3k6GfPIDSDHbm05Utz9FwWXYgGqepGdGFQkPJOg5HxST+WwUXSV68YJm2kg4SLlqmRsq4x2zJ7Zxw9l8PXHmh/NEhVNwLuNNo+cYfyToOhAqeFWVZdanEMRw2x0xFZbOtIFzI2blhPOyjYdrhCXdGEFInD7bf8DbMCDRaHWqAjDLYxqqILGRtp+dCHBQltf/4iwBXqygBj6YYFudfManJqceinePtiskmYIulCxgZAlSLWhZmCXKGuCkyiHBZlL1o6K9DpH8t8U+ZMsP1RJtk07rbn71KliHXlToMr1FUBpqAcft+RBw0WxzUrTFXszA0w1dOFW3WqaDAdFPyMaDVcoa6pTAbAU8uGv/uLllxScqDlkqFsWdSVH+5Ofp4QrYYyGmx7wSiAK9Q1CXsAPLV0+Pir/jUTA4QxFZtY0MsgrRvxZ6L1UPnOX+vIoCBXqKsrPTE5m9ANBM59mEWob1D3Wji2ZSukDL6xg6cmY4HJKG1PP+QKdXVnIP3IDoUdSN7o6wcIbVE013euEoie225tUOY7c4U6pnxiahiNgfTn/jDFLrw0HlMuED23Gap8565kuHCFurphK3nhB7gbsxYHtoYGVf1TJpTn/0G0GqrZb12ZjMIV6uqGbw60maFAX+lTQ4PrbVQJZG60WXSoZr+B79x2G+iWzew71x+sJuoHEIcCveSywMERctW0eQYcWBvsO+OAz+pjPBmlxtA8NhBKjmrS7Eyd4OuZMsXw/D7RSrIJFrF0wXfOPiuuUFdnQtyEyX0WQZqduS3sFEUW6TJ4fv9QgNoI1QSLLjwgd9tOHhRsNvi05alll8aPvPJvKIO95zI4eli0EvBSKSZYgD/fhQfkcoW6JqHT0IFh3eTck8WJBz336je+JvTIDakjkyzKZfPTI6J1UD3tA3znr7W0zsabrod67UL86hoeFGwemKQK+ZFYeW2FmYRzhXcnLM5VcPK4aB33Ed2ut9l3hqI5/+1vBNNa7KU1NBYHe8p15KUTolXA7foNG0Q0j3XAd2a6S3+yWD9HyHXkVIsiaKqUOshqaXt9Z6btmL3oKUizE94NMGUzc1q0CoqUuq48SYZpO2YLOZ2oYt2XBwRrwXSL0uvA2qDwnbtQ0Y9hHALN4szQQWVtdGEqN9MF3O4EWxxMKVDNFuzCVG6mK7gDYIRAcxTNxEM1W7ALJUSZNuMX8BLMJGQYO1CAn2K2IKfUMc3HL+CVBFoteceRMxMPWBsUBfiPHuGUOqYrjHVYEuhsuuHkRgwTCoW1AUWiHvptwTAdQM6c64n+zBmTEHMEzcRBZW10oUodwwzJT/3uT58x2dAcQTPhUFkbXahSx3QJvK6eOj6H0+yYYqCwNtKUuj8TDNMiogYJdQ2x1cH4QWVt8GxBpuv0Z05nwsxCzMRDaW3wbEGmy5w8kVgcr5yeI/xgy4Mx854tbG3YWMzPEmQ8SAYJQ55AyyLNTEJVa6PN1sbK1YJh0PRntFkcPccytkOYSShqbbTZ2li8bPjoKqZLhAezL784NxHoszqBHiCXMcwQijKibc/aeM9dUONXMJ0iXDfB3UgGCRGZdik95bdpPdM12NpwQ/UZMU2iF7huCLgbffzTOlxpdxxhd5XPfF1E0/asDYrPiGkStoed4B6EAu6GRwSNgaPornHLZiHeFDnw1XZrg+IzYprGuJ5G/re8zk46k/DUCWyaHUZ8OYruEnDb/mG2NqxQfUZMk9CJsW8hup6A4Ll/8vgc4wZ5BohtmC7xIYKBwbZbGx8iegYj0yRcYmyzPsbbTJ/tmdLsMJ2o2zBdAm7bb7lDRNF2awOmvMd+RkxTiZ+hnVocINDjkqM2IeZomRnD1oYbiinvTFMJEebxPmBvpBYH/DEuOeoadVSfusJ0kY+wteHkI2xtMEEM9fXUibnp71SZjx2Zp91ojGx0sxfdZSjyeeEJKW22NjjnmQlnqK/TZ4Z/pQI96UPbwnMf05tpGxT5vG1/QspHHxRMp4kNWHvpNG8gVeZTx30q2rEYdxWqnOc2PyEFPqMNtwmmM7gCVlddI6Hd/+S/ygL9om/JUd8OmaZDlc/7h+8VrYVznrvIIGC9O8g9dkT2oF+YZ9jMNZfcJcws3G2BIp/3sZZbG5zzzFCRzfBOZVo/WUWdL67m9eWfPquH7ZA2AJEhRc7zN7aL1kLxGTFNh+7pVEdfmI2ge72eyOdCC0MnpgwOpu1Q1Hn+6gOi1VB8RkzTodHILAca6A8GwwaPHp6H3J1tiy4Bg14UOc/7nhGthXOeuwilDubt4qMvzB+9HuXXDROje5odVTiK7goUg15tn84Nn9HtHxUM44E6czsfeR87Mrac++OFc4Xe1lAbNXWGOSCmSdxO8ADYtk/nhoFBfkpKF/ENVGVRttfWP3V87ui1JNDY2YQCuZxpMmlkuFVEAdFzm6dzUxSMYpqMT+BpF2UZOatuJNBHJwQaM5sQe4As4k2DYjYc5zwz7YZK1/I6evSIEkFnmRwnJ4r3u8qMcpW7NkIxG+67j7Tb2qCwf5iu4S7bDA9QkZ9ylb7KMjmOjTI5fPL5XNuwgDcNioHB7/ylaC0U9g/TRdxjekcPz839nauSdHj/fEdDIWLLUXaToEgZa/vAIOc8M/GaptfYYy9ckdsqJ9AnT8wV9oYwEbUtNY+Fus5QpIxBvnObBwbfw9YGkxLiP5vG7sZtHd43P7dmJNDgQ6srwxg41rFI1xWKlLGvfUa0Fh4YZOJwZ3JkU7wzRgINPnR+oNBHSEPSTZg6QVFLogvFkDjnuasUH1iqA4TAKIsj4/C+zAPxeXJKqIXB0XRdiC3E3/aBQc557jqqHroqfWLWKel1hyct5pzFARw7ovOhM0Jqn1JuzxQBRSF+GBicPitayeKlbG0wKqHaZR7TO7x/wcTWozS7LNXu8P4rRBgxU8GZKokVn6NHeGCQYcaEifehA8MxQNnRUB9GmM4onCw9GnNQHCXXGQrxeei3RWvhB8Ay/vjrJ3jP2TyULFgG+rqNJ6d9U8CRdN2gSKuDUqKc88y0j5BnCWZgg1K5xGjeWs6iaK1AH3xmgaCHI+m6EfuIpraXEqWohc00FZ9nCYYGn+P2Dj6zML9mNorOCfR4oHAe8iBiomKOqKuEIq2uzTMGOeeZyWPTq/jgM/OfVXICnan2oWSg0P0ILHmZb3U7U3tMWUD0HEPbS4nyA2CZPOokO7qkCJh/cszwRKsJiyOLog8oIbcdfK1Txp+fHhGkUETPbX7GIOc8M3piH5StF+9DlhncEwI9qmxnzIfmdLqy2b9HkHLvThFF258xyNYGUwz6yS4H9+jH/CBY1g4SAnt3L9LtIujS6VjQMVBbCRAdvnmDiKLNA4P8AFhmTE/6UZcLQVXR7sgB/dwTCJaNAg2+yNGJKBoz3ZE6FaXb/GS/ICU2OmxzvQ3OeWbyDKQfdbkQFEEpOBUvvTjHuIdRoIGDTh/aJxXFBcaA7x7U0XNsWt2z3xathXOemWKZ1MZDjpnbVoEeF/APBSu0qnXC0TUAgvg8YQQdGz23Oa2OrQ3GTjFB48E9+iDYOlEl4/CBBYHTvjOwQutTOa87wGAcFbFTutucVvf2zWxtMC5iatnrPetTx+eMMjhAkLOftDfdRJWJQ0o22vvklCgXn+chthsqO4FiSjdEz23khvVC3PdlwXQejPjGVrDL739IciiygnXwYyyWJK/IOPgDnUcSWgsVAwszANYGlZ1wy6a46Bki+TZGz3BX8afsO3ccNSCkmDGN2/45Q/ArF0uaa1oBYg1/Z7MKp5bqPGJd2h3mKd8swi6o7A2KzIS2pdWl9Z238ZO5GUDVMorEB122W34ZPD3lEOIRg0aLQxbrvbunhP1hsD6EPni2Wzz/D4KE2CndbapWlwnzX/2IxZlRwaQQ+6zXtT3eR/aebcwVCA4+c4V415Zp4U925fCNmgeWttoPzNKjEMXYKd0zZ9oRPYMwgyC/Zys/U5DBUoTWjNt8bvfQ3pADYR0ogR7bHJMd4Q4IGzUPLH93xxahmtodGz1/95HmRs/gua+/TYgNG5OBwMiZkwwzSbgepdkbyBTmVKAzv9kG2BxhUbSKKRLWednd86tnTtMMyMVGz018CCxkZKy/NRHl5OeaFYJhKsIebB7ymF+SCrRLnIG8zeGKdikoo4/6sa8m0XMTHgIL1gUI8tpEmN96G9sXDDWhmmNPnMjsDQwoiwMibLA5TiYjj9dcd8l5AJoWRN7uwLxx3z7aQV2i57qm1bF1wZSDTqNMuoUXch97A0AJdBZhP/fEIvGBbSFhlSrK3bItsFBN7aaInusEWxdMPcBW8jQL9tOPLtZayuoMwgyjQOsa+X7SuF6gbVcQNb9QzeyQ00y6LdwUletio2e4QFQdPbN1wVSPq/D+IGjfA3sWaC1lk81sFGjdDtOne2n+3toNF9SthRlMqT6OqAGKQbnY6PmrnxGVwNYFUz+wCQ04DjyzQJxSSou6EjRQFofMt3csSQT63wQNGO+mG4ODR4/Ao9dFFLHRM0xKiT0GH9i6YOoNJkkBr0+6J6dE5UHr1F0/9dvYggi9FfDbpvl8Z5eIJjZ6LnpSClsXTP3AZouZkhuQg4Mn5qRPqcKkNMtYBdrU0NOPLEm86DPCDVsXWGKndlNEz0VMSmHrgqkOTCaGj+CGR9DZIwR9xBmYEGiMwj+9axFSoEPwtTSab4FQVK6rU/TM1gVTD+j8Y78+JjVp75OLtHureqv+PSHQWT1Sm0jD8wr1g4UUdC/qjq1cV3X0zNYFU39Cx7t88qEzFHHevXA0OKhqq6qzqDQ7m6Jnf9MNFobOGLSVB2wWsfZGTPQMudch0TNbF0yzCB3vio/C5ZmDWIsj09m5tpVyg9my7G8YLKSJosNM97ZE2rGV68qMntm6YJpJddlip07M9Zo5mJHprDOCti17LjG+/QRa/hB0j7bCTHhpF7GV62KjZ9tjtdi6YNqBT/TcM+wTpj+Pb19stYzJ86BlwPje8senkSl3gGtyiu8IarOJrVwXGz3rone2Lphug53OrSMv4hA9D7M3zPua7GSrxeHD93ctEXfed8ZwsOkhiHIou7949lUYPQNgWay6PomUlw3F+JbNbF0wTUX3bMEYWyMkYs5v74qeJ/bWbNe79tpr06W+CdQZU0svi10HT85G0aE2RDdLi37ifeHFkSB6/h8HBcMwNQSq1t298erkLrkvYtDu7XpOlrweUu6e3rV49i9VZLGEDhQ2l9jKdbHRM8MwVPSU38PUulhxBkYt2HLzVNT1Tz8ylU7/VraSXpvE2kfE20VM5bpY75lhGEryejhzZo7Y+9RULpC1Bb22dWiJtzWSj6J1xBjv7SRmcJCjZ4apEpMWDvXswDPz04kppqBX1VJbQIwWaOf071EU7RMVdzOCjrE3OHpmmKrJxtv0PL5z6UiE1d/p3paUO5W+bSOXFy2TRtGPQBTt40Prcg3bz0/Ye2aYmjPpK+sfLpLXrKcfWZSr+axO+LOh26Zv28gWlut4epfqRcelqcz2LNpGaGF+iJ5veKtgGIaUnubvTItcGibnPc8R/+vrS4ZLpXzmGMgsDjiQoRe9RNBiy1NsHmBvhBbFv2XTcCIJwzCx578tkAwbM9v7xEJx8nh+aglWqGG90eIwrfQhOxAI8SczOkaHIejQ32LUHZi9F8rb7hQMw6TEnv+UCQq9NHr+26em9JNNEHNM5DpHMn11ZaxQj71o7WGIOGy3Is3g2cDsjXSWH0fPTKep6/k/EI9vXypeUp43OFo7CD/GiQg6qwcdA3jRJ0/MEcWDmcqpe10NMfbGhz8uGIbJUdT533P8nV8+fJzVwmjdnGg9aS83UUUW6Rggit71WVvpM9cb6Uk/MjGDjtVfaUOfO8jRM8MAPuew69FW2H50ZSjy2z2+PT8w6ItJ2KG9kcVBRdbZwT0L03rRejAjowNRB1GlZN//FkFw9MwwvlBph30AEWpuZM8bDO4BO1HFZHCHdAb7wVNX4m4tikCX31g8R4+EFeaHinMcPTMMFabzH3NXP8n9m18/uSWh1dHXNYaZ9eIC9oOnrux9cqHPXqJ4sPmNtIQ+d/BD2wTDMGSYzn+fCXZD5GcN5loiciRSDxr79JRQwIs2p91pD0v5bdvG1U59UvBC7A2YmPJmLprPMApFn/+uh4kM0+pgSneRjDzoIoEBw8d3uN6ILmk89ukqOg+7GsEOtTd4WjfD6Kj6/B+ktYfk6DnW1jDtX7hAA/Bmjh6ZZ1hrGyXV/e2DTxZIceIdYm9wUSSGAco+/939wcCgWr3Tx3XQibEpvbkUgQYefVCNok2PqKL0hkNTa2gJsTc4emaYWELOf9cMxZ74/JbXiSLQiXQhAq27Ehzad4X43q4pkRfmWJ85ZNtyCbE3uCgSw1R9/uvFfe/uBeLY4Xy9DVeixUTLUqabqzZ0oRG02vm3ty9JPOnRWtNes79dRZLcpf/8of9Hh9gbazm1juk8prGoKs7/2RmDx/UDg6GJFphtChFoUw1UGDB8+J6rsq2EebRU50Orwu0aafXBdVEIJ8Te4IkpTLdRp2gXff679p+dMbhjSTowSJnn7BJpcoF2HfyBPQvSH/vVTp2imf3U18rQEWJv8LRuhin7/He3CznP2YzBmDRk3weieAm02qBpNNLFV+69SrI6fMB+MPUQ8uf3CW9u3yoYhtFS1Plvb9dkbeR6RAqvz8O5AS+BVhsMvZJMn+6JXQ9eKdw+dCgxRZXo8C0tCtO637RaMAwTBe35nFkb1h41whtihahC31dHEn0axUTUpuXw9IEDP1gg9FCZ/r7Q9RdSWhTsDYZhMqo//8HaeO7JqfxWSI0MCWBlcU9nEqqV/H0axUbUpuUP37fMUTc65koY8s+lm3nk++QUnpjCMCpVnv/j6dxUzkHaKuLRV3IfpeVB65ZDVsdX7rFZHcFHIATJA2jD/xG+As0TU5juUsfzf5DWeXZZGxM9OFwFzKOvZApNs8Msh4p339sVV081j+mfI0S8N4X7B4O98fx+gWbxMp6YwnQZSs+Y5vyHZ6uqdZ4x1gZltA30fQ7Ax2N2Ie8DE1iOHpkraCiy3gbuw/6JhzgD6zdyah3DTEJhU/q3B9bGMIlBablAa8OEtWA/NjyPMcMBsDq+eNfrlLKkujfkepOu9cVka6j80DN7gyemMIyKLRK27WPD3R5o0P2bXi+oyeps+Ap139VoLLYDktedhFzDL8m5hiEzhbCDfK4LQTgzp/3sDX5iCsPoCNGekPM/T4jvPNG6IStOTcjAOBakHrTvxBV13dOPTiU/i9VWBT0Dw2sT+GPYt0d4wRNTmG4Te1ccgv6cB99ZLSMa1LojK84nTa/v2sknJKeIuB//0mIl9S6mTde+uki6F9DOGJ/oGVLrNtwqGKbD+N4VU7Y9PtdPnZgrvr1zmXDha1HYglavmYQ6/zlLlpaXqdtQA370p9//esNjsuSiKRToIul8LiSO8Xb7fiDQcGodw/hArTfDcx205tObXpfOcM71hnQEitDBDKPFofol2bIyDgr86F0PXKlZY6qAF4vpvWD7Gm4H0bNPjRFOrWMYE3F3sj6A1rzkePgrtr4zNcEetE7AfXC9GZhi+e0dxT6UcQxNfrRP7WeuWscwNqhzo/XAoCBojfNoLFqnzv7D7mdrK6Pvs7FruQ+YA//W9sWWeh06bD6ybrsQzFf25/9BoOHUOqYbFHenbe5L7VOf3XFgz8K0EBKq5VnN802EMLVjgmQmYehVIUTYH77vSke9DrlNnY+sI3bgYfJ9qLWfbe+VU+uYdmE7r+XzpQixDjv/oYToV+69UmDxGdjTYYuybVpReB603E5Ie/ZBw7RVgaOowcUhau1n23vlqnVMO8jOKWxAVISH7H/+gzjfv/n1E4OC1Kg50KZtbFpR+hNVQoBBw0+9P3Z2j/42xw/zPtjiSFy1jmk3PcffruVFMT7/P7/ll8TLx6lKS1h6JHguYbBAm4Q4JErGWCBHj8wTX74Hf0sy27JlHcVMpSGu2YPyFE+ou8Ew7UCXkqpagJjCRUVZIJPt7XpgqTh2eF704J33kSBnVKt4C7TNSwnFZIGowv3ck4uSUVefzA6qY7T/c1zFkeSMl9s/KhimhfjOztXta7rLDRXHfHuPb18cNFPQZUPI2xmPZLYWh2mdiX5IR2WhE+7HdyxOf/Jg/oEx/2x7haz9yOndw6p1Zd/aMUxTofOuQZgf37E0KBLGah621rPPMfRtDdWJXHnSHcvE3ifl3MXseDGWxkBQDxhi0+uGdTfq99kyTP3pGV4L5/IDexak1gZgi2TLwkdfSxskjP1Q1AIkuz67TFND2m/mHwVqeh2ge68wOPjmDYJhmCAwFsrkchi7+sq9V+W3KjgApbwAeFscoZ3HJHPr+oT0O8jssOdIU2C/cqvpdYDuvebrbrDNwXQJ3+87NhPEDhTe//QmfTpdyMOxsbro0rpCLQ6sz4IFMzPH1GaWI12sSNuv3K70uuz95etusM3BNBGawTp3mwPH327SXOdN5lznmIdjh24Tsq01go4J1UOuNiH9QY70pEiXF6Gq6XVqsW54f+66GxxRM01AHeuxfW+x3+lBwD52oHQoTESJLbyvEmuNhOibNYKOOaDQKJxGpGMGArH7DbdTZwWqXjlM63bX3eCImmkC6sxB2+SvMqtOjhlGzq8LnohS5ABi0ByRa6+9Nt0ri/awOX/axiL2pWjnmhWXxOee+lkSrV4ScahfRHWd69h6EfsyTJU097ubec4vEUTOIRrk2gfTprrNRMH+oqLmMtrR2x1BRyB8Rorx27A4M3Wnmd/dzHN+icjWiH0Qtm09dp5JYc8kpPCwde1itrGLdM/wm5KYGh/sRTN1JjYbw7QspJ0xaeSM8JypdSkUn4kvpAKtRuGmqduh7drakbdxR9ImD40Cmy/n2ocjbKbOYKw91/YUNXCkynQn/CNn6jzoSh55pYNysklMP5h29CLt+wXzXa+D4svAkTVTFNgyCT3EtuXUvsn6ycQZm60RU8hNfR3bLpbcU70phJECqn78PWlb9FvlIAl9KhLDDMGOqQxEed9/dz++4hyCPGBHlQDhS1/uvEmhPxYQ6XtuuTqd8jnE55gw00t9oPg82AZhQijqXKTIhfbj6AvzxD1vX16oOANqymwV9EM61wmvzoCvi+APp4W/bvb5hlUKnJro70P5JwLTJor+3mNmBMb3sfeJheldcdFPQykDjJ7NWbJkyYPYjUME0nfk1FZsyfbYGFf7F8/3xP95eqFYtOyy+PXfuCj88BVHrK8Xs55hqKH+zsm+dWzbPfH0IwvFX3zyKnHhvDlAbApYy2Qk0OrOpkaLmv5NsT2G//v3C5MLe0+s3XBe0FD1F4OFnDEREjzU8/sExfb/+ovLRCxFPhmFCrkPrUCbNvZpOGa5z3a6yne6ZTKH988XM2f74jd+00ekff4xLJpM1aiD2tS2GgW49qFcqOlJKCHnv2mZDdf2RQl37w1veMOg7JHK2GmUVKOrq1ZfFJ/8+s9np4arX2iGaSPN+Z7PnOmlU7d/enjeaJl6vhetWS5rtWi9HGVxALHP3cISO40SM7qKOU7I7Bin4dXhS8uRNxODydKouoiR//caKtLdu3F5TpwBbCliqoh2EPgsQSyuaL+v6wQ7V7woyrwIZGl4B/YsNGzR07wOPb6YRP+i+mSaC3bmXtHnrKt6pF//cC7e8/aro+pqUGSm+bQVmmThuuDMWbp06YNV5fgVDdY3SjM8vpcIdG8g1q6/IIh6D1xnWq9eKFh4u43OqogNICjAHoN+PQwG/sUfXTnK1Cg6KaGMQb8QMi/dK81O3hn7N/UHUOQHenj/FekMJcjwmH/FRM+CFqr2XGLOMGUSOlehlwjzsmQwcIl1u7oKalGM6kGnf2gMeKCoCJvaZKcaPKSrK80wdcQUfbssNvqJJ9BmWipUU43O9xymOv/LAjPgmSuWpPNDinyT1G1TTc3MfOnvPTol/KhLlM0RdLPx/f/5bj9ALvMdXDTZG+bjg/S5ezbqp23bBuhcfm4V4qxL8VPXy+j0Vp3YZ8yDLjMh29deocifdgG+9D/97YJ0mvivveWCZHmY2ozJO+15LqeArZFmgRe9YtvAtOsGLI2//uLSxHNeop0ZaOxp9vwvK+PMl9D8auOFSLY4sg2xb77oq5RPH6ZtKdqon+XhukU1vWaaRez/Ltsf20453xUodvSFu34pFzXrzj2q8x+oyu7A2Bg2rE/1ti2nesO2WT6yn+TCdDwUj0MHy2PrjdeI7xlmM5WP6xaV6svIEXW1UIizrp1eYH/x34enH1mUzj1wiXN6NIbzH5OuJi+v0ov2ucDIvzPSNDsRiW/WRtGpM1Soff3T3w2zPFauuSgWL8X+05sucizS5dO+zxwGAj+fRM3PfHOxl6XRJkx3CaZt098w1RteVHmVib0NKIvsuMDyuPO+M+LmzeeyNaLeNgLbHEwINN8bmHjylXuvbEWJUKBIfZrQQvCgs4U6vybEk66rwGLBHv/Nm14Rd378rKc3XSexDDkWFvtqqfLz9+m7lwwECrHrgaVi727fbCiplYZriQ3Me/OuZqd6JaGWBoVV4ZPREdOH7jVwLBns+FESHUwldgcUXpL2EsjWI9cXDdsbxWKaEYrNFKorvSRqvkJ8etPV4p9/PF+/RUXnv08anGt7Kkz9pj+hWRxtJsRyAbvjzm1nkJXxbKPrdT4JbcfN5KH4jIr+nOnbh/S5h++5KhHoBaIJxLgGmLZt7WDWTwi0T8cxb6SqC0FsOo+N1JveNp1YHzMinJCUKKp0LKrtGDO+n2FR/xvT9uH/Y8jQ+PbOZRNecxODPoq0XUwfgKqlueXyIKHNRzY2QJCriNm+Sf/kfJ1pFUqRY8FsPvRCWTZQtnfXA8vSB2FQUsX5X1Q/2PeiBr+jCNoUFetykn1FVt4/FEzUHvrhFvVPedddM+KdH50OnOCSRSHUlgKLej2hvCOiOA63nQV2BswEfDpgfkBMsEbVZpWYdFUV8lEWR4aP+FFYHa4+fNZjtymToe1xNs340BN6C8tC216KsDVovy+QmfHog0tJU+dcYz9Vn//U9oYu6FW1eCIPOuRDwR4IxXaUfZbJeLr4ZRF+orAo1w9qkaxiDALPoX3zxeM7logjB4aDgJQBGhUhx0P9HkzOAdY6Hq3PnkmICbl9Do7ahqDav2rCcqdl6ibStuNp4wXFV5CFcHvM9f+cYCYg+MxydkaR40+m/Zt0MdBpqozLLUh/2+pB2w7EZnm4lmHap6Zu/2C/tDyVIu0ObIpg0f20hWZfUMFnfvqRKfH9R5ekdkZR51FVg4ATg3Il2bW2beRjMXrQIWJbhkBTfIC+fZn8opB25W3A9rhp04y46Y5zRJXyqsyrZvuFDp/oOsQ2ce+jCnNRFDFYWCa+wq67IMio0XbO4lB3aOIVsomAUL9z64x4113TgpbYyBy7LnTfLok65V1PqD1CJ8yu6K/OlDHe5ROsmuzl9LVqcego22cy/e1aXiXqhxxClvGxbuM5MbU0bU1wZNoG6v8/HArz4kSYF4+sDKCIcSifbSj3o2wz5q7aZKuon3m6rVwsyedAQuwO20HaKOMfUpXo6/odWh/nEutjBmF9NGGQji8y9SH/v4AnBg0j5sWVVJvrwp21TYjlbWRyHrRtI11Haqe67SlHeIu4gtfF87atW7xsIG58+7nIrI9RT7O/63Iy1DWLgdIWMm1T/ful9JhDv9+xbcfsF3P+2wJVzN+AKWKWSZfLg4QmdcccmM8B+gp5GZ5RlWA+V3N6XplFeWj9znoQI55NujMYHuuh/fPFc7sXib3JT+E9Ep3bWK0JPSaKi4BNiNV9dIwi5uTn8uXLk4OEtgZ8I+E6iiBAdVw9y61K0axdfz7N+picmRgSkfpE1VWLUWz/ZV7I6gcI8+Pbl6LqZVTxvW4SvtG3zdIwORI5i8Ok6mqjmIPJXsudqG2FGPLy/q7+bct8+qwqsndF1LBs+XWvEafoaY9KhAmSLSptrsg1jRAbo+zgCmshhFgW1AN/PheuEKtD9/doqre6ge1D6RkMbd/bkCoi7aIGHIGi7x5s9seNt70q1m18VdDgK6hF2AKunO6irYg67oPbNpuOfXj/Fe4WayDIdcElwL5aZhLlrA/ThUheP1FuVG0ge612SvFBh14d1f18bzlijrVIYvuA7I8bN55Lc6qLm/hCDXUfRR0z9YWKimGfJ0/MEc89sYg0G6POYgqUef7r2gJ8HIZse1vEPLGfTqAxjZgEU12XrZeX+3xQrlsFSoq2NagGNWzbZb9Tr3rzK2LNhgtIsQ5N16uTZUE5IaYozzs2Yh4vAwtj7+6F4sAzC1HRch2JsSHqiKqFgE0/dcFmbj9buVFbSK5uQ/Eh+y6nBnMxwL5fyjuM2P38xXrUkqATvJj9QtvxGQQNad8XV7vufoeivCgR5QW1FmVX0FZHsOe/7u7dpJU6G0P3WkZub6KanW4jdbnrQE3byAdDITxU23aJtRtArM+JNYloF//ElxCqitbrdCeQMTwmjCiXcW6E3s3qdMCnH9ty7LYxQaHv8av7ZGCEWt2nd9111w2yDVyhuc4G0V1FTG8i5I2WQVn+MuDjtfu277svRNY33gpifUGsWv2aqB+ZaBYtnmVH9m6OHpkrDiaCfCgRZIpIuYpzzid6xApvFbiOxbbetQ6wBcPaLA61AV0j2GiZ4soZuh0FRVsVdfkiwgDjmnXn02wQEO6ppVhrgz4LgW5/32MTAp8lglkvBLZ/mHJ94JkrxLEj88RzT06RDPTFRNV1C6KqwqVhtuDUtK+8bb/fz01MmWhfFegMW6e6bXUHbmrHFXkX8eVo8hfOdvKYbvuAmPe7as3FoWDf+mr6ENy8YMcIrSkqLtraqNo3zwO2BTxsFaJk+C1HyU39/jctcPJt2+YeyPvZBFnXjvVYTAKdobM11Nfq9uobNf2Wt1P3LYLQiCLk+NoWgYBIg28NdsjKRLzpJ8fED6DFbU+BuU9Igzu8b34aIYMYgyiXdlQVfRd9+y36OF1RMGU/MqqOZMtc4pyzOCbM6d54Trgp2rX501kbmFv7Jl/dsf5U7Pst68uFBQo5rVx9IYmyE8FOxLsY0Q6BwreOE3cQ41SIE0E+dWJuKshVVIorg6YEIrHHqeofYIqI5d9gYcBvm0WcLc80N9evK4JWG5T/Nh24bl/dmw0lNBIObSO0j66Rivb1Q8FevuK15PdrGntEpooo1wXWZ+8lNoVII2F4Xh8IMrz+lxfmj8TYFaAAVGMuZd2FNg2bPejaFrvcJLzqNrpIWtdeTrQxU71NVoZrve4A1HW2L5buylQkoX0UcYtU5Ymmu1vC7qMjE+6p9PdQvJcng5JTSy+ng5NjAfcbWFOOQFCLPfjE08ng3bHD89LXEA2fejER4xfmpa9DouKm2A1176dMXGNAgO7u2Ba0ZvsEe9Dqh2wK1eWOXFcq3dXEeGAR/+i6fklc79/2mcX26VqmLi/zMwQBh+JPINiLErG+ZsVrqWhPLbucLgMxz5BfYyyVTGRHf5/upRkTM6f76br05/Sc2d/9RHjniFP/Ojd9LT8kFSjyQkzVNkWEGPI9rFOQEnOHjQlKXNomo1uW/a3L3lDb/v9VLkyMU4yZCwAAAABJRU5ErkJggg==" alt="Robinhood Chain" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+          </div>
+          <div class="chain-name" style="color:#C1FF00;">Robinhood</div>
           <div class="chain-status status-live">✅ Live</div>
           <div class="chain-desc">Fully integrated • Scanner, alerts, anti‑scam shield</div>
         </div>
@@ -1245,7 +1270,7 @@ window.addEventListener('resize', () => { camera.aspect = window.innerWidth/wind
 
 <script>
 function toggleTnC(){var b=document.getElementById('tncToggleBtn');var d=document.getElementById('tncBody');b.classList.toggle('open');d.classList.toggle('expanded');}
-const BACKEND = "https://hvbs-pro.onrender.com";
+const BACKEND = "https://hvbs-pro-z5k2.onrender.com";
 
 // ========== CHAIN SELECTOR STATE ==========
 let selectedChain = 'solana'; // 'solana', 'ethereum', or 'bsc'
@@ -1264,6 +1289,7 @@ function selectChain(chain) {
   document.getElementById('chainBtnEthereum').classList.toggle('chain-btn-active', chain === 'ethereum');
   document.getElementById('chainBtnBSC').classList.toggle('chain-btn-active', chain === 'bsc');
   document.getElementById('chainBtnBase').classList.toggle('chain-btn-active', chain === 'base');
+  document.getElementById('chainBtnRobinhood').classList.toggle('chain-btn-active', chain === 'robinhood');
   const input = document.getElementById('tokenAddress');
   const hint  = document.getElementById('chainInputHint');
   if (chain === 'solana') {
@@ -1275,6 +1301,9 @@ function selectChain(chain) {
   } else if (chain === 'base') {
     input.placeholder = '🔍 Enter Base Token Address (0x...)...';
     hint.innerHTML = '💡 Example: <span style="color:#0052FF;font-family:monospace;">0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</span> (USDC on Base)';
+  } else if (chain === 'robinhood') {
+    input.placeholder = '🔍 Enter Robinhood Chain Token Address (0x...)...';
+    hint.innerHTML = '💡 Robinhood Chain (Chain ID 4663) is an Arbitrum-based Ethereum L2 • Example format: <span style="color:#C1FF00;font-family:monospace;">0x...</span>';
   } else {
     input.placeholder = '🔍 Enter BNB Chain Token Address (0x...)...';
     hint.innerHTML = '💡 Example: <span style="color:#F3BA2F;font-family:monospace;">0x55d398326f99059fF775485246999027B3197955</span> (USDT BSC)';
@@ -1306,16 +1335,15 @@ async function autoDetectChain(val) {
         if (!liq[p.chainId]) liq[p.chainId] = 0;
         liq[p.chainId] += (p.liquidity?.usd || 0);
       }
-      if ((liq['bsc'] || 0) > (liq['ethereum'] || 0) && (liq['bsc'] || 0) > (liq['base'] || 0)) {
-        selectChain('bsc');
-      } else if ((liq['base'] || 0) > (liq['ethereum'] || 0) && (liq['base'] || 0) > (liq['bsc'] || 0)) {
-        selectChain('base');
-      } else if ((liq['ethereum'] || 0) > 0) {
-        selectChain('ethereum');
-      } else if (liq['bsc']) {
-        selectChain('bsc');
-      } else if (liq['base']) {
-        selectChain('base');
+      const candidates = [
+        ['bsc', liq['bsc'] || 0],
+        ['base', liq['base'] || 0],
+        ['ethereum', liq['ethereum'] || 0],
+        ['robinhood', liq['robinhood'] || 0]
+      ];
+      candidates.sort((a, b) => b[1] - a[1]);
+      if (candidates[0][1] > 0) {
+        selectChain(candidates[0][0]);
       } else {
         if (selectedChain === 'solana') selectChain('ethereum');
       }
@@ -1327,8 +1355,8 @@ async function autoDetectChain(val) {
 
 async function cgFetchByContract(mintAddress) {
   try {
-    // Support Solana, Ethereum, BSC, and Base
-    const network = selectedChain === 'ethereum' ? 'ethereum' : selectedChain === 'bsc' ? 'binance-smart-chain' : selectedChain === 'base' ? 'base' : 'solana';
+    // Support Solana, Ethereum, BSC, Base, and Robinhood Chain
+    const network = selectedChain === 'ethereum' ? 'ethereum' : selectedChain === 'bsc' ? 'binance-smart-chain' : selectedChain === 'base' ? 'base' : selectedChain === 'robinhood' ? 'robinhood-chain' : 'solana';
     const r = await fetch(`https://api.coingecko.com/api/v3/coins/${network}/contract/${mintAddress}`, { signal: AbortSignal.timeout(10000) });
     if (r.status !== 200) return null;
     return await r.json();
@@ -1346,7 +1374,7 @@ async function cgFetchTickers(cgId) {
 
 async function dexFetchPairs(mintAddress) {
   try {
-    const network = selectedChain === 'ethereum' ? 'ethereum' : selectedChain === 'bsc' ? 'bsc' : selectedChain === 'base' ? 'base' : 'solana';
+    const network = selectedChain === 'ethereum' ? 'ethereum' : selectedChain === 'bsc' ? 'bsc' : selectedChain === 'base' ? 'base' : selectedChain === 'robinhood' ? 'robinhood' : 'solana';
     const r = await fetch(`https://api.dexscreener.com/token-pairs/v1/${network}/${mintAddress}`, { signal: AbortSignal.timeout(10000) });
     if (!r.ok) return [];
     const d = await r.json();
@@ -1366,7 +1394,9 @@ const DEX_NAMES = {
   kyberswap: 'KyberSwap', bancor: 'Bancor', 'trader-joe': 'Trader Joe',
   // Base DEXes
   aerodrome: 'Aerodrome', baseswap: 'BaseSwap', alienbase: 'AlienBase',
-  swapbased: 'SwapBased', synthswap: 'SynthSwap', rocketswap: 'RocketSwap'
+  swapbased: 'SwapBased', synthswap: 'SynthSwap', rocketswap: 'RocketSwap',
+  // Robinhood Chain DEXes
+  rialto: 'Rialto', lighter: 'Lighter', pleiades: 'Pleiades'
 };
 
 const KNOWN_CEX = [
@@ -1377,14 +1407,14 @@ const KNOWN_CEX = [
 
 async function enrichPlatformData(mintAddress) {
   const [pairs, cgCoin] = await Promise.all([dexFetchPairs(mintAddress), cgFetchByContract(mintAddress)]);
-  const chainId = selectedChain === 'ethereum' ? 'ethereum' : selectedChain === 'bsc' ? 'bsc' : selectedChain === 'base' ? 'base' : 'solana';
+  const chainId = selectedChain === 'ethereum' ? 'ethereum' : selectedChain === 'bsc' ? 'bsc' : selectedChain === 'base' ? 'base' : selectedChain === 'robinhood' ? 'robinhood' : 'solana';
   const dexMap = {};
   for (const pair of pairs) {
     if (pair.chainId && pair.chainId !== chainId) continue; // filter correct chain
     const rawId = (pair.dexId || '').toLowerCase();
     const name = DEX_NAMES[rawId] || (rawId.charAt(0).toUpperCase() + rawId.slice(1)) || 'Unknown DEX';
     if (!dexMap[name]) {
-      const baseUrl = selectedChain === 'ethereum' ? `https://dexscreener.com/ethereum/${mintAddress}` : selectedChain === 'bsc' ? `https://dexscreener.com/bsc/${mintAddress}` : selectedChain === 'base' ? `https://dexscreener.com/base/${mintAddress}` : `https://dexscreener.com/solana/${mintAddress}`;
+      const baseUrl = selectedChain === 'ethereum' ? `https://dexscreener.com/ethereum/${mintAddress}` : selectedChain === 'bsc' ? `https://dexscreener.com/bsc/${mintAddress}` : selectedChain === 'base' ? `https://dexscreener.com/base/${mintAddress}` : selectedChain === 'robinhood' ? `https://dexscreener.com/robinhood/${mintAddress}` : `https://dexscreener.com/solana/${mintAddress}`;
       dexMap[name] = { name, type: 'DEX', baseToken: pair.baseToken?.symbol || '?', quoteToken: pair.quoteToken?.symbol || '?', url: pair.url || baseUrl, volume24h: pair.volume?.h24 || 0, liquidity: pair.liquidity?.usd || 0 };
     }
   }
@@ -1430,12 +1460,12 @@ function buildExchangesHtml(platform, mintAddress) {
 
 async function scanToken() {
   const addr = document.getElementById("tokenAddress").value.trim();
-  if (!addr) return alert(selectedChain === 'bsc' ? 'Enter a BNB Chain token address (0x...)' : selectedChain === 'base' ? 'Enter a Base token address (0x...)' : selectedChain === 'ethereum' ? 'Enter an Ethereum token address (0x...)' : 'Enter a Solana token address');
+  if (!addr) return alert(selectedChain === 'bsc' ? 'Enter a BNB Chain token address (0x...)' : selectedChain === 'base' ? 'Enter a Base token address (0x...)' : selectedChain === 'robinhood' ? 'Enter a Robinhood Chain token address (0x...)' : selectedChain === 'ethereum' ? 'Enter an Ethereum token address (0x...)' : 'Enter a Solana token address');
 
   // Validate based on chain
-  if (selectedChain === 'ethereum' || selectedChain === 'bsc' || selectedChain === 'base') {
+  if (selectedChain === 'ethereum' || selectedChain === 'bsc' || selectedChain === 'base' || selectedChain === 'robinhood') {
     if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) {
-      return alert(`❌ Invalid ${selectedChain === 'bsc' ? 'BNB Chain' : selectedChain === 'base' ? 'Base' : 'Ethereum'} address!\nMust start with 0x followed by 40 hex characters.`);
+      return alert(`❌ Invalid ${selectedChain === 'bsc' ? 'BNB Chain' : selectedChain === 'base' ? 'Base' : selectedChain === 'robinhood' ? 'Robinhood Chain' : 'Ethereum'} address!\nMust start with 0x followed by 40 hex characters.`);
     }
   } else {
     if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr)) {
@@ -1445,8 +1475,8 @@ async function scanToken() {
 
   const card = document.getElementById("resultCard");
   card.style.display = "block";
-  const chainLabel = selectedChain === 'bsc' ? '🟡 BNB Chain' : selectedChain === 'base' ? '🔵 Base' : selectedChain === 'ethereum' ? '⟠ Ethereum' : '◎ Solana';
-  const chainColor  = selectedChain === 'bsc' ? '#F3BA2F'     : selectedChain === 'base' ? '#0052FF'  : selectedChain === 'ethereum' ? '#627eea'    : '#9945ff';
+  const chainLabel = selectedChain === 'bsc' ? '🟡 BNB Chain' : selectedChain === 'base' ? '🔵 Base' : selectedChain === 'robinhood' ? '🪶 Robinhood' : selectedChain === 'ethereum' ? '⟠ Ethereum' : '◎ Solana';
+  const chainColor  = selectedChain === 'bsc' ? '#F3BA2F'     : selectedChain === 'base' ? '#0052FF'  : selectedChain === 'robinhood' ? '#C1FF00' : selectedChain === 'ethereum' ? '#627eea'    : '#9945ff';
   card.innerHTML = `<div style="text-align:center;padding:2rem;"><div style="font-size:2rem;">⏳</div><div style="margin-top:0.5rem;color:#94a3b8;">Scanning <span style="color:${chainColor};font-weight:700;">${chainLabel}</span> token... (cold start may take 50s)</div></div>`;
   let data = null, platformData = null;
   try {
@@ -1454,9 +1484,11 @@ async function scanToken() {
       ? `${BACKEND}/api/token/bsc/${addr}`
       : selectedChain === 'base'
         ? `${BACKEND}/api/token/base/${addr}`
-        : selectedChain === 'ethereum'
-          ? `${BACKEND}/api/token/ethereum/${addr}`
-          : `${BACKEND}/api/token/${addr}`;
+        : selectedChain === 'robinhood'
+          ? `${BACKEND}/api/token/robinhood/${addr}`
+          : selectedChain === 'ethereum'
+            ? `${BACKEND}/api/token/ethereum/${addr}`
+            : `${BACKEND}/api/token/${addr}`;
     const [backendRes, platData] = await Promise.allSettled([
       (async () => { const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 70000); const res = await fetch(apiEndpoint, { signal: controller.signal }); clearTimeout(timeoutId); const d = await res.json(); if (!d.success) throw new Error(d.error); return d; })(),
       enrichPlatformData(addr)
@@ -1467,7 +1499,7 @@ async function scanToken() {
       const pairs = platformData?.exchanges?.filter(e => e.type === 'DEX') || [];
       if (pairs.length === 0 && !platformData?.coingecko?.listed) throw new Error("Token not found — Backend offline and no on-chain data available.");
       const cgCoin = platformData?.coingecko;
-      const baseChartUrl = selectedChain === 'bsc' ? `https://dexscreener.com/bsc/${addr}` : selectedChain === 'base' ? `https://dexscreener.com/base/${addr}` : selectedChain === 'ethereum' ? `https://dexscreener.com/ethereum/${addr}` : `https://dexscreener.com/solana/${addr}`;
+      const baseChartUrl = selectedChain === 'bsc' ? `https://dexscreener.com/bsc/${addr}` : selectedChain === 'base' ? `https://dexscreener.com/base/${addr}` : selectedChain === 'robinhood' ? `https://dexscreener.com/robinhood/${addr}` : selectedChain === 'ethereum' ? `https://dexscreener.com/ethereum/${addr}` : `https://dexscreener.com/solana/${addr}`;
       data = { success: true, chain: selectedChain, tokenAddress: addr, name: cgCoin?.name || 'Unknown Token', symbol: cgCoin?.symbol || '???', logo: cgCoin?.image || '', price: 'Fetching...', liquidity: 'N/A', volume24h: 'N/A', priceChange24h: 'N/A', marketCap: 'N/A', holderCount: 0, riskScore: 50, riskLevel: 'UNKNOWN — Backend Offline', riskReasons: ['⚠️ Backend server offline — full risk scan unavailable', '✅ Token found on CoinGecko/DEX'], buyersSellers: { h1:{buys:0,sells:0}, h6:{buys:0,sells:0}, h24:{buys:0,sells:0} }, topHolders: [], chartUrl: baseChartUrl, exchanges: platformData?.exchanges || [], socialLinks: platformData?.socialLinks || {}, platformPresence: platformData || {}, coingeckoUrl: cgCoin?.url || '' };
     }
     if (platformData) {
@@ -1487,14 +1519,16 @@ async function scanToken() {
     ? `<span style="background:linear-gradient(135deg,#3d2200,#F3BA2F22);color:#F3BA2F;border:1px solid #F3BA2F55;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">🟡 BNB Chain</span>`
     : (data.chain || selectedChain) === 'base'
       ? `<span style="background:linear-gradient(135deg,#001a7f,#0052FF22);color:#0052FF;border:1px solid #0052FF55;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">🔵 Base</span>`
-      : (data.chain || selectedChain) === 'ethereum'
-        ? `<span style="background:linear-gradient(135deg,#627eea,#3d5afe);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">⟠ Ethereum</span>`
-        : `<span style="background:linear-gradient(135deg,#9945ff,#19fb9b);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">◎ Solana</span>`;
+      : (data.chain || selectedChain) === 'robinhood'
+        ? `<span style="background:linear-gradient(135deg,#1a2400,#C1FF0022);color:#C1FF00;border:1px solid #C1FF0055;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">🪶 Robinhood</span>`
+        : (data.chain || selectedChain) === 'ethereum'
+          ? `<span style="background:linear-gradient(135deg,#627eea,#3d5afe);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">⟠ Ethereum</span>`
+          : `<span style="background:linear-gradient(135deg,#9945ff,#19fb9b);color:#fff;border-radius:1rem;padding:0.15rem 0.6rem;font-size:0.72rem;font-weight:700;margin-left:0.4rem;">◎ Solana</span>`;
 
   // Explorer link based on chain
-  const explorerBase  = (data.chain || selectedChain) === 'bsc' ? 'https://bscscan.com/token' : (data.chain || selectedChain) === 'base' ? 'https://basescan.org/token' : (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/token' : 'https://solscan.io/token';
-  const explorerLabel = (data.chain || selectedChain) === 'bsc' ? 'BscScan' : (data.chain || selectedChain) === 'base' ? 'BaseScan' : (data.chain || selectedChain) === 'ethereum' ? 'Etherscan' : 'Solscan';
-  const dexScreenerLabel = (data.chain || selectedChain) === 'bsc' ? 'View on DexScreener (BSC) →' : (data.chain || selectedChain) === 'base' ? 'View on DexScreener (Base) →' : (data.chain || selectedChain) === 'ethereum' ? 'View on DexScreener (ETH) →' : 'View on DexScreener →';
+  const explorerBase  = (data.chain || selectedChain) === 'bsc' ? 'https://bscscan.com/token' : (data.chain || selectedChain) === 'base' ? 'https://basescan.org/token' : (data.chain || selectedChain) === 'robinhood' ? 'https://robinscan.io/token' : (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/token' : 'https://solscan.io/token';
+  const explorerLabel = (data.chain || selectedChain) === 'bsc' ? 'BscScan' : (data.chain || selectedChain) === 'base' ? 'BaseScan' : (data.chain || selectedChain) === 'robinhood' ? 'Robinscan' : (data.chain || selectedChain) === 'ethereum' ? 'Etherscan' : 'Solscan';
+  const dexScreenerLabel = (data.chain || selectedChain) === 'bsc' ? 'View on DexScreener (BSC) →' : (data.chain || selectedChain) === 'base' ? 'View on DexScreener (Base) →' : (data.chain || selectedChain) === 'robinhood' ? 'View on DexScreener (Robinhood) →' : (data.chain || selectedChain) === 'ethereum' ? 'View on DexScreener (ETH) →' : 'View on DexScreener →';
 
   const riskClass = data.riskLevel.includes("SAFE") ? "safe" : (data.riskLevel.includes("CAUTION") ? "caution" : "high");
   const bs = data.buyersSellers || { h1:{buys:0,sells:0}, h6:{buys:0,sells:0}, h24:{buys:0,sells:0} };
@@ -1505,7 +1539,7 @@ async function scanToken() {
   if (holders.length === 0) { holdersHtml += `<div style="color:#94a3b8;font-size:0.85rem;">⚠️ Holder data unavailable (API limit or new token)</div>`; }
   else {
     holdersHtml += `<table class="holders-table"><tr><th>#</th><th>Wallet Address</th><th>Amount</th><th>%</th></tr>`;
-    const holderExplorerBase = (data.chain || selectedChain) === 'bsc' ? 'https://bscscan.com/address' : (data.chain || selectedChain) === 'base' ? 'https://basescan.org/address' : (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/address' : 'https://solscan.io/account';
+    const holderExplorerBase = (data.chain || selectedChain) === 'bsc' ? 'https://bscscan.com/address' : (data.chain || selectedChain) === 'base' ? 'https://basescan.org/address' : (data.chain || selectedChain) === 'robinhood' ? 'https://robinscan.io/address' : (data.chain || selectedChain) === 'ethereum' ? 'https://etherscan.io/address' : 'https://solscan.io/account';
     holders.forEach((h, i) => { const rc = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''; const short = h.address.length>10 ? h.address.slice(0,6)+'...'+h.address.slice(-4) : h.address; const pct = parseFloat(h.percentage) || 0; holdersHtml += `<tr><td><span class="rank-badge ${rc}">${i+1}</span></td><td><a href="${holderExplorerBase}/${h.address}" target="_blank" class="holder-addr" title="${h.address}">${short}</a></td><td>${typeof h.amount==='number' ? h.amount.toLocaleString(undefined,{maximumFractionDigits:2}) : h.amount}</td><td><span>${h.percentage!=='N/A' ? h.percentage+'%' : 'N/A'}</span>${pct>0 ? `<div class="pct-bar"><div class="pct-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>` : ''}</td></tr>`; });
     holdersHtml += `</table>`;
   }
@@ -1640,11 +1674,24 @@ async function fetchDexPrice(address) {
         }
       } catch(e) {}
 
-      // Step 3: DexScreener search — pick best liquidity pair (ETH, BSC, or Base)
+      // Step 2c: Try Robinhood Chain pairs
+      const robinhoodUrl = `https://api.dexscreener.com/token-pairs/v1/robinhood/${address.trim()}`;
+      try {
+        const r = await fetch(robinhoodUrl, { signal: AbortSignal.timeout(6000) });
+        if (r.ok) {
+          const d = await r.json();
+          if (Array.isArray(d) && d.length > 0 && d[0].priceUsd) {
+            const p = parseFloat(d[0].priceUsd);
+            if (!isNaN(p) && p > 0) return p;
+          }
+        }
+      } catch(e) {}
+
+      // Step 3: DexScreener search — pick best liquidity pair (ETH, BSC, Base, or Robinhood)
       try {
         const sr = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${address}`, { signal: AbortSignal.timeout(7000) });
         const sd = await sr.json();
-        const pairs = (sd.pairs || []).filter(p => (p.chainId === 'ethereum' || p.chainId === 'bsc' || p.chainId === 'base') && p.priceUsd);
+        const pairs = (sd.pairs || []).filter(p => (p.chainId === 'ethereum' || p.chainId === 'bsc' || p.chainId === 'base' || p.chainId === 'robinhood') && p.priceUsd);
         pairs.sort((a,b) => (b.liquidity?.usd||0) - (a.liquidity?.usd||0));
         if (pairs.length > 0) return parseFloat(pairs[0].priceUsd);
       } catch(e) {}
