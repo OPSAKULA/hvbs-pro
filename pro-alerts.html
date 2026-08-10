@@ -176,7 +176,109 @@
       cursor: pointer;
     }
     .wallet-link:hover { color: #60a5fa; text-decoration: underline; }
+
+    .bot-cta-wrap {
+      display: flex;
+      justify-content: center;
+      margin: 24px 0 12px;
+    }
+    .bot-cta-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 48px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.3px;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 45%, #5b21b6 100%);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.5) inset,
+        0 -4px 0 rgba(0,0,0,0.3) inset,
+        0 10px 0 #4c1d95,
+        0 20px 32px rgba(124, 58, 237, 0.5);
+      transform: translateY(0);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      animation: botGlowPulse 2.4s ease-in-out infinite;
+      cursor: pointer;
+    }
+    .bot-cta-btn:hover {
+      transform: translateY(-3px);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.5) inset,
+        0 -4px 0 rgba(0,0,0,0.3) inset,
+        0 13px 0 #4c1d95,
+        0 26px 40px rgba(124, 58, 237, 0.6);
+    }
+    .bot-cta-btn:active {
+      transform: translateY(7px);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.5) inset,
+        0 -4px 0 rgba(0,0,0,0.3) inset,
+        0 3px 0 #4c1d95,
+        0 6px 12px rgba(124, 58, 237, 0.35);
+    }
+    .bot-cta-btn .bot-emoji {
+      font-size: 1.7rem;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35));
+    }
+    .bot-cta-tag {
+      position: absolute;
+      top: -13px;
+      right: -12px;
+      background: linear-gradient(135deg, #ff6a3d, #ff3d81);
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 4px 11px;
+      border-radius: 999px;
+      box-shadow: 0 4px 10px rgba(255, 61, 129, 0.5);
+      letter-spacing: 0.5px;
+    }
+    .bot-cta-meta {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      margin: 0 0 32px;
+      flex-wrap: wrap;
+    }
+    .bot-wip {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fbbf24;
+      letter-spacing: 0.2px;
+    }
+    .bot-admin-link {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #a78bfa;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      transition: color 0.2s;
+    }
+    .bot-admin-link:hover {
+      color: #c4b5fd;
+    }
+    @keyframes botGlowPulse {
+      0%, 100% { box-shadow:
+        0 1px 0 rgba(255,255,255,0.5) inset,
+        0 -4px 0 rgba(0,0,0,0.3) inset,
+        0 10px 0 #4c1d95,
+        0 20px 32px rgba(124, 58, 237, 0.5); }
+      50% { box-shadow:
+        0 1px 0 rgba(255,255,255,0.5) inset,
+        0 -4px 0 rgba(0,0,0,0.3) inset,
+        0 10px 0 #4c1d95,
+        0 24px 46px rgba(139, 92, 246, 0.75); }
+    }
   </style>
+
 </head>
 <body>
 <!-- Matrix Rain Canvas -->
@@ -202,6 +304,18 @@
       <button class="btn-primary" onclick="window.location.href='/hvbs-alert-chart/index.html'">
         📈 Open AI Chart
       </button>
+    </div>
+
+    <div class="bot-cta-wrap">
+      <div class="bot-cta-btn" style="cursor:default;">
+        <span class="bot-cta-tag">NEW</span>
+        <span class="bot-emoji">🤖</span>
+        AI Trading Bot — Coming Soon
+      </div>
+    </div>
+    <div class="bot-cta-meta">
+      <span class="bot-wip">⚙️ Working in Progress</span>
+      <span class="bot-admin-link" onclick="checkBotAdminAccess()">🔐 Admin Rights</span>
     </div>
 
     <!-- Tracker Form -->
@@ -303,6 +417,28 @@
     // when a real alert fires.
     function _warmAudioCtx() {
       try { _getAudioCtx().resume(); } catch(e) {}
+    }
+
+    // AI Trading Bot — Admin Rights gate. Password is verified server-side only;
+    // it is never stored or checked in this frontend code.
+    async function checkBotAdminAccess() {
+      const pwd = prompt('🔐 Enter Admin Password to access the AI Trading Bot:');
+      if (pwd === null) return;
+      try {
+        const res = await fetch('/api/verify-bot-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.open('bot.html', '_blank');
+        } else {
+          alert('❌ Incorrect password.');
+        }
+      } catch (e) {
+        alert('⚠️ Could not verify password right now. Please try again.');
+      }
     }
 
     // Branding Constants - Using ultra-reliable CoinGecko assets
@@ -699,345 +835,7 @@
     init();
   </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     HVBS ADMIN WALLET + SUBSCRIPTION ACCESS GATE
-     ═══════════════════════════════════════════════════════════ -->
-<style>
-/* ── Access Gate Overlay ──────────────────────────────────── */
-#hvbs-access-gate {
-  position: fixed; inset: 0; z-index: 99999;
-  background: rgba(5, 11, 26, 0.96);
-  backdrop-filter: blur(16px);
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Outfit', sans-serif;
-  transition: opacity .4s ease;
-}
-#hvbs-access-gate.fade-out { opacity: 0; pointer-events: none; }
-
-#hvbs-gate-card {
-  background: linear-gradient(135deg, #0f172a, #1e1b4b);
-  border: 1px solid rgba(124, 58, 237, 0.4);
-  border-radius: 24px;
-  padding: 44px 40px;
-  max-width: 460px; width: 90%;
-  text-align: center;
-  box-shadow: 0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
-  animation: gateSlide .4s cubic-bezier(.4,0,.2,1);
-}
-@keyframes gateSlide {
-  from { opacity:0; transform: translateY(24px) scale(.97); }
-  to   { opacity:1; transform: translateY(0)   scale(1);    }
-}
-
-#hvbs-gate-card .gate-logo {
-  width: 72px; height: 72px; border-radius: 50%;
-  background: #000;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 18px;
-  box-shadow: 0 0 32px rgba(124,58,237,.5), 0 0 0 3px rgba(124,58,237,.4);
-  overflow: hidden;
-  padding: 0;
-}
-#hvbs-gate-card .gate-logo img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-}
-#hvbs-gate-card h2 {
-  font-size: 22px; font-weight: 800; color: #f8fafc; margin-bottom: 8px;
-}
-#hvbs-gate-card p {
-  font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 28px;
-}
-
-/* ── Wallet Connect Button ───────────────────────────────────*/
-#hvbs-wallet-btn {
-  width: 100%; padding: 15px; border: none; border-radius: 14px;
-  background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  color: #fff; font-size: 15px; font-weight: 700;
-  cursor: pointer; transition: .2s; margin-bottom: 12px;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-}
-#hvbs-wallet-btn:hover { opacity: .9; transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(124,58,237,.5); }
-#hvbs-wallet-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-
-/* ── Status / Messages ──────────────────────────────────────*/
-#hvbs-gate-status {
-  font-size: 13px; min-height: 20px;
-  color: #94a3b8; margin-top: 4px; transition: .2s;
-}
-#hvbs-gate-status.ok  { color: #34d399; }
-#hvbs-gate-status.err { color: #f87171; }
-
-/* ── Admin Badge (shown in page after gate clears) ──────────*/
-#hvbs-admin-badge {
-  display: none;
-  position: fixed; top: 16px; right: 16px; z-index: 9000;
-  background: linear-gradient(135deg,rgba(124,58,237,.25),rgba(79,70,229,.25));
-  border: 1px solid rgba(167,139,250,.6);
-  color: #c4b5fd; font-size: 13px; font-weight: 700;
-  padding: 8px 16px; border-radius: 50px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 16px rgba(124,58,237,.3);
-  animation: fadeIn .4s ease;
-}
-
-/* ── Wallet Pill (shown after connect) ──────────────────────*/
-#hvbs-wallet-pill {
-  display: none;
-  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-  z-index: 9000;
-  background: rgba(15,23,42,.85);
-  border: 1px solid rgba(255,255,255,.15);
-  color: #e2e8f0; font-size: 12px; font-weight: 600;
-  padding: 6px 14px; border-radius: 50px;
-  backdrop-filter: blur(12px);
-  font-family: 'JetBrains Mono', monospace;
-}
-
-/* ── PRO Subscribe card inside gate ─────────────────────────*/
-#hvbs-sub-card {
-  display: none;
-  background: rgba(0,0,0,.3);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 14px; padding: 20px; margin-top: 16px; text-align: left;
-}
-#hvbs-sub-card h3 { font-size: 15px; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
-#hvbs-sub-card p  { font-size: 13px; color: #94a3b8; margin-bottom: 14px; }
-.hvbs-price-big {
-  font-size: 36px; font-weight: 900; text-align: center;
-  background: linear-gradient(135deg,#a855f7,#ec4899);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  margin-bottom: 4px;
-}
-.hvbs-price-per { font-size: 12px; color: #64748b; text-align: center; margin-bottom: 16px; }
-#hvbs-go-pay {
-  width: 100%; padding: 14px; border: none; border-radius: 12px;
-  background: linear-gradient(135deg,#a855f7,#7c3aed);
-  color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
-  transition: .2s;
-}
-#hvbs-go-pay:hover { opacity: .9; transform: translateY(-1px); }
-.hvbs-burn-note-sm {
-  font-size: 13px;
-  font-weight: 800;
-  text-align: center;
-  margin-top: 12px;
-  line-height: 1.6;
-  letter-spacing: 0.02em;
-  color: #facc15;
-  text-shadow:
-    0 1px 0 #b45309,
-    0 2px 0 #92400e,
-    0 3px 4px rgba(0,0,0,0.6);
-  animation: burnBlink 1.4s ease-in-out infinite;
-}
-@keyframes burnBlink {
-  0%,100% { opacity:1; text-shadow: 0 1px 0 #b45309, 0 2px 0 #92400e, 0 3px 6px rgba(0,0,0,.7), 0 0 14px #facc15; }
-  50%      { opacity:.55; text-shadow: 0 1px 0 #b45309, 0 2px 0 #92400e, 0 3px 4px rgba(0,0,0,.5); }
-}
-/* 1-Step 2-Benefits badge */
-.hvbs-dual-benefit {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 12px 0 20px;
-  background: linear-gradient(135deg, rgba(124,58,237,.15), rgba(234,179,8,.1));
-  border: 1px solid rgba(250,204,21,.25);
-  border-radius: 50px;
-  padding: 8px 18px;
-  flex-wrap: wrap;
-}
-.hvbs-dual-benefit .step-label {
-  font-size: 11px;
-  font-weight: 800;
-  color: #facc15;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-}
-.hvbs-dual-benefit .sep { color: rgba(255,255,255,.3); font-size: 14px; }
-.hvbs-dual-benefit .benefit {
-  font-size: 11px;
-  font-weight: 700;
-  color: #e2e8f0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-</style>
-
-<!-- ── Access Gate HTML ──────────────────────────────────────────── -->
-<div id="hvbs-access-gate">
-  <div id="hvbs-gate-card">
-    <div class="gate-logo" id="hvbs-gate-logo-div"><img src="/favicon.png" alt="HVBS" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"></div>
-    <h2>PRO Access Required</h2>
-    <p>Connect your Phantom wallet to verify your PRO subscription,<br>or access with the admin wallet.</p>
-
-    <!-- 1 Step · 2 Benefits badge -->
-    <div class="hvbs-dual-benefit">
-      <span class="step-label">⚡ 1 Step</span>
-      <span class="sep">→</span>
-      <span class="benefit">💎 PRO Access</span>
-      <span class="sep">+</span>
-      <span class="benefit">🔥 ALERT Token Burn</span>
-    </div>
-
-    <button id="hvbs-wallet-btn" onclick="hvbsConnectWallet()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/></svg>
-      Connect Phantom Wallet
-    </button>
-
-    <div id="hvbs-gate-status">Waiting for wallet connection…</div>
-
-    <!-- PRO Subscribe card — shown when wallet connected but no sub -->
-    <div id="hvbs-sub-card">
-      <h3>🔐 No Active Subscription</h3>
-      <p>Subscribe for full PRO access. 100% of revenue burns ALERT tokens.</p>
-      <div class="hvbs-price-big">$3</div>
-      <div class="hvbs-price-per">per month · cancel anytime</div>
-      <button id="hvbs-go-pay" onclick="window.location.href='payment.html'">💎 Subscribe Now</button>
-      <div class="hvbs-burn-note-sm">🔥 Every $3 buys &amp; burns ALERT tokens on-chain.</div>
-    </div>
-  </div>
-</div>
-
-<!-- ── Admin Badge + Wallet Pill ─────────────────────────────── -->
-<div id="hvbs-admin-badge">🛡️ Admin Access Granted</div>
-<div id="hvbs-wallet-pill"></div>
-
-<script>
-(function () {
-  /* ── Config ─────────────────────────────────────────────── */
-  const ADMIN_WALLET = 'DKaLRLF17JeAnHpYsBgRZnNVFPnKC2gnDn5cHUtLMsAz';
-  const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min cache for sub status
-
-  /* ── Helpers ─────────────────────────────────────────────── */
-  function setStatus(msg, type) {
-    const el = document.getElementById('hvbs-gate-status');
-    el.textContent = msg;
-    el.className = type || '';
-  }
-
-  function unlockPage(isAdmin, walletAddr) {
-    const gate = document.getElementById('hvbs-access-gate');
-    gate.classList.add('fade-out');
-    setTimeout(() => gate.remove(), 450);
-
-    // Show wallet pill
-    const pill = document.getElementById('hvbs-wallet-pill');
-    pill.textContent = walletAddr.slice(0, 6) + '…' + walletAddr.slice(-4);
-    pill.style.display = 'block';
-
-    // Admin badge
-    if (isAdmin) {
-      document.getElementById('hvbs-admin-badge').style.display = 'block';
-    }
-  }
-
-  /* ── Subscription check via backend ─────────────────────── */
-  async function checkSubscription(wallet) {
-    // Check local cache first
-    try {
-      const cached = JSON.parse(localStorage.getItem('hvbs_sub_cache') || '{}');
-      if (cached.wallet === wallet && cached.ts && (Date.now() - cached.ts) < CACHE_TTL_MS) {
-        return cached.active;
-      }
-    } catch (e) {}
-
-    try {
-      const r = await fetch('/subscription-status?wallet=' + encodeURIComponent(wallet));
-      const d = await r.json();
-      localStorage.setItem('hvbs_sub_cache', JSON.stringify({
-        wallet, active: !!d.active, ts: Date.now()
-      }));
-      return !!d.active;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /* ── Main connect flow ───────────────────────────────────── */
-  window.hvbsConnectWallet = async function () {
-    const btn = document.getElementById('hvbs-wallet-btn');
-
-    // Phantom not installed
-    if (!window.solana || !window.solana.isPhantom) {
-      setStatus('Phantom not found. Please install it and refresh.', 'err');
-      window.open('https://phantom.app/', '_blank');
-      return;
-    }
-
-    btn.disabled = true;
-    setStatus('Connecting to Phantom…');
-
-    try {
-      const resp = await window.solana.connect();
-      const wallet = resp.publicKey.toString();
-
-      // ── ADMIN CHECK (bypass everything) ──────────────────
-      if (wallet === ADMIN_WALLET) {
-        setStatus('✅ Admin wallet detected!', 'ok');
-        setTimeout(() => unlockPage(true, wallet), 600);
-        return;
-      }
-
-      // ── NORMAL USER: check subscription ──────────────────
-      setStatus('Verifying subscription…');
-      const isActive = await checkSubscription(wallet);
-
-      if (isActive) {
-        setStatus('✅ PRO subscription active!', 'ok');
-        setTimeout(() => unlockPage(false, wallet), 600);
-      } else {
-        setStatus('❌ No active subscription found.', 'err');
-        document.getElementById('hvbs-sub-card').style.display = 'block';
-        btn.disabled = false;
-        btn.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/>
-          </svg>
-          Reconnect Wallet`;
-      }
-    } catch (err) {
-      // User rejected
-      setStatus('Connection cancelled. Please try again.', 'err');
-      btn.disabled = false;
-    }
-  };
-
-  /* ── Auto-connect if Phantom already trusted ─────────────── */
-  window.addEventListener('load', async () => {
-    if (window.solana && window.solana.isPhantom) {
-      try {
-        const resp = await window.solana.connect({ onlyIfTrusted: true });
-        const wallet = resp.publicKey.toString();
-
-        if (wallet === ADMIN_WALLET) {
-          setStatus('✅ Admin wallet auto-detected!', 'ok');
-          setTimeout(() => unlockPage(true, wallet), 400);
-          return;
-        }
-
-        setStatus('Verifying subscription…');
-        const isActive = await checkSubscription(wallet);
-        if (isActive) {
-          setStatus('✅ PRO subscription active!', 'ok');
-          setTimeout(() => unlockPage(false, wallet), 400);
-        } else {
-          setStatus('❌ No active subscription.', 'err');
-          document.getElementById('hvbs-sub-card').style.display = 'block';
-        }
-      } catch (e) {
-        // Not trusted yet — user must click connect manually
-      }
-    }
-  });
-})();
-</script>
+<!-- Access gate removed, direct access enabled -->
 
 <!-- Matrix Rain Animation Script -->
 <script>

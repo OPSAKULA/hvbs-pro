@@ -22,6 +22,10 @@ const ADMIN_WALLET = "DKaLRLF17JeAnHpYsBgRZnNVFPnKC2gnDn5cHUtLMsAz";
 const SUB_PRICE_USD = 3;
 const SUB_DURATION_DAYS = 30;
 
+// AI Trading Bot — Admin Rights gate. Checked server-side only via
+// POST /api/verify-bot-access; never sent to or stored in frontend code.
+const BOT_ACCESS_PASSWORD = process.env.BOT_ACCESS_PASSWORD || "Vj@7159ender321";
+
 // USDC & USDT mint addresses (Solana mainnet)
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
@@ -1982,6 +1986,20 @@ app.get("/index.html", (req, res) => {
 // PRO Alerts route
 app.get("/pro-alerts", (req, res) => {
   res.sendFile(process.cwd() + "/pro-alerts.html");
+});
+
+// ========== AI TRADING BOT — ADMIN ACCESS ==========
+// Verifies the Admin Rights password server-side. The password is never sent
+// to, stored in, or checked by frontend code — only compared here.
+app.post("/api/verify-bot-access", (req, res) => {
+  const { password } = req.body || {};
+  if (typeof password !== "string" || !password) {
+    return res.status(400).json({ success: false, error: "Password required" });
+  }
+  if (password === BOT_ACCESS_PASSWORD) {
+    return res.json({ success: true });
+  }
+  return res.status(401).json({ success: false, error: "Incorrect password" });
 });
 
 // ========== SOUND ENDPOINTS ==========
