@@ -1,4 +1,4 @@
-# 🚀 HVBS Pro – AI-Powered Solana Token Scanner
+# 🚀 Solana • BNB Chain • Ethereum • Base • Robinhood Chain
 
 [![🌐 Website](https://img.shields.io/badge/Website-hvbsai.com-blue?style=for-the-badge\&logo=google-chrome)](https://hvbsai.com/)
 
