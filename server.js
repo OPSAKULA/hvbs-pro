@@ -1074,7 +1074,9 @@ async function checkAllAlerts() {
           ? await getMarketDataBase(addr)
           : chain === 'ethereum'
             ? await getMarketDataEth(addr)
-            : await getMarketData(addr);
+            : chain === 'robinhood'
+              ? await getMarketDataRobinhood(addr)
+              : await getMarketData(addr);
 
       if (market) {
         let triggered = false;
@@ -2162,7 +2164,7 @@ function setupBotHandlers() {
           userStates[chatId] = { step: 'waiting_price', direction: state.direction, address: text, chain };
 
           // Fetch live price
-          const market = chain === 'bsc' ? await getMarketDataBNB(text) : chain === 'base' ? await getMarketDataBase(text) : await getMarketDataEth(text);
+          const market = chain === 'bsc' ? await getMarketDataBNB(text) : chain === 'base' ? await getMarketDataBase(text) : chain === 'robinhood' ? await getMarketDataRobinhood(text) : await getMarketDataEth(text);
 
           if (market && market.price) {
             const priceDisplay = market.price < 0.01
@@ -2292,7 +2294,7 @@ function setupBotHandlers() {
         ).catch(e => { });
 
         // Check if already triggered
-        const market = chain === 'bsc' ? await getMarketDataBNB(address) : chain === 'base' ? await getMarketDataBase(address) : chain === 'ethereum' ? await getMarketDataEth(address) : await getMarketData(address);
+        const market = chain === 'bsc' ? await getMarketDataBNB(address) : chain === 'base' ? await getMarketDataBase(address) : chain === 'ethereum' ? await getMarketDataEth(address) : chain === 'robinhood' ? await getMarketDataRobinhood(address) : await getMarketData(address);
         if (market) {
           const already = (direction === 'above' && market.price >= targetPrice) || (direction === 'below' && market.price <= targetPrice);
           if (already) {
@@ -2331,7 +2333,7 @@ function setupBotHandlers() {
         chain = detected.chain || 'ethereum';
         chainLabel = CHAIN_LABELS[chain] || '⟠ ETH';
         userStates[chatId].chain = chain;
-        market = chain === 'bsc' ? await getMarketDataBNB(text) : chain === 'base' ? await getMarketDataBase(text) : await getMarketDataEth(text);
+        market = chain === 'bsc' ? await getMarketDataBNB(text) : chain === 'base' ? await getMarketDataBase(text) : chain === 'robinhood' ? await getMarketDataRobinhood(text) : await getMarketDataEth(text);
       } else {
         market = await getMarketData(text);
       }
