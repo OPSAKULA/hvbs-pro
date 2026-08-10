@@ -8,7 +8,7 @@
 
 [![🐦 X (Twitter)](https://img.shields.io/badge/X-@alerthvbsai-black?style=for-the-badge\&logo=twitter)](https://x.com/alerthvbsai)
 
-> **Real-time Solana token analysis + Telegram price alerts with custom sound.**
+> **Real-time Solana • BNB Chain • Ethereum • Base • Robinhood Chain analysis + Telegram price alerts with custom sound.**
 
 ## ✨ Features
 
