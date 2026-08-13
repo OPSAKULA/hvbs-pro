@@ -1070,7 +1070,7 @@ async function checkAllAlerts() {
       // Auto-detect chain: saved chain field OR address format
       const isEthAddress = /^0x[0-9a-fA-F]{40}$/.test(addr);
       const chain = alert.chain || (isEthAddress ? 'ethereum' : 'solana');
-      const chainLabel = chain === 'bsc' ? '🟡 BNB' : chain === 'base' ? '🔵 Base' : chain === 'ethereum' ? '⟠ ETH' : '◎ SOL';
+      const chainLabel = CHAIN_LABELS[chain] || '◎ Solana';
 
       const market = chain === 'bsc'
         ? await getMarketDataBNB(addr)
@@ -2294,7 +2294,7 @@ function setupBotHandlers() {
         saveData(ALERTS_FILE, alerts);
         delete userStates[chatId];
 
-        const chainLabel = chain === 'bsc' ? '🟡 BNB' : chain === 'base' ? '🔵 Base' : chain === 'ethereum' ? '⟠ ETH' : '◎ SOL';
+        const chainLabel = CHAIN_LABELS[chain] || '◎ Solana';
         sendMainKeyboard(chatId,
           `✅ *Alert Set Successfully!*\n\n📍 Token [${chainLabel}]: \`${address.slice(0, 8)}...\`\n📈 Direction: *${direction.toUpperCase()}*\n💰 Target Price: *$${targetPrice}*\n\nYou will be notified when price goes *${direction}* $${targetPrice}! 🎯\n\n_Use the buttons below to set another alert._`
         );
@@ -2736,7 +2736,7 @@ function setupBotHandlers() {
 
       userStates[chatId] = { step: 'waiting_price', direction, address, chain };
 
-      const chainLabel = chain === 'bsc' ? '🟡 BNB' : chain === 'ethereum' ? '⟠ ETH' : '◎ SOL';
+      const chainLabel = CHAIN_LABELS[chain] || '◎ Solana';
       const dirEmoji = direction === 'above' ? '📈' : '📉';
 
       bot.editMessageText(
