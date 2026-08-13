@@ -2267,5 +2267,146 @@ document.getElementById("tokenAddress").addEventListener("input", e => {
   });
 })();
 </script>
+<!-- ══════════════════════════════════════════════════════════════════════
+     HVBS WALLET SIDE PANEL
+     Loaded as an isolated iframe on purpose: wallet.html/wallet_app.js/wallet.js
+     define their own globals (activeNetwork, walletAddress, lockWallet(), etc.)
+     which could silently collide with this page's existing script if merged
+     directly into the same document. All CSS/JS below is namespaced with an
+     "hvbsWalletDock" prefix so it can't clash with anything already on the page.
+     ══════════════════════════════════════════════════════════════════════ -->
+<style>
+  #hvbsWalletDockTab {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 999998;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border: 1px solid rgba(193,255,0,0.35);
+    border-right: none;
+    border-radius: 0.9rem 0 0 0.9rem;
+    color: #C1FF00;
+    padding: 0.9rem 0.6rem;
+    cursor: pointer;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    box-shadow: -4px 0 14px rgba(0,0,0,0.35);
+    transition: padding 0.2s ease, box-shadow 0.2s ease;
+  }
+  #hvbsWalletDockTab:hover {
+    padding-right: 0.9rem;
+    box-shadow: -4px 0 20px rgba(193,255,0,0.25);
+  }
+
+  #hvbsWalletDockOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2,6,15,0.55);
+    backdrop-filter: blur(2px);
+    z-index: 999997;
+    display: none;
+  }
+  #hvbsWalletDockOverlay.hvbs-open { display: block; }
+
+  #hvbsWalletDockPanel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 420px;
+    max-width: 92vw;
+    background: #050b1a;
+    border-left: 1px solid rgba(193,255,0,0.25);
+    box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+    z-index: 999999;
+    transform: translateX(100%);
+    transition: transform 0.28s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  #hvbsWalletDockPanel.hvbs-open { transform: translateX(0); }
+
+  #hvbsWalletDockHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
+  }
+  #hvbsWalletDockHeader span {
+    font-weight: 700;
+    color: #C1FF00;
+    font-size: 0.95rem;
+  }
+  #hvbsWalletDockClose {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+  }
+  #hvbsWalletDockClose:hover { color: #fff; }
+
+  #hvbsWalletDockFrame {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: #050b1a;
+  }
+
+  @media (max-width: 640px) {
+    #hvbsWalletDockPanel { width: 100vw; max-width: 100vw; }
+    #hvbsWalletDockTab { padding: 0.7rem 0.5rem; font-size: 0.75rem; }
+  }
+</style>
+
+<button id="hvbsWalletDockTab" onclick="hvbsWalletDockOpen()" title="Open Wallet">💳 WALLET</button>
+<div id="hvbsWalletDockOverlay" onclick="hvbsWalletDockClose()"></div>
+<div id="hvbsWalletDockPanel">
+  <div id="hvbsWalletDockHeader">
+    <span>💳 HVBS AI Wallet</span>
+    <button id="hvbsWalletDockClose" onclick="hvbsWalletDockClose()" title="Close">×</button>
+  </div>
+  <iframe id="hvbsWalletDockFrame" src="about:blank" title="HVBS AI Wallet"></iframe>
+</div>
+
+<script>
+  (function () {
+    var panel = document.getElementById('hvbsWalletDockPanel');
+    var overlay = document.getElementById('hvbsWalletDockOverlay');
+    var frame = document.getElementById('hvbsWalletDockFrame');
+    var loaded = false;
+
+    window.hvbsWalletDockOpen = function () {
+      // Lazy-load the wallet only on first open, so it doesn't cost load
+      // time or run its own scripts (RPC calls, price polling, etc.) on
+      // every page visit for users who never touch the wallet.
+      if (!loaded) {
+        frame.src = 'wallet.html';
+        loaded = true;
+      }
+      panel.classList.add('hvbs-open');
+      overlay.classList.add('hvbs-open');
+      document.body.style.overflow = 'hidden';
+    };
+
+    window.hvbsWalletDockClose = function () {
+      panel.classList.remove('hvbs-open');
+      overlay.classList.remove('hvbs-open');
+      document.body.style.overflow = '';
+    };
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') window.hvbsWalletDockClose();
+    });
+  })();
+</script>
 </body>
 </html>

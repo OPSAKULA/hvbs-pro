@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>HVBS AI Wallet — Robinhood Chain</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- CDNs for EVM and QR Codes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  
+  <style>
+    :root {
+      --bg: #050b1a;
+      --bg-card: rgba(30, 41, 59, 0.45);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      
+      /* Accent colors */
+      --primary: #c1ff00; /* Robinhood Chain Lime Green */
+      --primary-dim: rgba(193, 255, 0, 0.15);
+      --secondary: #8b5cf6; /* Violet */
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f5c518;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Background matrix particles overlay */
+    .bg-glow {
+      position: fixed;
+      top: -20%;
+      left: -20%;
+      width: 140vw;
+      height: 140vh;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(193, 255, 0, 0.03) 50%, rgba(0,0,0,0) 100%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(5, 11, 26, 0.85);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 15px var(--primary-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--primary);
+      background: var(--bg);
+    }
+
+    .brand-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-title span {
+      color: var(--primary);
+    }
+
+    .network-badge-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .network-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      outline: none;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .network-select:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-lock {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-lock:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* Screen States */
+    .screen-state {
+      display: none;
+      width: 100%;
+      animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .screen-state.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Auth Screens Styles */
+    .auth-container {
+      max-width: 480px;
+      margin: 4rem auto;
+      text-align: center;
+    }
+
+    .auth-icon {
+      font-size: 3rem;
+      margin-bottom: 1.5rem;
+      color: var(--primary);
+    }
+
+    .auth-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .auth-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, var(--primary));
+      color: #050b1a;
+      box-shadow: 0 4px 15px rgba(193, 255, 0, 0.25);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid var(--border);
+      margin-top: 10px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-field {
+      width: 100%;
+      background: rgba(5, 11, 26, 0.6);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 10px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(193, 255, 0, 0.15);
+    }
+
+    /* Mnemonic Display Grid */
+    .mnemonic-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 1.5rem 0;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 15px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .mnemonic-word {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .word-index {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .textarea-field {
+      width: 100%;
+      min-height: 80px;
+      background: rgba(5, 11, 26, 0.6);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 10px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      resize: vertical;
+      margin-bottom: 1.5rem;
+    }
+
+    .warning-box {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 10px;
+      padding: 12px;
+      color: #ff8888;
+      font-size: 0.85rem;
+      text-align: left;
+      line-height: 1.4;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Main Dashboard Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 992px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      margin-bottom: 2rem;
+    }
+
+    .panel-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Balance / Portfolio Overview */
+    .portfolio-hero {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(193, 255, 0, 0.05));
+      border: 1px solid rgba(193, 255, 0, 0.25);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .balance-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .balance-val {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 8px 0;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .balance-usd {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .pnl-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-top: 15px;
+    }
+
+    .pnl-badge.profit {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .pnl-badge.loss {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .dashboard-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 1.5rem;
+    }
+
+    .btn-action {
+      padding: 10px;
+      font-size: 0.9rem;
+      border-radius: 10px;
+    }
+
+    /* P&L Calculator Styles */
+    .calculator-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .calculator-stat {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      padding: 15px;
+      border-radius: 10px;
+    }
+
+    .stat-lbl {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-val {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Transaction history table */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+
+    .tx-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .tx-table th {
+      padding: 12px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tx-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .tx-hash-link {
+      font-family: 'Space Mono', monospace;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .tx-hash-link:hover {
+      text-decoration: underline;
+    }
+
+    .tx-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .tx-status.success {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+    }
+
+    .tx-status.pending {
+      background: rgba(245, 197, 24, 0.15);
+      color: var(--yellow);
+    }
+
+    .tx-status.failed {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+    }
+
+    /* Receive QR code styling */
+    .qr-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 15px;
+      border: 1px solid var(--border);
+    }
+
+    .qr-wrapper {
+      padding: 15px;
+      background: white;
+      border-radius: 12px;
+    }
+
+    .address-copier {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .address-text {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-copy {
+      background: none;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* Modal / Popup for Transaction Logging */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 11, 26, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .btn-close-modal {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    /* Footer styling */
+    footer {
+      padding: 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .custom-trade-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 15px;
+      background: rgba(0,0,0,0.15);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 10px;
+    }
+
+    .custom-trade-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.85rem;
+    }
+
+    .custom-trade-item:last-child {
+      border: none;
+    }
+
+    /* Wallet Activity Feed */
+    .activity-list {
+      max-height: 420px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .activity-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .activity-icon {
+      font-size: 1.3rem;
+      line-height: 1.4;
+      flex-shrink: 0;
+    }
+
+    .activity-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .activity-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .activity-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .activity-type-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(193, 255, 0, 0.12);
+      color: var(--primary);
+      white-space: nowrap;
+    }
+
+    .activity-type-badge.activity-send { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+    .activity-type-badge.activity-receive { background: rgba(16, 185, 129, 0.15); color: var(--green); }
+    .activity-type-badge.activity-swap { background: rgba(139, 92, 246, 0.18); color: var(--secondary); }
+    .activity-type-badge.activity-bridge { background: rgba(0, 112, 243, 0.18); color: #0070f3; }
+    .activity-type-badge.activity-deposit { background: rgba(245, 197, 24, 0.15); color: var(--yellow); }
+
+    .activity-detail {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .activity-bottom-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .activity-hash-link {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .activity-hash-link:hover {
+      text-decoration: underline;
+    }
+
+    .activity-hash-simulated {
+      color: var(--text-muted);
+      cursor: default;
+      border-bottom: 1px dashed var(--text-muted);
+    }
+
+    .activity-hash-simulated:hover {
+      text-decoration: none;
+    }
+
+    .activity-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Token Selector & Custom Metamask style UI elements */
+    .token-select-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 20px;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .token-select-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--primary);
+    }
+    .token-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .token-row:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--primary);
+    }
+    .token-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .token-symbol {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .token-name {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+    .token-bal {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="bg-glow"></div>
+
+  <!-- Header with Brand and Lock/Unlock status -->
+  <header>
+    <a href="index.html" class="brand">
+      <div class="brand-logo">H</div>
+      <div class="brand-title">HVBS <span>Wallet</span></div>
+    </a>
+    <div class="network-badge-container">
+      <select id="networkSelect" class="network-select" onchange="changeNetwork()">
+        <option value="testnet">Testnet (Chain 46630)</option>
+        <option value="mainnet">Mainnet (Chain 4663)</option>
+      </select>
+      <button id="lockBtn" class="btn-lock" style="display: none;" onclick="lockWallet()">Lock</button>
+    </div>
+  </header>
+
+  <main>
+    
+    <!-- 1. Screen: Setup / Onboarding Welcome -->
+    <div id="screenOnboarding" class="screen-state auth-container glass-card active">
+      <div class="auth-icon">🛡️</div>
+      <h2 class="auth-title">Welcome to HVBS AI Wallet</h2>
+      <p class="auth-desc">A non-custodial, client-side EVM wallet built for the Robinhood Chain. Generate a new wallet or import your seed phrase securely.</p>
+      <button class="btn btn-primary" onclick="showGenerateScreen()">Create New Wallet</button>
+      <button class="btn btn-secondary" onclick="showImportScreen()">Import Existing Wallet</button>
+    </div>
+
+    <!-- 2. Screen: Generate Wallet Mnemonic Setup -->
+    <div id="screenGenerate" class="screen-state auth-container glass-card">
+      <div class="auth-icon">🔑</div>
+      <h2 class="auth-title">Write Down Your Seed Phrase</h2>
+      <p class="auth-desc">Write down this 12-word mnemonic phrase in order and store it in a secure location. Anyone with this phrase can access your funds.</p>
+      
+      <div class="mnemonic-grid" id="generatedMnemonicGrid">
+        <!-- Rendered by JS -->
+      </div>
+      
+      <div class="warning-box">
+        ⚠️ DO NOT take screenshots or share this phrase with anyone. HVBS Support will never ask for your recovery phrase.
+      </div>
+      
+      <button class="btn btn-primary" onclick="showGeneratePasswordScreen()">I Have Written It Down</button>
+      <button class="btn btn-secondary" onclick="showOnboardingScreen()">Back</button>
+    </div>
+
+    <!-- 3. Screen: Set Encryption Password (Commit New/Import Wallet) -->
+    <div id="screenSetPassword" class="screen-state auth-container glass-card">
+      <div class="auth-icon">🔒</div>
+      <h2 class="auth-title">Create Wallet Password</h2>
+      <p class="auth-desc">Enter a password to encrypt and lock your recovery phrase securely in your browser's local storage.</p>
+      
+      <div class="form-group">
+        <label class="form-label" for="newPassword">New Password</label>
+        <input type="password" id="newPassword" class="input-field" placeholder="Enter secure password">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="confirmPassword">Confirm Password</label>
+        <input type="password" id="confirmPassword" class="input-field" placeholder="Re-enter password">
+      </div>
+      
+      <button class="btn btn-primary" onclick="commitWalletSetup()">Finish & Create Wallet</button>
+      <button class="btn btn-secondary" onclick="showOnboardingScreen()">Cancel</button>
+    </div>
+
+    <!-- 4. Screen: Import Wallet Mnemonic/Private Key -->
+    <div id="screenImport" class="screen-state auth-container glass-card">
+      <div class="auth-icon">📥</div>
+      <h2 class="auth-title">Import Wallet</h2>
+      <p class="auth-desc">Paste your 12-word seed phrase or private key below to import and encrypt your wallet.</p>
+      
+      <div class="form-group">
+        <label class="form-label" for="importInput">Seed Phrase or Private Key</label>
+        <textarea id="importInput" class="textarea-field" placeholder="word1 word2 ... or 0x..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="importPassword">Encryption Password</label>
+        <input type="password" id="importPassword" class="input-field" placeholder="Enter password to lock wallet">
+      </div>
+      
+      <button class="btn btn-primary" onclick="commitWalletImport()">Import & Encrypt</button>
+      <button class="btn btn-secondary" onclick="showOnboardingScreen()">Cancel</button>
+    </div>
+
+    <!-- 5. Screen: Unlock Wallet -->
+    <div id="screenUnlock" class="screen-state auth-container glass-card">
+      <div class="auth-icon">🔓</div>
+      <h2 class="auth-title">Unlock Your Wallet</h2>
+      <p class="auth-desc">Enter your password to decrypt the secure local key storage.</p>
+      
+      <div class="form-group">
+        <label class="form-label" for="unlockPassword">Password</label>
+        <input type="password" id="unlockPassword" class="input-field" placeholder="Enter your password">
+      </div>
+      
+      <button class="btn btn-primary" onclick="submitUnlockWallet()">Unlock Wallet</button>
+      <button class="btn btn-secondary" style="color: var(--red); border-color: rgba(239, 68, 68, 0.3);" onclick="confirmDeleteWallet()">Reset & Purge Wallet</button>
+    </div>
+
+    <!-- 6. Screen: Active Dashboard -->
+    <div id="screenDashboard" class="screen-state">
+      <div class="dashboard-grid">
+        
+        <!-- Left Column: Balances, Calculators, Transaction Log -->
+        <div>
+          <!-- Portfolio Balance Summary card -->
+          <div class="panel">
+            <div class="portfolio-hero">
+              <div class="balance-label">Total Portfolio Balance</div>
+              <div class="balance-val" id="displayBalance">0.00 ETH</div>
+              <div class="balance-usd" id="displayBalanceUsd">$0.00 USD</div>
+              <div class="pnl-badge profit" id="displayGlobalPnl">P&L: $0.00 (0.00%)</div>
+              
+              <div class="dashboard-actions" style="grid-template-columns: repeat(3, 1fr);">
+                <button class="btn btn-primary btn-action" onclick="openSendModal()">💸 Send</button>
+                <button class="btn btn-secondary btn-action" style="margin-top:0;" onclick="openDepositModal()">📥 Deposit</button>
+                <button class="btn btn-secondary btn-action" style="margin-top:0; border-color: rgba(193, 255, 0, 0.45);" onclick="openSwapModal()">🔄 Swap</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- P&L Calculator Panel -->
+          <div class="panel glass-card">
+            <div class="panel-title">
+              <span>📊</span> Live Portfolio & P&L Calculator
+            </div>
+            <div class="calculator-grid">
+              <div class="calculator-stat">
+                <div class="stat-lbl">Total Invested (USDT)</div>
+                <div class="stat-val" id="pnlTotalInvested">$0.00</div>
+              </div>
+              <div class="calculator-stat">
+                <div class="stat-lbl">Current Portfolio Value</div>
+                <div class="stat-val" id="pnlCurrentValue">$0.00</div>
+              </div>
+              <div class="calculator-stat">
+                <div class="stat-lbl">Realized P&L</div>
+                <div class="stat-val" id="pnlRealized">$0.00</div>
+              </div>
+              <div class="calculator-stat">
+                <div class="stat-lbl">Unrealized P&L</div>
+                <div class="stat-val" id="pnlUnrealized">$0.00</div>
+              </div>
+              <div class="calculator-stat">
+                <div class="stat-lbl">Average Buy Price</div>
+                <div class="stat-val" id="pnlAvgBuyPrice">$0.00</div>
+              </div>
+              <div class="calculator-stat">
+                <div class="stat-lbl">Est. Gas Fees Paid</div>
+                <div class="stat-val" id="pnlTotalFees">$0.00</div>
+              </div>
+            </div>
+
+            <!-- Custom logged trades panel -->
+            <div class="custom-trade-list" id="loggedTradesContainer">
+              <!-- Logs rendered here -->
+            </div>
+          </div>
+
+          <!-- Wallet Activity Panel -->
+          <div class="panel glass-card">
+            <div class="panel-title"><span>🕒</span> Wallet Activity</div>
+            <div class="activity-list" id="activityFeedContainer">
+              <div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:20px 10px;">No activity yet. Send, swap, bridge, or deposit to see it here.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Quick Stats / Email Settings / Security Backup -->
+        <div>
+          <!-- Live Chain prices card -->
+          <div class="panel glass-card">
+            <div class="panel-title"><span>📈</span> Live Robinhood Chain Prices</div>
+            <div style="display:flex; flex-direction:column; gap: 15px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:1.25rem;">⟠</span>
+                  <strong>Ethereum Gas Token (ETH)</strong>
+                </div>
+                <div style="text-align:right;">
+                  <div id="liveEthPrice">$0.00</div>
+                  <small style="color:var(--green);" id="liveEthChange">--</small>
+                </div>
+              </div>
+              
+              <!-- Robinhood Gas Gwei Price -->
+              <div style="display:flex; justify-content:space-between; align-items:center; border-top: 1px solid var(--border); padding-top: 15px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:1.25rem;">⛽</span>
+                  <strong>Network Gas Price</strong>
+                </div>
+                <div style="text-align:right;">
+                  <div id="liveGasPrice">0.0 Gwei</div>
+                  <small style="color:var(--text-muted);" id="liveNetworkName">Robinhood Chain</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Email Transaction Alerts settings panel -->
+          <div class="panel glass-card">
+            <div class="panel-title"><span>📧</span> Transaction Email Reports</div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.4;">
+              HVBS AI offers secure email notifications for all wallet transactions (BUY, SELL, SEND, RECEIVE). Your key files never leave the browser.
+            </p>
+            <div class="form-group">
+              <label class="form-label" for="settingEmail">Report Destination Email</label>
+              <input type="email" id="settingEmail" class="input-field" placeholder="Enter notification email">
+            </div>
+            
+            <div style="display:flex; gap:10px;">
+              <button id="saveEmailBtn" class="btn btn-primary" style="padding:8px; flex:1;" onclick="saveEmailSettings()">Save Email</button>
+              <button id="clearEmailBtn" class="btn btn-secondary" style="padding:8px; margin-top:0; display:none; background:rgba(255, 75, 75, 0.15); border:1px solid rgba(255, 75, 75, 0.4); color:#ff4b4b;" onclick="clearEmailSettings()">Remove Email</button>
+            </div>
+            <button id="testEmailBtn" class="btn btn-secondary" style="width:100%; margin-top:10px; padding:8px; display:none; background:rgba(255,255,255,0.05); border:1px solid var(--border);" onclick="sendTestEmailNotification()">Send Test Email</button>
+            
+            <div id="emailConfigStatus" style="font-size:0.8rem; margin-top:10px; padding:6px 10px; border-radius:6px; background: rgba(0,200,120,0.1); border:1px solid rgba(0,200,120,0.25); color: var(--green); display:none;"></div>
+          </div>
+
+          <!-- Security Backup settings card -->
+          <div class="panel glass-card">
+            <div class="panel-title"><span>🔑</span> Security Backup Options</div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem; line-height: 1.4;">
+              Ensure you have your 12-word seed phrase or private key backed up. HVBS AI is non-custodial and cannot restore lost accounts.
+            </p>
+            <div class="form-group">
+              <label class="form-label" for="backupVerifyPassword">Verify Password</label>
+              <input type="password" id="backupVerifyPassword" class="input-field" placeholder="Confirm your password">
+            </div>
+            <button class="btn btn-secondary" style="margin-top:0;" onclick="revealBackupDetails()">Show Private Keys / Seed</button>
+            
+            <div id="revealedSecretContainer" style="display:none; margin-top: 15px; background: rgba(0,0,0,0.3); padding:15px; border-radius: 8px; border:1px solid var(--border);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;">
+                <span class="form-label" style="font-size:0.75rem; margin:0; font-weight:700;">Secret Details</span>
+                <button class="btn-copy" onclick="hideBackupDetails()" style="font-size:0.75rem; color:var(--red);">Hide</button>
+              </div>
+              <label class="form-label" style="font-size:0.75rem;">Mnemonic Seed Phrase</label>
+              <div id="backupMnemonicReveal" style="font-family:'Space Mono', monospace; font-size: 0.8rem; margin-bottom:10px; color: var(--primary);"></div>
+              <label class="form-label" style="font-size:0.75rem;">Private Key</label>
+              <div id="backupPrivateKeyReveal" style="font-family:'Space Mono', monospace; font-size: 0.7rem; word-break: break-all; color: var(--secondary);"></div>
+              <div id="autoHideCountdown" style="font-size:0.7rem; color:var(--text-muted); margin-top:8px; text-align:right; font-family:'Space Mono', monospace;">Auto-hiding in 10s...</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal overlay: Send Transaction Form -->
+  <div class="modal-overlay" id="modalSend">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Send Crypto Transaction</h3>
+        <button class="btn-close-modal" onclick="closeSendModal()">×</button>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Asset to Send</label>
+        <select id="sendAssetSelect" class="input-field">
+          <option value="ETH">Native Ether (ETH)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="sendRecipientAddress">Recipient Address</label>
+        <input type="text" id="sendRecipientAddress" class="input-field" placeholder="0x...">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="sendAmount">Amount</label>
+        <input type="number" id="sendAmount" class="input-field" step="any" placeholder="0.0">
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+          <button type="button" class="btn-percent" onclick="setSendAmountPercent(0.25)" style="flex:1; padding: 0.4rem; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: pointer;">25%</button>
+          <button type="button" class="btn-percent" onclick="setSendAmountPercent(0.5)" style="flex:1; padding: 0.4rem; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: pointer;">50%</button>
+          <button type="button" class="btn-percent" onclick="setSendAmountPercent(0.75)" style="flex:1; padding: 0.4rem; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: pointer;">75%</button>
+          <button type="button" class="btn-percent" onclick="setSendAmountPercent(1)" style="flex:1; padding: 0.4rem; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: pointer;">MAX</button>
+        </div>
+      </div>
+
+      <div id="sendGasEstimateDisplay" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+        Estimated Gas: Calculating...
+      </div>
+
+      <button class="btn btn-primary" onclick="submitSendTransaction()">Submit Send Order</button>
+    </div>
+  </div>
+
+  <!-- Modal overlay: Deposit Panel (includes Receive Crypto) -->
+  <div class="modal-overlay" id="modalDeposit">
+    <div class="modal-card" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Deposit / Receive Crypto</h3>
+        <button class="btn-close-modal" onclick="closeDepositModal()">×</button>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+        <button id="depositTabReceiveBtn" class="btn-copy" style="color: var(--primary); font-weight: 700; border-bottom: 2px solid var(--primary); padding: 5px 10px;" onclick="switchDepositTab('receive')">Receive Address</button>
+        <button id="depositTabFiatBtn" class="btn-copy" style="color: var(--text-muted); font-weight: 500; padding: 5px 10px;" onclick="switchDepositTab('fiat')">Fast Card Deposit</button>
+      </div>
+
+      <!-- Tab: Receive Address -->
+      <div id="depositTabReceiveContent" style="display: block; text-align: center;">
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Scan the QR code or copy the address below to deposit native ETH or tokens on the Robinhood Chain.</p>
+        <div class="qr-container">
+          <div class="qr-wrapper" id="receiveQrCode" style="margin: 0 auto 15px;"></div>
+          <div class="address-copier">
+            <div class="address-text" id="receiveAddressText">0x000...000</div>
+            <button class="btn-copy" onclick="copyAddressToClipboard()">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Fiat Deposit Gate -->
+      <div id="depositTabFiatContent" style="display: none;">
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Deposit USD directly to receive Robinhood ETH. (Simulated Credit Card Gateway)</p>
+        <div class="form-group">
+          <label class="form-label">Deposit Amount (USD)</label>
+          <input type="number" id="fiatDepositAmount" class="input-field" placeholder="100.00" oninput="calculateFiatExchange()">
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px; display: flex; justify-content: space-between;">
+          <span>Estimated ETH:</span>
+          <strong id="fiatDepositEthEst" style="color: var(--primary);">0.0000 ETH</strong>
+        </div>
+        <button class="btn btn-primary" onclick="submitFiatDeposit()">Proceed to Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal overlay: Swap / Bridge Panel -->
+  <div class="modal-overlay" id="modalSwap">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🔄 Token Swap & Bridge</h3>
+        <button class="btn-close-modal" onclick="closeSwapModal()">×</button>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <button id="swapTabSwapBtn" class="btn-copy" style="color: var(--primary); font-weight: 700; border-bottom: 2px solid var(--primary); padding: 5px 10px;" onclick="switchSwapTab('swap')">Swap Tokens</button>
+        <button id="swapTabBridgeBtn" class="btn-copy" style="color: var(--text-muted); font-weight: 500; padding: 5px 10px;" onclick="switchSwapTab('bridge')">Cross-Chain Bridge</button>
+      </div>
+
+      <!-- Tab: Token Swap -->
+      <div id="swapTabSwapContent" style="display: block;">
+        <!-- Pay From -->
+        <div class="form-group" style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" style="margin:0;">You Pay</label>
+            <span style="font-size:0.8rem; color: var(--text-muted);">Bal: <span id="swapBalanceFrom" style="color:var(--text);">0.00</span></span>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="swapAmountFrom" class="input-field" placeholder="0.0" oninput="calculateSwapExchange()" style="flex:1;">
+            
+            <button type="button" id="swapPayTokenBtn" class="token-select-btn" onclick="openTokenSelector('from')" style="min-width: 160px; justify-content: space-between;">
+              <span id="swapPayTokenLabel">ETH (Robinhood)</span>
+              <span style="font-size:0.7rem; opacity:0.7;">▼</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Arrow Switch -->
+        <div style="text-align: center; margin: 5px 0;">
+          <button type="button" onclick="reverseSwapTokens()" class="btn-copy" style="background: rgba(0, 112, 243, 0.2); border: 1px solid rgba(0, 112, 243, 0.4); border-radius: 50%; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #0070f3; cursor: pointer; transition: all 0.2s; outline: none; margin: 0 auto; box-shadow: 0 0 10px rgba(0, 112, 243, 0.15);" onmouseover="this.style.background='rgba(0,112,243,0.35)';" onmouseout="this.style.background='rgba(0,112,243,0.2)';">
+            ⇅
+          </button>
+        </div>
+
+        <!-- Receive To -->
+        <div class="form-group" style="margin-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" style="margin:0;">You Receive</label>
+            <span style="font-size:0.8rem; color: var(--text-muted);">Bal: <span id="swapBalanceTo" style="color:var(--text);">0.00</span></span>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="swapAmountTo" class="input-field" placeholder="0.0" readonly style="flex:1; background: rgba(5,11,26,0.3); color: var(--text-muted);">
+            
+            <button type="button" id="swapReceiveTokenBtn" class="token-select-btn" onclick="openTokenSelector('to')" style="min-width: 160px; justify-content: space-between;">
+              <span id="swapReceiveTokenLabel">USDG</span>
+              <span style="font-size:0.7rem; opacity:0.7;">▼</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Rate display -->
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; display: flex; justify-content: space-between;">
+          <span>Exchange Rate:</span>
+          <span id="swapRateText">1 ETH (Robinhood) ≈ 1,885.00 USDG</span>
+        </div>
+
+
+
+        <!-- Slippage and Gas Fees Settings Accordion -->
+        <div style="border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px; background: rgba(0,0,0,0.15);">
+          <div style="display: flex; justify-content: space-between; padding: 10px; cursor: pointer; font-size: 0.85rem;" onclick="toggleSwapSettings()">
+            <strong>⚙️ Advanced Swap Settings (Gas & Slippage)</strong>
+            <span id="swapSettingsArrow">▼</span>
+          </div>
+          <div id="swapSettingsContent" style="display: none; padding: 10px; border-top: 1px solid var(--border); font-size: 0.85rem;">
+            <!-- Slippage Tolerance -->
+            <div style="margin-bottom: 12px;">
+              <div class="form-label" style="font-size: 0.75rem; margin-bottom: 6px;">Slippage Tolerance</div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-copy" onclick="setSlippage(0.1)" style="background: rgba(255,255,255,0.05); padding: 5px 8px; border-radius: 4px; border: 1px solid var(--border);">0.1%</button>
+                <button class="btn-copy" onclick="setSlippage(0.5)" style="background: rgba(193, 255, 0, 0.15); padding: 5px 8px; border-radius: 4px; border: 1px solid var(--primary); color: var(--primary);">0.5%</button>
+                <button class="btn-copy" onclick="setSlippage(1.0)" style="background: rgba(255,255,255,0.05); padding: 5px 8px; border-radius: 4px; border: 1px solid var(--border);">1.0%</button>
+                <input type="number" id="customSlippage" class="input-field" placeholder="Custom" style="padding: 4px 8px; height: 28px; width: 70px; margin: 0; font-size:0.8rem;" oninput="onCustomSlippageInput()">
+                <span style="align-self: center;">%</span>
+              </div>
+            </div>
+            <!-- Gas Fee Preference -->
+            <div>
+              <div class="form-label" style="font-size: 0.75rem; margin-bottom: 6px;">Gas Price Preference</div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-copy" onclick="setGasSpeed('standard')" id="gasSpeedStandard" style="background: rgba(193, 255, 0, 0.15); padding: 5px 8px; border-radius: 4px; border: 1px solid var(--primary); color: var(--primary);">Standard</button>
+                <button class="btn-copy" onclick="setGasSpeed('instant')" id="gasSpeedInstant" style="background: rgba(255,255,255,0.05); padding: 5px 8px; border-radius: 4px; border: 1px solid var(--border);">Instant (+20% Gwei)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breakdown table -->
+        <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 0.8rem; line-height: 1.6; margin-bottom: 20px; border: 1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between;">
+            <span>Minimum Received:</span>
+            <span id="swapMinReceived" style="color:var(--text);">0.00 RUSD</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Liquidity Provider Fee (0.2%):</span>
+            <span id="swapProtocolFee" style="color:var(--text);">0.00 ETH</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Network Tx Fee:</span>
+            <span id="swapGasCost" style="color:var(--text);">0.0001 ETH</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="submitTokenSwap()">Confirm Swap Exchange</button>
+      </div>
+
+      <!-- Tab: Cross-Chain Bridge -->
+      <div id="swapTabBridgeContent" style="display: none;">
+        <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 15px; align-items: flex-start;">
+          <!-- Left Column: Source Chain & Transfer Asset -->
+          <div style="flex:1;">
+            <label class="form-label" style="margin-bottom: 6px;">From Source Chain</label>
+            <div id="bridgeSourceChain" style="background: rgba(0,0,0,0.3); border:1px solid var(--border); padding:8px; border-radius:6px; font-size:0.85rem; font-weight:600; text-align: center; margin-bottom: 8px; color: var(--primary);">
+              Robinhood Chain
+            </div>
+            <label class="form-label" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">Transfer Asset</label>
+            <select id="bridgeToken" class="input-field" style="height: 36px; padding: 4px 8px; font-size: 0.85rem; margin:0;" onchange="calculateBridgeExchange()">
+              <option value="RH-ETH">ETH (Robinhood)</option>
+              <option value="ETH-ERC20">ETH (ERC-20)</option>
+              <option value="USDG">USDG</option>
+            </select>
+          </div>
+          
+          <!-- Middle Button -->
+          <div style="align-self: center; margin-top: 10px;">
+            <button type="button" onclick="reverseBridgeChains()" class="btn-copy" style="background: rgba(0, 112, 243, 0.2); border: 1px solid rgba(0, 112, 243, 0.4); border-radius: 50%; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #0070f3; cursor: pointer; transition: all 0.2s; outline: none;" onmouseover="this.style.background='rgba(0,112,243,0.35)';" onmouseout="this.style.background='rgba(0,112,243,0.2)';">
+              ⇄
+            </button>
+          </div>
+          
+          <!-- Right Column: Target Chain & Receive Asset -->
+          <div style="flex:1;">
+            <label class="form-label" style="margin-bottom: 6px;">To Target Chain</label>
+            <div id="bridgeTargetChain" style="background: rgba(0,0,0,0.3); border:1px solid var(--border); padding:8px; border-radius:6px; font-size:0.85rem; font-weight:600; text-align: center; margin-bottom: 8px; color: var(--primary);">
+              Ethereum Mainnet
+            </div>
+            <label class="form-label" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">Receive Asset</label>
+            <select id="bridgeReceiveToken" class="input-field" style="height: 36px; padding: 4px 8px; font-size: 0.85rem; margin:0;" onchange="calculateBridgeExchange()">
+              <option value="ETH-ERC20">ETH (ERC-20)</option>
+              <option value="RH-ETH">ETH (Robinhood)</option>
+              <option value="USDG">USDG</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Bridge Amount</label>
+          <input type="number" id="bridgeAmount" class="input-field" placeholder="0.0" oninput="calculateBridgeExchange()">
+        </div>
+
+        <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 0.8rem; line-height: 1.6; margin-bottom: 20px; border: 1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between;">
+            <span>Estimated Wait:</span>
+            <span style="color:var(--text);">~3-5 minutes</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Bridge Fee (0.1%):</span>
+            <span id="bridgeFeeCost" style="color:var(--text);">0.00 ETH</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Dest. Gas Fee:</span>
+            <span style="color:var(--text);">0.0025 <span id="bridgeGasSymbol">ETH</span></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 6px;">
+            <span>You Receive:</span>
+            <strong id="bridgeReceiveText" style="color:var(--primary);">0.00 ETH (ERC-20)</strong>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="submitBridgeTransfer()">Execute Cross-Chain Bridge</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal overlay: Uniswap style Select Token Modal -->
+  <div class="modal-overlay" id="modalSelectToken" style="z-index: 2000;">
+    <div class="modal-card" style="max-width: 400px; padding: 20px;">
+      <div class="modal-header" style="margin-bottom:12px;">
+        <h3 class="modal-title" id="tokenSelectorTitle">Select a token</h3>
+        <button class="btn-close-modal" onclick="closeTokenSelector()">×</button>
+      </div>
+
+      <!-- Network Badge Display -->
+      <div style="margin-bottom: 12px;">
+        <div style="background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:15px; padding:6px 12px; font-size:0.8rem; font-weight:600; display:inline-flex; align-items:center; gap:6px; color:var(--text-muted);">
+          <span style="width:8px; height:8px; background:var(--primary); border-radius:50%; display:inline-block;"></span> 
+          Network: Robinhood Chain Testnet
+        </div>
+      </div>
+
+      <!-- Search Input -->
+      <div class="form-group" style="margin-bottom:15px;">
+        <input type="text" id="tokenSearchInput" class="input-field" placeholder="Enter token name or address" oninput="filterTokensList()">
+      </div>
+
+      <!-- Token List Container -->
+      <div id="tokenListContainer" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; padding-right:3px;">
+        <!-- Rows will be injected dynamically -->
+      </div>
+
+      <!-- Bottom Button -->
+      <button class="btn btn-secondary" style="width:100%; margin:0; padding:12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px; font-weight: 600;" onclick="openAddCustomTokenView()">
+        Add a custom token
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal overlay: Metamask style Add Custom Token Modal -->
+  <div class="modal-overlay" id="modalAddCustomToken" style="z-index: 2100;">
+    <div class="modal-card" style="max-width: 400px; padding: 20px;">
+      <div class="modal-header" style="margin-bottom:15px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button onclick="closeAddCustomTokenView()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;">←</button>
+          <h3 class="modal-title" style="margin:0;">Add a custom token</h3>
+        </div>
+        <button class="btn-close-modal" onclick="closeAddCustomTokenView()">×</button>
+      </div>
+
+      <div style="background: rgba(255, 165, 0, 0.08); border: 1px solid rgba(255, 165, 0, 0.2); padding: 12px; border-radius: 8px; font-size: 0.8rem; color: #ffa500; margin-bottom: 15px; line-height:1.4;">
+        ⚠️ Anyone can create a token, including creating fake versions of existing tokens. Learn about scams and security risks.
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label class="form-label">Network</label>
+        <input type="text" class="input-field" value="Robinhood Chain Testnet" disabled style="background:rgba(5,11,26,0.3); opacity:0.7;">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label class="form-label">Token contract address</label>
+        <input type="text" id="customTokenAddressInput" class="input-field" placeholder="Enter token address (0x...)" oninput="onCustomTokenAddressInput()" onblur="onCustomTokenAddressInput()">
+      </div>
+
+      <!-- Auto-detected on-chain token details (read-only, fetched via RPC) -->
+      <div id="customTokenDetailsBox" style="display:none; background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:15px; font-size:0.85rem;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--text-muted);">Name</span>
+          <span id="customTokenNameOut" style="font-weight:600;">-</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--text-muted);">Symbol</span>
+          <span id="customTokenSymbolOut" style="font-weight:600;">-</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--text-muted);">Decimals</span>
+          <span id="customTokenDecimalsOut" style="font-weight:600;">-</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--text-muted);">Your on-chain balance</span>
+          <span id="customTokenBalanceOut" style="font-weight:600;">-</span>
+        </div>
+      </div>
+      <div id="customTokenStatusMsg" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:15px; min-height:16px;"></div>
+
+      <!-- Hidden fields populated only from on-chain contract reads -->
+      <input type="hidden" id="customTokenSymbolInput">
+      <input type="hidden" id="customTokenNameInput">
+      <input type="hidden" id="customTokenDecimalsInput">
+
+      <button class="btn btn-primary" id="customTokenSubmitBtn" style="width: 100%; font-weight:600;" onclick="submitCustomTokenMetamask()" disabled>Add token</button>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 HVBS AI Portfolio & Secure Wallet. All rights reserved.</p>
+  </footer>
+
+  <script src="wallet.js?v=2"></script>
+  <script src="wallet_app.js?v=2"></script>
+</body>
+</html>
