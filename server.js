@@ -7,6 +7,7 @@ import { exec } from "child_process";
 import multer from "multer";
 import path from "path";
 import dotenv from "dotenv";
+import nodemailer from "nodemailer";
 dotenv.config();
 
 // ─── SOLANA SUBSCRIPTION SYSTEM ─────────────────────────────────────────────
@@ -1962,6 +1963,83 @@ app.post("/api/alert-by-username", async (req, res) => {
     }
   }
   res.json({ success: true, message: `Alert set for @${cleanUsername}` });
+});
+
+app.post("/api/send-report", async (req, res) => {
+  const { email, txType, amount, recipient, hash, networkName, explorerUrl } = req.body;
+  console.log(`[EMAIL REPORT] Attempting to send report to: ${email} | Type: ${txType}`);
+  if (!email) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+  const smtpPort = parseInt(process.env.SMTP_PORT || "587");
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+
+  if (!smtpUser || !smtpPass) {
+    console.warn("[EMAIL REPORT] ⚠️ SMTP credentials not configured. Please set SMTP_USER and SMTP_PASS in .env.");
+    return res.json({ success: true, message: "Transaction completed, but SMTP credentials are not set on backend." });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      }
+    });
+
+    const mailOptions = {
+      from: `"HVBS AI Wallet" <${smtpUser}>`,
+      to: email,
+      subject: `HVBS Wallet Notification: ${txType} Transaction`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0f172a; color: #f8fafc; border-radius: 8px;">
+          <h2 style="color: #38bdf8; text-align: center; border-bottom: 1px solid #334155; padding-bottom: 10px;">HVBS AI Wallet</h2>
+          <p style="font-size: 1.1rem; color: #cbd5e1;">A new <strong>${txType}</strong> transaction has been executed from your wallet.</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0; color: #cbd5e1;">
+            <tr style="border-bottom: 1px solid #1e293b;">
+              <td style="padding: 10px 0; font-weight: bold; width: 150px;">Transaction Type:</td>
+              <td style="padding: 10px 0;">${txType}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1e293b;">
+              <td style="padding: 10px 0; font-weight: bold;">Amount:</td>
+              <td style="padding: 10px 0; color: #38bdf8; font-size: 1.1rem; font-weight: bold;">${amount}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1e293b;">
+              <td style="padding: 10px 0; font-weight: bold;">Recipient / Target:</td>
+              <td style="padding: 10px 0; font-family: monospace; word-break: break-all;">${recipient}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1e293b;">
+              <td style="padding: 10px 0; font-weight: bold;">Network:</td>
+              <td style="padding: 10px 0;">${networkName}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1e293b;">
+              <td style="padding: 10px 0; font-weight: bold;">Tx Hash:</td>
+              <td style="padding: 10px 0; font-family: monospace; word-break: break-all;">${hash}</td>
+            </tr>
+          </table>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${explorerUrl}" target="_blank" style="background-color: #38bdf8; color: #0f172a; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">View on Explorer</a>
+          </div>
+          <p style="font-size: 0.8rem; color: #64748b; margin-top: 30px; text-align: center; border-top: 1px solid #334155; padding-top: 15px;">
+            This is an automated notification from your HVBS AI Wallet. Please do not reply to this email.
+          </p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[EMAIL REPORT] ✅ Email report sent successfully to ${email}`);
+    return res.json({ success: true, message: "Email report sent successfully" });
+  } catch (error) {
+    console.error("[EMAIL REPORT] ❌ Failed to send email:", error);
+    return res.status(500).json({ error: "Failed to send email notification: " + error.message });
+  }
 });
 
 // Health check endpoint
