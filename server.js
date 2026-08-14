@@ -249,6 +249,8 @@ const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY || "";
 const CMC_API_KEY = process.env.CMC_API_KEY || process.env.COINMARKETCAP_API_KEY || "";
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY || "";
 const HELIUS_RPC_URL = HELIUS_API_KEY ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}` : null;
+const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
+const ZEROX_API_KEY = process.env.ZEROX_API_KEY || "";
 function coingeckoHeaders() {
   return COINGECKO_API_KEY ? { "x-cg-demo-api-key": COINGECKO_API_KEY } : {};
 }
@@ -264,6 +266,7 @@ function logProviderStatus() {
   console.log(`   • CoinGecko     : ${COINGECKO_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
   console.log(`   • CoinMarketCap : ${CMC_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
   console.log(`   • Helius        : ${HELIUS_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
+  console.log(`   • Brevo         : ${BREVO_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
   console.log("─────────────────────────────────────────────");
 }
 logProviderStatus();
@@ -3150,6 +3153,112 @@ process.on("unhandledRejection", (reason) => {
   console.error("💥 Unhandled rejection:", reason);
   console.error("Restarting process in 2s so the platform can bring it back up...");
   setTimeout(() => process.exit(1), 2000);
+});
+
+
+// ─── 0x SWAP / CROSS-CHAIN PROXY (API key stays server-side) ────────────────
+const ZEROX_API_BASE = "https://api.0x.org";
+const RH_CHAIN_ID = 4663;
+const ETH_CHAIN_ID = 1;
+const ZEROX_NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+
+function requireZeroX(res) {
+  if (!ZEROX_API_KEY) {
+    res.status(503).json({ success: false, error: "ZEROX_API_KEY is not configured on the backend." });
+    return false;
+  }
+  return true;
+}
+
+function zeroXHeaders() {
+  return { "0x-api-key": ZEROX_API_KEY, "0x-version": "v2", "Content-Type": "application/json" };
+}
+
+function isEvmAddress(value) {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
+function validateSwapParams(body, requireTaker = true) {
+  const { sellToken, buyToken, sellAmount, buyAmount, taker } = body || {};
+  if (!isEvmAddress(sellToken) || !isEvmAddress(buyToken)) return "Invalid sellToken or buyToken address.";
+  if ((sellAmount == null) === (buyAmount == null)) return "Provide exactly one of sellAmount or buyAmount.";
+  if (!/^\d+$/.test(String(sellAmount ?? buyAmount))) return "Amount must be an integer in token base units.";
+  if (requireTaker && !isEvmAddress(taker)) return "Invalid taker address.";
+  return null;
+}
+
+app.get("/api/0x/robinhood/price", async (req, res) => {
+  if (!requireZeroX(res)) return;
+  const params = { ...req.query, chainId: String(RH_CHAIN_ID) };
+  const err = validateSwapParams(params, false);
+  if (err) return res.status(400).json({ success: false, error: err });
+  try {
+    const r = await axios.get(`${ZEROX_API_BASE}/swap/allowance-holder/price`, {
+      params, headers: zeroXHeaders(), timeout: 15000
+    });
+    res.json({ success: true, ...r.data });
+  } catch (e) {
+    const status = e.response?.status || 502;
+    res.status(status).json({ success: false, error: e.response?.data || e.message });
+  }
+});
+
+app.get("/api/0x/robinhood/quote", async (req, res) => {
+  if (!requireZeroX(res)) return;
+  const params = { ...req.query, chainId: String(RH_CHAIN_ID) };
+  const err = validateSwapParams(params, true);
+  if (err) return res.status(400).json({ success: false, error: err });
+  try {
+    const r = await axios.get(`${ZEROX_API_BASE}/swap/allowance-holder/quote`, {
+      params, headers: zeroXHeaders(), timeout: 20000
+    });
+    res.json({ success: true, ...r.data });
+  } catch (e) {
+    const status = e.response?.status || 502;
+    res.status(status).json({ success: false, error: e.response?.data || e.message });
+  }
+});
+
+app.get("/api/0x/cross-chain/quote", async (req, res) => {
+  if (!requireZeroX(res)) return;
+  const originChain = String(req.query.originChain || "");
+  const destinationChain = String(req.query.destinationChain || "");
+  if (!((originChain === String(ETH_CHAIN_ID) && destinationChain === String(RH_CHAIN_ID)) ||
+        (originChain === String(RH_CHAIN_ID) && destinationChain === String(ETH_CHAIN_ID)))) {
+    return res.status(400).json({ success: false, error: "Only Ethereum Mainnet (1) ↔ Robinhood Chain (4663) is enabled." });
+  }
+  const params = { ...req.query, originChain, destinationChain, maxNumQuotes: req.query.maxNumQuotes || "1", sortQuotesBy: req.query.sortQuotesBy || "price" };
+  if (!isEvmAddress(params.sellToken) || !isEvmAddress(params.buyToken)) return res.status(400).json({ success:false, error:"Invalid sellToken or buyToken address." });
+  if (!/^\d+$/.test(String(params.sellAmount || ""))) return res.status(400).json({ success:false, error:"sellAmount must be in token base units." });
+  if (!isEvmAddress(params.originAddress)) return res.status(400).json({ success:false, error:"Invalid originAddress." });
+  if (params.destinationAddress && !isEvmAddress(params.destinationAddress)) return res.status(400).json({ success:false, error:"Invalid destinationAddress." });
+  try {
+    const r = await axios.get(`${ZEROX_API_BASE}/cross-chain/quotes`, { params, headers: { "0x-api-key": ZEROX_API_KEY }, timeout: 30000 });
+    res.json({ success:true, ...r.data });
+  } catch (e) {
+    const status = e.response?.status || 502;
+    res.status(status).json({ success:false, error:e.response?.data || e.message });
+  }
+});
+
+app.get("/api/0x/cross-chain/status", async (req, res) => {
+  if (!requireZeroX(res)) return;
+  const originChain = String(req.query.originChain || "");
+  const originTxHash = String(req.query.originTxHash || "");
+  const quoteId = String(req.query.quoteId || "");
+  if (![String(ETH_CHAIN_ID), String(RH_CHAIN_ID)].includes(originChain) || !/^0x[a-fA-F0-9]{64}$/.test(originTxHash) || !quoteId) {
+    return res.status(400).json({ success:false, error:"Invalid originChain, originTxHash or quoteId." });
+  }
+  try {
+    const r = await axios.get(`${ZEROX_API_BASE}/cross-chain/status`, {
+      params: { originChain, originTxHash, quoteId },
+      headers: { "0x-api-key": ZEROX_API_KEY }, timeout: 15000
+    });
+    res.json({ success:true, ...r.data });
+  } catch (e) {
+    const status = e.response?.status || 502;
+    res.status(status).json({ success:false, error:e.response?.data || e.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
