@@ -251,6 +251,10 @@ const HELIUS_API_KEY = process.env.HELIUS_API_KEY || "";
 const HELIUS_RPC_URL = HELIUS_API_KEY ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}` : null;
 const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
 const ZEROX_API_KEY = process.env.ZEROX_API_KEY || "";
+// Optional: Blockscout DevPortal PRO API key (https://dev.blockscout.com/).
+// This buys a dedicated rate limit, not extra price data - Blockscout still
+// only returns a price if it has resolved one for that specific token.
+const BLOCKSCOUT_API_KEY = process.env.BLOCKSCOUT_API_KEY || "";
 function coingeckoHeaders() {
   return COINGECKO_API_KEY ? { "x-cg-demo-api-key": COINGECKO_API_KEY } : {};
 }
@@ -266,6 +270,7 @@ function logProviderStatus() {
   console.log(`   • CoinGecko     : ${COINGECKO_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
   console.log(`   • CoinMarketCap : ${CMC_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
   console.log(`   • Helius        : ${HELIUS_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
+  console.log(`   • Blockscout    : ${BLOCKSCOUT_API_KEY ? "✅ Loaded (PRO rate limit)" : "⚪ No key (public rate limit — still works)"}`);
   console.log(`   • Brevo         : ${BREVO_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
   console.log("─────────────────────────────────────────────");
 }
@@ -313,6 +318,13 @@ const TRENDING_BASE_API = "https://api.dexscreener.com/latest/dex/search?q=base"
 // Robinhood Chain — Arbitrum-based Ethereum L2, Chain ID 4663, ETH gas, launched July 1, 2026
 const DEXSCREENER_ROBINHOOD_PAIRS = "https://api.dexscreener.com/token-pairs/v1/robinhood/";
 const TRENDING_ROBINHOOD_API = "https://api.dexscreener.com/latest/dex/search?q=robinhood";
+const GECKO_TERMINAL_ROBINHOOD_API = "https://api.geckoterminal.com/api/v2/networks/robinhood/tokens/";
+// Chain's own explorer — no key, no rate limit, and the freshest data for
+// this specific chain since there's zero third-party indexing lag. Only
+// gives a price if Blockscout itself has resolved one for the token
+// (usually via its own DEX-reserve price oracle), so it's a great first
+// try but not guaranteed for every token — that's what the fallbacks below are for.
+const BLOCKSCOUT_ROBINHOOD_TOKEN_API = "https://robinhoodchain.blockscout.com/api/v2/tokens/";
 
 const ALERTS_FILE = "./alerts.json";
 const WATCHLIST_FILE = "./watchlist.json";
@@ -1647,8 +1659,34 @@ app.get("/api/trending/base", async (req, res) => {
 });
 
 // ========== ROBINHOOD CHAIN MARKET DATA FUNCTIONS ==========
-async function getMarketDataRobinhood(address, retries = 2) {
+async function getMarketDataRobinhood(address, decimals = null, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
+    // Tier 1: Blockscout (the chain's own explorer — zero indexing lag,
+    // no key, no rate limit). Only returns a price if Blockscout has
+    // resolved one for this token via its own DEX-reserve price oracle.
+    try {
+      const bsRes = await axios.get(`${BLOCKSCOUT_ROBINHOOD_TOKEN_API}${address}`, {
+        timeout: 6000,
+        params: BLOCKSCOUT_API_KEY ? { apikey: BLOCKSCOUT_API_KEY } : {}
+      });
+      const t = bsRes.data;
+      const price = parseFloat(t?.exchange_rate);
+      if (price && !isNaN(price) && price > 0) {
+        return {
+          price,
+          liquidity: 0,
+          volume24h: parseFloat(t.volume_24h) || 0,
+          priceChange24h: 0,
+          marketCap: parseFloat(t.circulating_market_cap) || 0,
+          symbol: t.symbol || '?',
+          name: t.name || '',
+          chartUrl: `https://robinhoodchain.blockscout.com/token/${address}`,
+          buyCount: 0, sellCount: 0, pairAddress: '',
+          source: 'blockscout'
+        };
+      }
+    } catch (e) { }
+
     try {
       const res = await axios.get(`${DEXSCREENER_ROBINHOOD_PAIRS}${address}`, { timeout: 6000 });
       if (Array.isArray(res.data) && res.data.length > 0) {
@@ -1697,9 +1735,87 @@ async function getMarketDataRobinhood(address, retries = 2) {
       }
     } catch (e) { }
 
+    // Tier 3: GeckoTerminal (CoinGecko's own on-chain DEX indexer — uses
+    // COINGECKO_API_KEY). Same fallback pattern already used for
+    // Ethereum/BSC/Base above. This is what actually makes the CoinGecko
+    // key useful for Robinhood Chain tokens that DexScreener hasn't
+    // indexed yet.
+    try {
+      const geckoRes = await axios.get(`${GECKO_TERMINAL_ROBINHOOD_API}${address}`, { timeout: 6000, headers: coingeckoHeaders() });
+      const attrs = geckoRes.data?.data?.attributes;
+      if (attrs) {
+        const price = parseFloat(attrs.price_usd);
+        if (price && price > 0) {
+          return {
+            price,
+            liquidity: parseFloat(attrs.total_reserve_in_usd) || 0,
+            volume24h: parseFloat(attrs.volume_usd?.h24) || 0,
+            priceChange24h: parseFloat(attrs.price_change_percentage?.h24) || 0,
+            marketCap: parseFloat(attrs.market_cap_usd) || parseFloat(attrs.fdv_usd) || 0,
+            symbol: attrs.symbol || '?',
+            name: attrs.name || '',
+            chartUrl: `https://www.geckoterminal.com/robinhood/tokens/${address}`,
+            buyCount: 0, sellCount: 0, pairAddress: '',
+            source: 'geckoterminal'
+          };
+        }
+      }
+    } catch (e) { }
+
+    // Tier 4: 0x's own live price endpoint. This reflects real on-chain
+    // liquidity right now (same source the swap widget already trusts),
+    // so it catches brand-new/thinly-indexed tokens that neither
+    // DexScreener nor GeckoTerminal have picked up yet. Requires the
+    // caller to have told us the token's decimals (frontend reads this
+    // on-chain before calling us).
+    if (ZEROX_API_KEY && decimals != null && Number.isFinite(Number(decimals))) {
+      try {
+        const oneToken = (10n ** BigInt(decimals)).toString();
+        const zxRes = await axios.get(`${ZEROX_API_BASE}/swap/allowance-holder/price`, {
+          params: { chainId: String(RH_CHAIN_ID), sellToken: address, sellAmount: oneToken, buyToken: ZEROX_NATIVE_TOKEN },
+          headers: zeroXHeaders(), timeout: 10000
+        });
+        const buyAmountWei = zxRes.data?.buyAmount;
+        if (buyAmountWei) {
+          const ethPerToken = Number(buyAmountWei) / 1e18;
+          if (ethPerToken > 0) {
+            const ethUsd = await getEthUsdPriceCached();
+            const price = ethUsd ? ethPerToken * ethUsd : 0;
+            if (price > 0) {
+              return {
+                price,
+                liquidity: 0, volume24h: 0, priceChange24h: 0, marketCap: 0,
+                symbol: '?', name: '',
+                chartUrl: `https://dexscreener.com/robinhood/${address}`,
+                buyCount: 0, sellCount: 0, pairAddress: '',
+                source: '0x-live'
+              };
+            }
+          }
+        }
+      } catch (e) { }
+    }
+
     if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
   }
   return null;
+}
+
+// Small in-memory cache so the 0x-fallback price tier doesn't hammer
+// CoinGecko's simple/price endpoint on every request.
+let _ethUsdCache = { price: null, at: 0 };
+async function getEthUsdPriceCached() {
+  const now = Date.now();
+  if (_ethUsdCache.price && (now - _ethUsdCache.at) < 30000) return _ethUsdCache.price;
+  try {
+    const r = await axios.get("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd", { timeout: 5000, headers: coingeckoHeaders() });
+    const price = parseFloat(r.data?.ethereum?.usd);
+    if (price > 0) {
+      _ethUsdCache = { price, at: now };
+      return price;
+    }
+  } catch (e) { }
+  return _ethUsdCache.price; // stale-but-better-than-nothing if CoinGecko hiccups
 }
 
 async function getHolderCountRobinhood(address) {
@@ -1743,9 +1859,10 @@ app.get("/api/token/robinhood/:address", async (req, res) => {
   if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
     return res.status(400).json({ success: false, error: "Invalid Robinhood Chain token address. Must be 0x followed by 40 hex characters." });
   }
+  const decimalsParam = req.query.decimals != null ? Number(req.query.decimals) : null;
   try {
     const [market, holderCount, buyersSellers] = await Promise.all([
-      getMarketDataRobinhood(address),
+      getMarketDataRobinhood(address, decimalsParam),
       getHolderCountRobinhood(address),
       getBuyersSellersRobinhood(address)
     ]);
