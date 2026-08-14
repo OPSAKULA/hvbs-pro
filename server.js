@@ -552,7 +552,7 @@ setInterval(() => {
   if (!selfUrl) return;
   axios.get(`${selfUrl.replace(/\/$/, "")}/health`, { timeout: 10000 })
     .catch((e) => console.error("Self-ping failed:", e.message));
-}, 10 * 60 * 1000);
+}, 5 * 60 * 1000);
 
 const activeSounds = {}; // tracks last-sent alert sound per chat (for /api/sound-status)
 
