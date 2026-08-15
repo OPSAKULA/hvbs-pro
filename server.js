@@ -258,8 +258,9 @@ const BLOCKSCOUT_API_KEY = process.env.BLOCKSCOUT_API_KEY || "";
 
 // ─── 0x SWAP API (Robinhood Chain) ────────────────────────────────────────────
 // Robinhood Chain ID = 4663 (Arbitrum-based L2)
+// Robinhood Chain ID = 4663 (Arbitrum-based L2)
 const RH_CHAIN_ID = 4663;
-const ZEROX_NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // native ETH sentinel
+const ZEROX_NATIVE_TOKEN = "...";
 function zeroXHeaders() {
   return ZEROX_API_KEY ? { "0x-api-key": ZEROX_API_KEY, "0x-version": "v2" } : { "0x-version": "v2" };
 }
@@ -3375,8 +3376,7 @@ process.on("unhandledRejection", (reason) => {
 
 
 // ─── 0x SWAP / CROSS-CHAIN PROXY (API key stays server-side) ────────────────
-const ZEROX_API_BASE = "https://api.0x.org";
-const RH_CHAIN_ID = 4663;
+
 const ETH_CHAIN_ID = 1;
 const ZEROX_NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
