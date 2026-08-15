@@ -255,6 +255,78 @@ const ZEROX_API_KEY = process.env.ZEROX_API_KEY || "";
 // This buys a dedicated rate limit, not extra price data - Blockscout still
 // only returns a price if it has resolved one for that specific token.
 const BLOCKSCOUT_API_KEY = process.env.BLOCKSCOUT_API_KEY || "";
+
+// ─── 0x SWAP API (Robinhood Chain) ────────────────────────────────────────────
+// Robinhood Chain ID = 4663 (Arbitrum-based L2)
+const RH_CHAIN_ID = 4663;
+const ZEROX_API_BASE = "https://api.0x.org";
+const ZEROX_NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // native ETH sentinel
+function zeroXHeaders() {
+  return ZEROX_API_KEY ? { "0x-api-key": ZEROX_API_KEY, "0x-version": "v2" } : { "0x-version": "v2" };
+}
+
+// ─── ROBINHOOD CHAIN RPC (for on-chain price fallback) ───────────────────────
+const RH_RPC_URL = "https://rpc.mainnet.chain.robinhood.com/";
+// WETH address on Robinhood Chain (Arbitrum-style wrapped ETH)
+const RH_WETH_ADDRESS = "0x4200000000000000000000000000000000000006";
+// Uniswap V3 Quoter V2 is standard on all Arbitrum-based chains
+const UNISWAP_V3_QUOTER = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e";
+// quoteExactInputSingle selector: 0xc6a5026a (Quoter V2)
+const QUOTER_ABI_SELECTOR = "0xc6a5026a";
+
+/**
+ * On-chain price oracle for Robinhood Chain.
+ * Uses Uniswap V3 Quoter V2 to simulate a 1-token swap into WETH,
+ * then multiplies by live ETH/USD price.
+ * Works for ANY token that has a Uniswap V3 liquidity pool on this chain,
+ * even if DexScreener/GeckoTerminal haven't indexed it yet.
+ */
+async function getOnChainPriceRobinhood(tokenAddress, decimals) {
+  if (decimals == null || !Number.isFinite(Number(decimals))) return null;
+  try {
+    const dec = Number(decimals);
+    // Simulate selling exactly 1 token for WETH
+    const amountIn = (10n ** BigInt(dec)).toString();
+    // Fee tiers to try: 500 (0.05%), 3000 (0.3%), 10000 (1%)
+    const feeTiers = [500, 3000, 10000];
+    for (const fee of feeTiers) {
+      try {
+        // Encode quoteExactInputSingle(tokenIn, tokenOut, amountIn, sqrtPriceLimitX96)
+        // Function sig: quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96))
+        const tokenIn = tokenAddress.slice(2).padStart(64, '0');
+        const tokenOut = RH_WETH_ADDRESS.slice(2).padStart(64, '0');
+        const amt = BigInt(amountIn).toString(16).padStart(64, '0');
+        const feeHex = fee.toString(16).padStart(64, '0');
+        const sqrtLimit = ''.padStart(64, '0');
+        const callData = QUOTER_ABI_SELECTOR + tokenIn + tokenOut + amt + feeHex + sqrtLimit;
+
+        const rpcBody = JSON.stringify({
+          jsonrpc: '2.0', id: 1, method: 'eth_call',
+          params: [{ to: UNISWAP_V3_QUOTER, data: callData }, 'latest']
+        });
+        const rpcRes = await axios.post(RH_RPC_URL, rpcBody, {
+          headers: { 'Content-Type': 'application/json' }, timeout: 8000
+        });
+        const result = rpcRes.data?.result;
+        if (result && result !== '0x') {
+          // amountOut is first 32 bytes (256-bit integer)
+          const weiOut = BigInt(result.slice(0, 66));
+          if (weiOut > 0n) {
+            const ethPerToken = Number(weiOut) / 1e18;
+            const ethUsd = await getEthUsdPriceCached();
+            if (ethUsd && ethUsd > 0) {
+              return ethPerToken * ethUsd;
+            }
+          }
+        }
+      } catch (e) { /* try next fee tier */ }
+    }
+  } catch (e) {
+    console.warn('[RH on-chain price] Error:', e.message);
+  }
+  return null;
+}
+
 function coingeckoHeaders() {
   return COINGECKO_API_KEY ? { "x-cg-demo-api-key": COINGECKO_API_KEY } : {};
 }
@@ -1800,6 +1872,30 @@ async function getMarketDataRobinhood(address, decimals = null, retries = 2) {
           }
         }
       } catch (e) { }
+    }
+
+    // Tier 5: Direct on-chain Uniswap V3 Quoter price oracle.
+    // This is the last resort for tokens that have a live DEX pool on
+    // Robinhood Chain but haven't been indexed by any third-party aggregator
+    // yet (e.g. brand-new tokens like TEMA). Reads price directly from the
+    // chain's own Uniswap V3 Quoter contract — requires token decimals.
+    if (decimals != null && Number.isFinite(Number(decimals))) {
+      try {
+        const onChainPrice = await getOnChainPriceRobinhood(address, decimals);
+        if (onChainPrice && onChainPrice > 0) {
+          console.log(`[RH on-chain oracle] Price for ${address.slice(0,8)}...: $${onChainPrice}`);
+          return {
+            price: onChainPrice,
+            liquidity: 0, volume24h: 0, priceChange24h: 0, marketCap: 0,
+            symbol: '?', name: '',
+            chartUrl: `https://robinhoodchain.blockscout.com/token/${address}`,
+            buyCount: 0, sellCount: 0, pairAddress: '',
+            source: 'on-chain-quoter'
+          };
+        }
+      } catch (e) {
+        console.warn('[RH Tier 5 on-chain oracle] Error:', e.message);
+      }
     }
 
     if (attempt < retries) await new Promise(r => setTimeout(r, 2000));
