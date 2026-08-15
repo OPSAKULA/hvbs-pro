@@ -3378,7 +3378,7 @@ process.on("unhandledRejection", (reason) => {
 // ─── 0x SWAP / CROSS-CHAIN PROXY (API key stays server-side) ────────────────
 
 const ETH_CHAIN_ID = 1;
-const ZEROX_NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+
 
 function requireZeroX(res) {
   if (!ZEROX_API_KEY) {
