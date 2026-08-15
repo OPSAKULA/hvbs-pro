@@ -255,6 +255,10 @@ const ZEROX_API_KEY = process.env.ZEROX_API_KEY || "";
 // This buys a dedicated rate limit, not extra price data - Blockscout still
 // only returns a price if it has resolved one for that specific token.
 const BLOCKSCOUT_API_KEY = process.env.BLOCKSCOUT_API_KEY || "";
+// Etherscan key, used ONLY by the dedicated wallet ETH-price endpoint below
+// (/api/wallet/eth-price). Kept completely separate from COINGECKO_API_KEY /
+// CMC_API_KEY so nothing else in the app (bot scanner, etc.) touches it.
+const ETH_API_KEY = process.env.ETH_API_KEY || "";
 function coingeckoHeaders() {
   return COINGECKO_API_KEY ? { "x-cg-demo-api-key": COINGECKO_API_KEY } : {};
 }
@@ -272,6 +276,7 @@ function logProviderStatus() {
   console.log(`   • Helius        : ${HELIUS_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
   console.log(`   • Blockscout    : ${BLOCKSCOUT_API_KEY ? "✅ Loaded (PRO rate limit)" : "⚪ No key (public rate limit — still works)"}`);
   console.log(`   • Brevo         : ${BREVO_API_KEY ? "✅ Loaded" : "⚠️  Missing (fallback disabled)"}`);
+  console.log(`   • Etherscan     : ${ETH_API_KEY ? "✅ Loaded (wallet ETH price only)" : "⚠️  Missing (wallet falls back to CoinGecko)"}`);
   console.log("─────────────────────────────────────────────");
 }
 logProviderStatus();
@@ -3278,6 +3283,42 @@ process.on("unhandledRejection", (reason) => {
   setTimeout(() => process.exit(1), 2000);
 });
 
+
+// ─── WALLET-ONLY ETH PRICE (Etherscan) ──────────────────────────────────────
+// Dedicated to the HVBS wallet's RH-ETH display. Uses ETH_API_KEY only -
+// completely separate from COINGECKO_API_KEY/CMC_API_KEY used elsewhere, so
+// the bot scanner and everything else is untouched by this key.
+let ethPriceCache = { price: null, change: null, ts: 0 };
+const ETH_PRICE_CACHE_MS = 10000; // 10s server-side cache, keeps well under Etherscan's free-tier rate limit
+
+app.get("/api/wallet/eth-price", async (req, res) => {
+  const now = Date.now();
+  if (ethPriceCache.price !== null && now - ethPriceCache.ts < ETH_PRICE_CACHE_MS) {
+    return res.json({ success: true, price: ethPriceCache.price, change: ethPriceCache.change, source: "etherscan", cached: true });
+  }
+
+  if (!ETH_API_KEY) {
+    return res.status(503).json({ success: false, error: "ETH_API_KEY is not configured on the backend." });
+  }
+
+  try {
+    const r = await axios.get("https://api.etherscan.io/api", {
+      params: { module: "stats", action: "ethprice", apikey: ETH_API_KEY },
+      timeout: 8000
+    });
+    if (r.data?.status !== "1" || !r.data?.result?.ethusd) {
+      throw new Error(r.data?.message || r.data?.result || "Etherscan returned no price.");
+    }
+    const price = parseFloat(r.data.result.ethusd);
+    // Etherscan's ethprice endpoint doesn't include a 24h % change, so keep
+    // whatever change % we last had (if any) rather than fabricating one.
+    ethPriceCache = { price, change: ethPriceCache.change, ts: now };
+    res.json({ success: true, price, change: ethPriceCache.change, source: "etherscan", cached: false });
+  } catch (e) {
+    console.error("[ETH_PRICE] Etherscan fetch failed:", e.response?.data || e.message);
+    res.status(502).json({ success: false, error: e.response?.data?.result || e.message });
+  }
+});
 
 // ─── 0x SWAP / CROSS-CHAIN PROXY (API key stays server-side) ────────────────
 const ZEROX_API_BASE = "https://api.0x.org";
