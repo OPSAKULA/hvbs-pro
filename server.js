@@ -259,7 +259,6 @@ const BLOCKSCOUT_API_KEY = process.env.BLOCKSCOUT_API_KEY || "";
 // ─── 0x SWAP API (Robinhood Chain) ────────────────────────────────────────────
 // Robinhood Chain ID = 4663 (Arbitrum-based L2)
 const RH_CHAIN_ID = 4663;
-const ZEROX_API_BASE = "https://api.0x.org";
 const ZEROX_NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // native ETH sentinel
 function zeroXHeaders() {
   return ZEROX_API_KEY ? { "0x-api-key": ZEROX_API_KEY, "0x-version": "v2" } : { "0x-version": "v2" };
