@@ -3236,13 +3236,6 @@ app.post("/admin/override-subscription", requireAdmin, (req, res) => {
 app.get("/admin", (req, res) => res.sendFile(process.cwd() + "/admin.html"));
 app.get("/payment", (req, res) => res.sendFile(process.cwd() + "/payment.html"));
 
-// ═══════════════════════════════════════════════════════════════════════════
-// WILDCARD + START
-// ═══════════════════════════════════════════════════════════════════════════
-app.get("*", (req, res) => {
-  res.sendFile(process.cwd() + "/index.html");
-});
-
 // ─── GRACEFUL SHUTDOWN (stops duplicate-instance 409 conflicts at the root) ──
 // Render sends SIGTERM to the OLD instance as soon as the NEW deploy becomes
 // healthy, but gives it a grace period before force-killing it. Without a
@@ -3389,6 +3382,15 @@ app.get("/api/0x/cross-chain/status", async (req, res) => {
     const status = e.response?.status || 502;
     res.status(status).json({ success:false, error:e.response?.data || e.message });
   }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WILDCARD + START
+// (must stay LAST - any route registered after this is unreachable, since
+// Express matches routes in registration order and "*" matches everything)
+// ═══════════════════════════════════════════════════════════════════════════
+app.get("*", (req, res) => {
+  res.sendFile(process.cwd() + "/index.html");
 });
 
 const PORT = process.env.PORT || 3000;
