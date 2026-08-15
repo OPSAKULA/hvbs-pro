@@ -1661,9 +1661,70 @@ app.get("/api/trending/base", async (req, res) => {
 // ========== ROBINHOOD CHAIN MARKET DATA FUNCTIONS ==========
 async function getMarketDataRobinhood(address, decimals = null, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
-    // Tier 1: Blockscout (the chain's own explorer — zero indexing lag,
-    // no key, no rate limit). Only returns a price if Blockscout has
-    // resolved one for this token via its own DEX-reserve price oracle.
+    // Tier 1: DexScreener direct pairs lookup. This reflects the actual
+    // live trading price off the DEX pool right now (same number you'd
+    // see on dexscreener.com), so it's checked first — it's the most
+    // trustworthy live source, especially for volatile/thin-liquidity
+    // tokens where a cached oracle price can lag behind real trades.
+    try {
+      const res = await axios.get(`${DEXSCREENER_ROBINHOOD_PAIRS}${address}`, { timeout: 6000 });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        const p = res.data[0];
+        const price = parseFloat(p.priceUsd);
+        if (price && !isNaN(price) && price > 0) {
+          return {
+            price,
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || '?',
+            name: p.baseToken?.name || '',
+            chartUrl: p.url || `https://dexscreener.com/robinhood/${address}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || '',
+            source: 'dexscreener-pairs'
+          };
+        }
+      }
+    } catch (e) { }
+
+    // Tier 2: DexScreener search endpoint - same live trade data, used as
+    // a backup path in case the direct pairs lookup above hasn't indexed
+    // this address yet but the search index has.
+    try {
+      const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 6000 });
+      const pairs = searchRes.data.pairs || [];
+      const rhPairs = pairs.filter(p => p.chainId === 'robinhood');
+      if (rhPairs.length > 0) {
+        const p = rhPairs[0];
+        const price = parseFloat(p.priceUsd);
+        if (price && !isNaN(price) && price > 0) {
+          return {
+            price,
+            liquidity: p.liquidity?.usd || 0,
+            volume24h: p.volume?.h24 || 0,
+            priceChange24h: p.priceChange?.h24 || 0,
+            marketCap: p.marketCap || 0,
+            symbol: p.baseToken?.symbol || '?',
+            name: p.baseToken?.name || '',
+            chartUrl: p.url || `https://dexscreener.com/robinhood/${address}`,
+            buyCount: p.txns?.h24?.buys || 0,
+            sellCount: p.txns?.h24?.sells || 0,
+            pairAddress: p.pairAddress || '',
+            source: 'dexscreener-search'
+          };
+        }
+      }
+    } catch (e) { }
+
+    // Tier 3: Blockscout (the chain's own explorer — zero indexing lag,
+    // no key, no rate limit). Moved after DexScreener because Blockscout's
+    // own DEX-reserve price oracle can lag behind fast-moving trades on
+    // thin-liquidity tokens, returning a stale price instead of the
+    // current live one. Still useful as a fallback for tokens DexScreener
+    // hasn't indexed at all yet.
     try {
       const bsRes = await axios.get(`${BLOCKSCOUT_ROBINHOOD_TOKEN_API}${address}`, {
         timeout: 6000,
@@ -1684,54 +1745,6 @@ async function getMarketDataRobinhood(address, decimals = null, retries = 2) {
           buyCount: 0, sellCount: 0, pairAddress: '',
           source: 'blockscout'
         };
-      }
-    } catch (e) { }
-
-    try {
-      const res = await axios.get(`${DEXSCREENER_ROBINHOOD_PAIRS}${address}`, { timeout: 6000 });
-      if (Array.isArray(res.data) && res.data.length > 0) {
-        const p = res.data[0];
-        const price = parseFloat(p.priceUsd);
-        if (price && !isNaN(price) && price > 0) {
-          return {
-            price,
-            liquidity: p.liquidity?.usd || 0,
-            volume24h: p.volume?.h24 || 0,
-            priceChange24h: p.priceChange?.h24 || 0,
-            marketCap: p.marketCap || 0,
-            symbol: p.baseToken?.symbol || '?',
-            name: p.baseToken?.name || '',
-            chartUrl: p.url || `https://dexscreener.com/robinhood/${address}`,
-            buyCount: p.txns?.h24?.buys || 0,
-            sellCount: p.txns?.h24?.sells || 0,
-            pairAddress: p.pairAddress || ''
-          };
-        }
-      }
-    } catch (e) { }
-
-    try {
-      const searchRes = await axios.get(`${DEXSCREENER_SEARCH}${address}`, { timeout: 6000 });
-      const pairs = searchRes.data.pairs || [];
-      const rhPairs = pairs.filter(p => p.chainId === 'robinhood');
-      if (rhPairs.length > 0) {
-        const p = rhPairs[0];
-        const price = parseFloat(p.priceUsd);
-        if (price && !isNaN(price) && price > 0) {
-          return {
-            price,
-            liquidity: p.liquidity?.usd || 0,
-            volume24h: p.volume?.h24 || 0,
-            priceChange24h: p.priceChange?.h24 || 0,
-            marketCap: p.marketCap || 0,
-            symbol: p.baseToken?.symbol || '?',
-            name: p.baseToken?.name || '',
-            chartUrl: p.url || `https://dexscreener.com/robinhood/${address}`,
-            buyCount: p.txns?.h24?.buys || 0,
-            sellCount: p.txns?.h24?.sells || 0,
-            pairAddress: p.pairAddress || ''
-          };
-        }
       }
     } catch (e) { }
 
